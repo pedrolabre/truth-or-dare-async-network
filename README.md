@@ -15,3 +15,17 @@ Os usuários poderão criar desafios do tipo *verdade* ou *desafio* para grupos 
 * Criação de grupos
 
 Tudo isso promovendo uma experiência social e interativa dentro da plataforma.
+
+## 🎨 Protótipos de Interface
+
+Abaixo estão as telas iniciais de validação visual da aplicação. Os arquivos fontes em HTML e CSS estão disponíveis na pasta `/prototype`.
+
+### Tela de Login
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/login-screen/tela-de-login-modo-claro.png" width="250"> | <img src="prototype/dark-mode/login-screen/tela-de-login-modo-escuro.png" width="250"> |
+
+### Tela de Cadastro
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/signup-screen/tela-de-cadastro-modo-claro.png" width="250"> | <img src="prototype/dark-mode/signup-screen/tela-de-cadastro-modo-escuro.png" width="250"> |
