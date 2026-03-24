@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "secondary-container": "#c0ecd9",
+              "surface-variant": "#dee4df",
+              "on-tertiary-fixed-variant": "#93000a",
+              "on-background": "#171d1a",
+              "on-error-container": "#93000a",
+              "inverse-surface": "#2c322f",
+              "on-tertiary-fixed": "#410002",
+              "on-secondary": "#ffffff",
+              "on-primary": "#ffffff",
+              "error": "#ba1a1a",
+              "outline-variant": "#bccac2",
+              "tertiary-fixed-dim": "#ffb4ab",
+              "surface-container": "#eaefea",
+              "tertiary": "#bb0011",
+              "primary-fixed-dim": "#68dbb4",
+              "surface-container-low": "#eff5f0",
+              "on-primary-container": "#f5fff8",
+              "surface-tint": "#006c52",
+              "surface": "#f5fbf6",
+              "on-surface-variant": "#3d4944",
+              "error-container": "#ffdad6",
+              "tertiary-fixed": "#ffdad6",
+              "on-secondary-fixed": "#002117",
+              "primary-fixed": "#86f7d0",
+              "surface-container-high": "#e4eae5",
+              "on-primary-fixed-variant": "#00513d",
+              "inverse-on-surface": "#ecf2ed",
+              "secondary-fixed": "#c0ecd9",
+              "on-error": "#ffffff",
+              "on-surface": "#171d1a",
+              "tertiary-container": "#e6171e",
+              "primary": "#006950",
+              "on-tertiary-container": "#fffbff",
+              "on-secondary-fixed-variant": "#264e40",
+              "on-secondary-container": "#446c5d",
+              "secondary": "#3e6657",
+              "background": "#f5fbf6",
+              "surface-container-lowest": "#ffffff",
+              "inverse-primary": "#68dbb4",
+              "surface-dim": "#d6dbd7",
+              "surface-container-highest": "#dee4df",
+              "surface-bright": "#f5fbf6",
+              "on-primary-fixed": "#002117",
+              "secondary-fixed-dim": "#a5d0bd",
+              "primary-container": "#008466",
+              "outline": "#6d7a74",
+              "on-tertiary": "#ffffff",
+              "brand-green": "#5A8363",
+              "brand-red": "#D70015"
+            },
+            fontFamily: {
+              "headline": ["Inter"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .neo-brutalist-shadow {
+            box-shadow: 4px 4px 0px 0px rgba(0,0,0,0.15);
+        }
+        .neo-brutalist-shadow-sm {
+            box-shadow: 2px 2px 0px 0px rgba(0,0,0,0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-white text-zinc-900 font-body antialiased">
+<main class="min-h-screen pt-24 pb-12 px-6 flex flex-col items-center max-w-md mx-auto">
+<!-- Illustration/Icon -->
+<div class="mb-8 w-24 h-24 bg-secondary-fixed rounded-xl border-2 border-black flex items-center justify-center neo-brutalist-shadow">
+<span class="material-symbols-outlined text-4xl text-black" data-icon="mail" style="font-variation-settings: 'FILL' 1;">mail</span>
+</div>
+<!-- Content Shell -->
+<div class="text-center mb-10">
+<h2 class="font-headline font-black text-2xl uppercase tracking-tight mb-3">CONFIRME SEU ACESSO</h2>
+<p class="text-zinc-600 leading-relaxed px-2">Enviamos um código de 6 dígitos para o seu e-mail. Insira-o abaixo para continuar.</p>
+</div>
+<!-- Verification Input Grid -->
+<div class="flex gap-2 mb-10 w-full justify-center">
+<input class="h-16 w-12 text-center text-2xl font-black font-headline border-2 border-black rounded-xl focus:ring-2 focus:ring-brand-green focus:outline-none neo-brutalist-shadow-sm" maxlength="1" type="text" value="4"/>
+<input class="h-16 w-12 text-center text-2xl font-black font-headline border-2 border-black rounded-xl focus:ring-2 focus:ring-brand-green focus:outline-none neo-brutalist-shadow-sm" maxlength="1" type="text" value="2"/>
+<input class="h-16 w-12 text-center text-2xl font-black font-headline border-2 border-black rounded-xl focus:ring-2 focus:ring-brand-green focus:outline-none neo-brutalist-shadow-sm" maxlength="1" placeholder="·" type="text"/>
+<input class="h-16 w-12 text-center text-2xl font-black font-headline border-2 border-black rounded-xl focus:ring-2 focus:ring-brand-green focus:outline-none neo-brutalist-shadow-sm" maxlength="1" placeholder="·" type="text"/>
+<input class="h-16 w-12 text-center text-2xl font-black font-headline border-2 border-black rounded-xl focus:ring-2 focus:ring-brand-green focus:outline-none neo-brutalist-shadow-sm" maxlength="1" placeholder="·" type="text"/>
+<input class="h-16 w-12 text-center text-2xl font-black font-headline border-2 border-black rounded-xl focus:ring-2 focus:ring-brand-green focus:outline-none neo-brutalist-shadow-sm" maxlength="1" placeholder="·" type="text"/>
+</div>
+<!-- Primary Action -->
+<button class="w-full bg-[#5A8363] text-white py-4 px-6 rounded-xl border-2 border-black font-headline font-bold text-lg flex items-center justify-center gap-3 active:scale-95 active:shadow-none transition-all neo-brutalist-shadow mb-6">
+<span class="material-symbols-outlined" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+            VERIFICAR
+        </button>
+<!-- Resend Section -->
+<div class="flex flex-col items-center gap-4 w-full">
+<div class="flex items-center gap-2 py-2 px-4 bg-zinc-50 border-2 border-black rounded-full text-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-sm" data-icon="timer">timer</span>
+<span>Reenviar em 00:59</span>
+</div>
+<p class="text-sm text-zinc-500 font-medium">
+                Não recebeu o código? 
+                <button class="text-brand-green font-bold underline underline-offset-4 decoration-2">Reenviar agora</button>
+</p>
+</div>
+<!-- Spacer to push footer link down -->
+<div class="flex-grow"></div>
+<!-- Footer Link -->
+<a class="mt-12 group flex items-center gap-2 font-headline font-bold text-sm text-black uppercase tracking-widest hover:translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+            Voltar para o Login
+        </a>
+<!-- Background Decor (Neo-Brutalist elements) -->
+<div class="fixed -bottom-10 -right-10 w-40 h-40 bg-brand-green/10 rounded-full border-2 border-black -z-10"></div>
+<div class="fixed top-20 -left-10 w-24 h-24 bg-brand-red/10 rounded-xl border-2 border-black -z-10 rotate-12"></div>
+</main>
+<!-- Navigation suppression check: Verification screen is a focused journey/task. BottomNavBar is SUPPRESSED. -->
+</body></html>
