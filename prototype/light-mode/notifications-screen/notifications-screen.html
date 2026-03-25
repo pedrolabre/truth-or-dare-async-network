@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Atividade - Truth or Dare</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+          tailwind.config = {
+            darkMode: "class",
+            theme: {
+              extend: {
+                colors: {
+                  "surface-bright": "#f5fbf6",
+                  "on-surface": "#171d1a",
+                  "surface-container-highest": "#dee4df",
+                  "outline": "#6d7a74",
+                  "tertiary-fixed-dim": "#ffb4ab",
+                  "surface-container-low": "#eff5f0",
+                  "primary-container": "#008466",
+                  "on-primary-fixed": "#002117",
+                  "tertiary-container": "#e6171e",
+                  "on-error-container": "#93000a",
+                  "surface-variant": "#dee4df",
+                  "secondary-fixed-dim": "#a5d0bd",
+                  "surface-dim": "#d6dbd7",
+                  "error-container": "#ffdad6",
+                  "secondary": "#3e6657",
+                  "on-surface-variant": "#3d4944",
+                  "primary-fixed": "#86f7d0",
+                  "on-primary-container": "#f5fff8",
+                  "tertiary": "#bb0011",
+                  "on-tertiary-fixed": "#410002",
+                  "surface-container-lowest": "#ffffff",
+                  "on-background": "#171d1a",
+                  "inverse-primary": "#68dbb4",
+                  "on-secondary-container": "#446c5d",
+                  "surface-container-high": "#e4eae5",
+                  "secondary-fixed": "#c0ecd9",
+                  "on-secondary-fixed": "#002117",
+                  "background": "#f5fbf6",
+                  "on-secondary": "#ffffff",
+                  "on-primary-fixed-variant": "#00513d",
+                  "primary": "#006950",
+                  "on-secondary-fixed-variant": "#264e40",
+                  "surface-container": "#eaefea",
+                  "tertiary-fixed": "#ffdad6",
+                  "surface-tint": "#006c52",
+                  "primary-fixed-dim": "#68dbb4",
+                  "outline-variant": "#bccac2",
+                  "inverse-surface": "#2c322f",
+                  "on-tertiary-fixed-variant": "#93000a",
+                  "on-tertiary-container": "#fffbff",
+                  "on-error": "#ffffff",
+                  "on-tertiary": "#ffffff",
+                  "on-primary": "#ffffff",
+                  "surface": "#f5fbf6",
+                  "secondary-container": "#c0ecd9",
+                  "inverse-on-surface": "#ecf2ed",
+                  "error": "#ba1a1a"
+                },
+                fontFamily: {
+                  "headline": ["Inter"],
+                  "body": ["Inter"],
+                  "label": ["Inter"]
+                },
+                borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+              },
+            },
+          }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #f5fbf6; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+
+<header class="w-full shrink-0 flex items-center justify-between px-4 h-16 bg-[#5A8363] border-b border-[#cff7ee]/20 shadow-sm">
+    <div class="flex items-center gap-3">
+        <button class="text-[#cff7ee] hover:opacity-80 transition-opacity active:scale-95 duration-150">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <span class="text-xl font-black text-[#f9f9f9] tracking-tight">Notificações</span>
+    </div>
+    <div class="flex items-center gap-4">
+        <button class="text-white hover:opacity-80 transition-opacity active:scale-95 transition-transform">
+            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">notifications</span>
+        </button>
+    </div>
+</header>
+
+<main class="flex-1 w-full px-4 py-6 max-w-2xl mx-auto space-y-6">
+    
+    <div class="flex items-end justify-between mb-2">
+        <h1 class="text-3xl font-black tracking-tight text-on-surface">Atividade</h1>
+        <button id="mark-all-read" class="text-[#3e6657] font-semibold text-sm hover:underline transition-opacity">Marcar tudo como lido</button>
+    </div>
+
+    <div class="space-y-3">
+        <div class="unread-item transition-all duration-300 bg-surface-container rounded-xl p-4 flex gap-4 items-start relative border-l-4 border-[#D70015] shadow-sm">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-primary-container/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[#006950]" style="font-variation-settings: 'FILL' 1;">psychology</span>
+            </div>
+            <div class="flex-1">
+                <div class="flex justify-between items-start">
+                    <p class="font-bold text-on-surface leading-tight">Jéssica te enviou um Desafio</p>
+                    <span class="text-xs text-outline font-medium whitespace-nowrap ml-2">há 2min</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mt-1">"Eu te desafio a ligar para o seu crush e cantar..."</p>
+                <div class="mt-3 flex gap-2">
+                    <button class="px-4 py-2 bg-[#D70015] text-white text-xs font-bold rounded-lg active:scale-95 transition-transform">Aceitar</button>
+                    <button class="px-4 py-2 bg-[#5A8363] text-white text-xs font-bold rounded-lg active:scale-95 transition-transform">Ver</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="unread-item transition-all duration-300 bg-surface-container rounded-xl p-4 flex gap-4 items-start relative border-l-4 border-[#D70015] shadow-sm">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-tertiary-container/10 flex items-center justify-center">
+                <span class="material-symbols-outlined text-[#D70015]" style="font-variation-settings: 'FILL' 1;">verified</span>
+            </div>
+            <div class="flex-1">
+                <div class="flex justify-between items-start">
+                    <p class="font-bold text-on-surface leading-tight">Alex aceitou sua Verdade</p>
+                    <span class="text-xs text-outline font-medium whitespace-nowrap ml-2">há 15min</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mt-1">Eles acabaram de responder: "A coisa mais embaraçosa que eu já fiz foi..."</p>
+                <div class="mt-3 flex gap-2">
+                    <button class="px-4 py-2 bg-[#5A8363] text-white text-xs font-bold rounded-lg active:scale-95 transition-transform">Ler Resposta</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-surface-container-low rounded-xl p-4 flex gap-4 items-start opacity-90 border border-outline-variant/30">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-secondary-container/30 flex items-center justify-center">
+                <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 0;">groups</span>
+            </div>
+            <div class="flex-1">
+                <div class="flex justify-between items-start">
+                    <p class="font-semibold text-on-surface leading-tight">Nova mensagem no Clube</p>
+                    <span class="text-xs text-outline font-medium whitespace-nowrap ml-2">há 1h</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mt-1">Midnight Gamers: "Quem topa uma rodada de Truth or Dare hoje à noite?"</p>
+                <div class="mt-3">
+                    <button class="px-4 py-2 bg-[#5A8363] text-white text-xs font-bold rounded-lg active:scale-95 transition-transform">Abrir Clube</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-surface-container-low rounded-xl p-4 flex gap-4 items-start opacity-90 border border-outline-variant/30">
+            <div class="flex-shrink-0 w-12 h-12 rounded-lg bg-secondary-container/30 flex items-center justify-center">
+                <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 0;">style</span>
+            </div>
+            <div class="flex-1">
+                <div class="flex justify-between items-start">
+                    <p class="font-semibold text-on-surface leading-tight">Atualização Diária</p>
+                    <span class="text-xs text-outline font-medium whitespace-nowrap ml-2">há 4h</span>
+                </div>
+                <p class="text-sm text-on-surface-variant mt-1">O novo baralho 'Festa de Verão' já está disponível para sua próxima partida.</p>
+            </div>
+        </div>
+    </div>
+
+    <section class="pb-8 mt-6">
+        <div class="bg-surface-container-low border-2 border-dashed border-outline-variant/50 rounded-2xl p-8 flex flex-col items-center justify-center text-center opacity-70">
+            <div class="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center mb-4 text-outline">
+                <span class="material-symbols-outlined text-3xl">construction</span>
+            </div>
+            <h3 class="text-lg font-bold text-on-surface mb-1">Novidades em breve</h3>
+            <p class="text-sm text-on-surface-variant max-w-xs mx-auto">Estamos preparando novos recursos e baralhos especiais para esta área. Fique de olho!</p>
+        </div>
+    </section>
+
+</main>
+
+<nav class="w-full shrink-0 flex justify-around items-center px-2 pb-safe h-20 bg-[#5A8363] border-t border-[#cff7ee]/10 shadow-[0_-2px_10px_rgba(0,0,0,0.1)] rounded-t-xl mt-auto">
+    <button class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 px-3 py-1">
+        <span class="material-symbols-outlined">style</span>
+        <span class="font-['Inter'] text-[12px] font-medium mt-0.5">Jogar</span>
+    </button>
+    <button class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 px-3 py-1">
+        <span class="material-symbols-outlined">search</span>
+        <span class="font-['Inter'] text-[12px] font-medium mt-0.5">Buscar</span>
+    </button>
+    <button class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 px-3 py-1">
+        <span class="material-symbols-outlined">groups</span>
+        <span class="font-['Inter'] text-[12px] font-medium mt-0.5">Clubes</span>
+    </button>
+    <button class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 px-3 py-1">
+        <span class="material-symbols-outlined">person</span>
+        <span class="font-['Inter'] text-[12px] font-medium mt-0.5">Você</span>
+    </button>
+</nav>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const markReadBtn = document.getElementById('mark-all-read');
+        
+        markReadBtn.addEventListener('click', function() {
+            // Seleciona todas as notificações com a classe 'unread-item'
+            const unreadItems = document.querySelectorAll('.unread-item');
+            
+            unreadItems.forEach(item => {
+                // Remove as classes de destaque (fundo mais forte, borda vermelha e sombra)
+                item.classList.remove('bg-surface-container', 'border-l-4', 'border-[#D70015]', 'shadow-sm');
+                
+                // Adiciona as classes de item lido (fundo mais suave, borda normal e leve transparência)
+                item.classList.add('bg-surface-container-low', 'border', 'border-outline-variant/30', 'opacity-90');
+                
+                // Remove a classe para não processar novamente
+                item.classList.remove('unread-item');
+            });
+            
+            // Atualiza visualmente o botão para mostrar que não há mais o que ler
+            this.textContent = "Tudo lido";
+            this.classList.add('opacity-50', 'pointer-events-none');
+            this.classList.remove('text-[#3e6657]', 'hover:underline');
+            this.classList.add('text-outline');
+        });
+    });
+</script>
+
+</body>
+</html>
