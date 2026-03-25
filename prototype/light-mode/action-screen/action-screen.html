@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400,FILL@0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "background": "#ffffff",
+                        "primary": "#5A8363",
+                        "tertiary": "#D70015",
+                        "surface": "#121212",
+                        "on-surface": "#ffffff",
+                        "outline": "#000000",
+                        "muted": "#A0A0A0"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "sans-serif"],
+                        "body": ["Inter", "sans-serif"]
+                    },
+                    boxShadow: {
+                        'brutal': '4px 4px 0px 0px rgba(0,0,0,1)',
+                        'brutal-sm': '2px 2px 0px 0px rgba(0,0,0,1)'
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #ffffff;
+            color: #000000;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased min-h-screen flex flex-col overflow-hidden">
+<!-- Header Section -->
+<header class="w-full px-6 py-6 flex justify-between items-center bg-white">
+<h1 class="text-xl font-black uppercase tracking-tighter border-b-2 border-black">
+            FAÇA A PROVA
+        </h1>
+<button class="flex items-center justify-center p-2 transition-transform active:translate-x-[2px] active:translate-y-[2px]">
+<span class="material-symbols-outlined text-[#A0A0A0] text-3xl" data-icon="close">
+                close
+            </span>
+</button>
+</header>
+<!-- Camera Viewfinder Canvas -->
+<main class="flex-1 px-4 pb-8 flex flex-col gap-6">
+<div class="relative flex-1 w-full bg-[#121212] rounded-xl border-2 border-black shadow-brutal overflow-hidden">
+<!-- Viewfinder Image Placeholder / Background -->
+<div class="absolute inset-0 z-0 opacity-40">
+<img alt="fisheye lens view of a gritty urban gym floor with weights and training equipment in low light" class="w-full h-full object-cover grayscale" data-alt="fisheye lens view of a gritty urban gym floor with weights and training equipment in low light and high contrast" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyQUiQ-nFiYsP6MRY0DfIQFvkbkYOorEgGAaC9JRp6Zt-dOpaxDNjGQwEL5eH5YNIhU-PAyd6JkIWTmQtuPtMZ0YgPLGM9PDovdAknGQtuTsfxjpHMluunJCB1wwq3hwXXYzsKZJUb1EQex1K_NESgI3FninR0abuHeWJ0Tg__crF_9tC09cIjouaT_us_WKr8ej3WZCmAbLF1oweKec2JbBpSMcx5r5AYmiyW8CLGCiq1KJ98RorATRK_AcDWXjASd1Hqu9qV3tgm"/>
+</div>
+<!-- Overlay Text -->
+<div class="relative z-10 w-full pt-8 px-8 text-center">
+<p class="text-white text-sm font-bold uppercase tracking-wide drop-shadow-md">
+                    Grave um vídeo provando que cumpriu o desafio
+                </p>
+</div>
+<!-- Corner Accents (Viewfinder UI) -->
+<div class="absolute top-4 left-4 w-6 h-6 border-t-2 border-l-2 border-white opacity-50"></div>
+<div class="absolute top-4 right-4 w-6 h-6 border-t-2 border-r-2 border-white opacity-50"></div>
+<div class="absolute bottom-4 left-4 w-6 h-6 border-b-2 border-l-2 border-white opacity-50"></div>
+<div class="absolute bottom-4 right-4 w-6 h-6 border-b-2 border-r-2 border-white opacity-50"></div>
+<!-- Recording Indicator -->
+<div class="absolute top-4 right-12 flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-[#D70015]"></div>
+<span class="text-white text-[10px] font-black tracking-widest">REC 00:00:00</span>
+</div>
+</div>
+<!-- Controls Section -->
+<div class="flex flex-col items-center justify-center py-4">
+<!-- Neo-Brutalist Record Button -->
+<button class="group relative flex items-center justify-center w-24 h-24 rounded-full bg-[#D70015] border-2 border-black shadow-brutal active:shadow-none active:translate-x-[4px] active:translate-y-[4px] transition-all">
+<!-- Inner Ring -->
+<div class="w-20 h-20 rounded-full border-2 border-black/20 flex items-center justify-center">
+<!-- Center Core -->
+<div class="w-10 h-10 rounded-full bg-white border-2 border-black"></div>
+</div>
+</button>
+<!-- Meta Info Below Button -->
+<div class="mt-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]" data-icon="videocam">videocam</span>
+<span class="text-[10px] font-bold uppercase tracking-widest text-black">VÍDEO HD ATIVO</span>
+</div>
+</div>
+</main>
+<!-- Aesthetic Decorative Element (Scanlines Overlay Style) -->
+<div class="pointer-events-none fixed inset-0 z-50 opacity-[0.03] overflow-hidden">
+<div class="h-full w-full bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
+</div>
+</body></html>
