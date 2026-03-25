@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Truth or Dare - Meu Perfil</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+          tailwind.config = {
+            darkMode: "class",
+            theme: {
+              extend: {
+                colors: {
+                  "surface-container-lowest": "#ffffff",
+                  "secondary-container": "#c0ecd9",
+                  "surface-dim": "#d6dbd7",
+                  "on-primary-fixed": "#002117",
+                  "inverse-surface": "#2c322f",
+                  "secondary-fixed-dim": "#a5d0bd",
+                  "on-secondary-container": "#446c5d",
+                  "outline-variant": "#bccac2",
+                  "surface-container-highest": "#dee4df",
+                  "on-secondary-fixed": "#002117",
+                  "on-primary-fixed-variant": "#00513d",
+                  "surface-variant": "#dee4df",
+                  "surface-container": "#eaefea",
+                  "on-secondary-fixed-variant": "#264e40",
+                  "error-container": "#ffdad6",
+                  "primary": "#006950",
+                  "on-tertiary-fixed": "#410002",
+                  "on-tertiary": "#ffffff",
+                  "tertiary-fixed-dim": "#ffb4ab",
+                  "tertiary-container": "#e6171e",
+                  "surface-tint": "#006c52",
+                  "surface-container-low": "#eff5f0",
+                  "error": "#ba1a1a",
+                  "on-tertiary-fixed-variant": "#93000a",
+                  "tertiary": "#bb0011",
+                  "secondary": "#3e6657",
+                  "primary-fixed": "#86f7d0",
+                  "on-tertiary-container": "#fffbff",
+                  "inverse-primary": "#68dbb4",
+                  "secondary-fixed": "#c0ecd9",
+                  "tertiary-fixed": "#ffdad6",
+                  "primary-container": "#008466",
+                  "background": "#f5fbf6",
+                  "inverse-on-surface": "#ecf2ed",
+                  "on-background": "#171d1a",
+                  "surface-container-high": "#e4eae5",
+                  "surface-bright": "#f5fbf6",
+                  "on-secondary": "#ffffff",
+                  "on-primary": "#ffffff",
+                  "surface": "#f5fbf6",
+                  "outline": "#6d7a74",
+                  "on-error": "#ffffff",
+                  "on-surface-variant": "#3d4944",
+                  "on-primary-container": "#f5fff8",
+                  "primary-fixed-dim": "#68dbb4",
+                  "on-surface": "#171d1a",
+                  "on-error-container": "#93000a",
+                  "custom-green": "#5A8363",
+                  "custom-red": "#D70015"
+                },
+                fontFamily: { "headline": ["Inter"], "body": ["Inter"], "label": ["Inter"] },
+                borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+              },
+            },
+          }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-pop { animation: modalPop 0.2s ease-out forwards; }
+        #camera-feed, #photo-canvas { transform: scaleX(-1); object-fit: cover; }
+    </style>
+</head>
+<body class="bg-[#f5fbf6] text-on-background font-body antialiased h-screen flex flex-col overflow-hidden">
+
+<header class="w-full shrink-0 flex items-center justify-between px-4 h-16 bg-[#5A8363] border-b border-[#cff7ee]/20 shadow-sm font-['Inter'] font-bold text-lg text-white z-30">
+    <div class="flex items-center gap-3">
+        <button class="p-2 hover:opacity-80 transition-opacity active:scale-95 duration-150 rounded-full">
+            <span class="material-symbols-outlined">settings</span>
+        </button>
+        <h1 class="text-xl font-black tracking-tight">Truth or Dare</h1>
+    </div>
+    <div class="flex items-center gap-2">
+        <button class="p-2 text-[#f9f9f9]/80 hover:opacity-80 transition-opacity">
+            <span class="material-symbols-outlined">notifications</span>
+        </button>
+    </div>
+</header>
+
+<main class="flex-1 w-full max-w-2xl mx-auto px-4 py-6 overflow-y-auto no-scrollbar">
+    
+    <section class="mt-4 mb-6 flex flex-col items-center text-center">
+        <div class="relative">
+            <div class="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-xl overflow-hidden mb-4 ring-4 ring-emerald-50">
+                <img id="main-profile-img" alt="Foto de perfil" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name=Ricardo+Mendes&background=5A8363&color=ffffff&size=128"/>
+            </div>
+            <button id="edit-photo-btn" class="absolute bottom-4 right-2 bg-custom-red text-white p-2.5 rounded-full shadow-lg hover:scale-110 transition-transform active:scale-90">
+                <span class="material-symbols-outlined text-sm">photo_camera</span>
+            </button>
+        </div>
+        <div>
+            <h2 class="text-2xl font-extrabold text-on-surface tracking-tight">Ricardo Mendes</h2>
+            <p class="text-on-surface-variant font-medium">@ricardo_truth</p>
+        </div>
+        <button id="edit-profile-trigger" class="mt-6 bg-custom-red text-white px-8 py-2.5 rounded-full font-bold shadow-md active:scale-95 flex items-center gap-2 transition-all">
+            <span class="material-symbols-outlined text-lg">settings</span>
+            Editar Perfil
+        </button>
+    </section>
+
+    <section class="bg-custom-green rounded-3xl p-6 text-white shadow-lg mb-8">
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center justify-center border border-white/10">
+                <span class="text-2xl font-black">1.2k</span>
+                <span class="text-[10px] uppercase tracking-widest font-bold opacity-80 text-center">Seguidores</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center justify-center border border-white/10">
+                <span class="text-2xl font-black">458</span>
+                <span class="text-[10px] uppercase tracking-widest font-bold opacity-80 text-center">Seguindo</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center justify-center border border-white/10">
+                <span class="text-2xl font-black">24</span>
+                <span class="text-[10px] uppercase tracking-widest font-bold opacity-80 text-center">Desafios Criados</span>
+            </div>
+            <div class="bg-white/10 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center justify-center border border-white/10">
+                <span class="text-2xl font-black">186</span>
+                <span class="text-[10px] uppercase tracking-widest font-bold opacity-80 text-center">Respondidos</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="space-y-4 mb-8 w-full">
+        <h3 class="text-lg font-bold text-on-surface flex items-center gap-2 px-1">
+            <span class="material-symbols-outlined text-custom-red">military_tech</span>
+            Minhas Conquistas
+        </h3>
+        <div class="flex justify-between pb-4 w-full overflow-x-auto no-scrollbar">
+            <div class="flex-shrink-0 w-[22%] flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 border-2 border-amber-200"><span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">local_fire_department</span></div><span class="text-[9px] font-bold uppercase text-on-surface-variant text-center">Fogo 7 Dias</span></div>
+            <div class="flex-shrink-0 w-[22%] flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 border-2 border-blue-200"><span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">verified</span></div><span class="text-[9px] font-bold uppercase text-on-surface-variant text-center">Criador VIP</span></div>
+            <div class="flex-shrink-0 w-[22%] flex flex-col items-center gap-2"><div class="w-14 h-14 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 border-2 border-purple-200"><span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">auto_awesome</span></div><span class="text-[9px] font-bold uppercase text-on-surface-variant text-center">Mestre</span></div>
+            <div class="flex-shrink-0 w-[22%] flex flex-col items-center gap-2 opacity-40 grayscale"><div class="w-14 h-14 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 border-2 border-zinc-200"><span class="material-symbols-outlined text-3xl">lock</span></div><span class="text-[9px] font-bold uppercase text-on-surface-variant text-center">Bloqueado</span></div>
+        </div>
+    </div>
+
+    <div class="mt-4 p-6 rounded-3xl bg-surface-container border border-outline-variant/30 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer group">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-custom-green/10 rounded-2xl flex items-center justify-center text-custom-green group-hover:bg-custom-green group-hover:text-white transition-colors">
+                <span class="material-symbols-outlined">groups</span>
+            </div>
+            <div>
+                <h4 class="font-bold text-on-surface">Meus Clubes</h4>
+                <p class="text-xs text-on-surface-variant">IFTO Paraíso, Midnight Gamers e +3</p>
+            </div>
+        </div>
+        <span class="material-symbols-outlined text-outline group-hover:text-custom-green transition-colors">chevron_right</span>
+    </div>
+</main>
+
+<nav class="shrink-0 flex justify-around items-center px-2 pb-safe h-20 bg-[#5A8363] border-t border-[#cff7ee]/10 rounded-t-xl z-20">
+    <a class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 px-3 py-1" href="#">
+        <span class="material-symbols-outlined">style</span>
+        <span class="text-[10px] font-bold uppercase mt-1">Jogar</span>
+    </a>
+    <a class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 px-3 py-1" href="#">
+        <span class="material-symbols-outlined">search</span>
+        <span class="text-[10px] font-bold uppercase mt-1">Buscar</span>
+    </a>
+    <a class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 px-3 py-1" href="#">
+        <span class="material-symbols-outlined">groups</span>
+        <span class="text-[10px] font-bold uppercase mt-1">Clubes</span>
+    </a>
+    <a class="flex flex-col items-center justify-center bg-[#D70015] text-[#f9f9f9] rounded-xl px-5 py-2 active:scale-90 transition-transform shadow-md" href="#">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+        <span class="text-[10px] font-bold uppercase mt-1">Perfil</span>
+    </a>
+</nav>
+
+<div id="edit-profile-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[6px] transition-all p-6">
+    <div class="bg-white w-full max-w-[340px] rounded-[32px] shadow-2xl overflow-hidden animate-pop">
+        <div class="p-8">
+            <h3 class="text-xl font-black text-on-surface mb-6 uppercase tracking-tight text-center">Editar Perfil</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-custom-green uppercase tracking-widest block mb-1">Nome de Exibição</label>
+                    <input type="text" value="Ricardo Mendes" class="w-full bg-background border border-outline-variant/30 rounded-xl p-3 text-sm font-bold">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-custom-green uppercase tracking-widest block mb-1">Usuário</label>
+                    <input type="text" value="@ricardo_truth" class="w-full bg-background border border-outline-variant/30 rounded-xl p-3 text-sm font-bold">
+                </div>
+            </div>
+            <div class="mt-8 flex flex-col gap-2">
+                <button id="save-profile" class="w-full bg-custom-green text-white font-black py-4 rounded-2xl uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all">Salvar Alterações</button>
+                <button id="close-edit-modal" class="w-full py-3 text-outline font-bold text-xs uppercase tracking-widest hover:text-on-surface transition-colors">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="photo-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-[6px] transition-all p-6">
+    <div class="bg-white w-full max-w-[320px] rounded-[32px] shadow-2xl overflow-hidden animate-pop p-6 text-center">
+        <h3 class="text-xl font-black text-on-surface mb-6 uppercase tracking-tight">Foto de Perfil</h3>
+        <div class="space-y-2 text-left">
+            <button id="tirar-foto-btn" class="w-full flex items-center gap-4 p-4 rounded-2xl bg-background hover:bg-emerald-50 transition-colors group">
+                <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all"><span class="material-symbols-outlined">photo_camera</span></div>
+                <span class="font-bold text-sm">Tirar Foto</span>
+            </button>
+            <button class="w-full flex items-center gap-4 p-4 rounded-2xl bg-background hover:bg-emerald-50 transition-colors group">
+                <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all"><span class="material-symbols-outlined">image</span></div>
+                <span class="font-bold text-sm">Galeria</span>
+            </button>
+            <button class="w-full flex items-center gap-4 p-4 rounded-2xl bg-red-50 text-secondary transition-colors group mt-2">
+                <div class="w-10 h-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center group-hover:bg-secondary group-hover:text-white transition-all"><span class="material-symbols-outlined">delete</span></div>
+                <span class="font-bold text-sm">Remover Foto</span>
+            </button>
+        </div>
+        <button id="close-photo-modal" class="w-full mt-6 py-2 text-outline font-bold text-xs uppercase tracking-widest">Cancelar</button>
+    </div>
+</div>
+
+<div id="camera-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/95 backdrop-blur-md p-4">
+    <div class="w-full max-w-[360px] flex flex-col items-center">
+        <div class="w-full aspect-square bg-black rounded-[40px] overflow-hidden border-2 border-white/10 relative shadow-2xl">
+            <video id="camera-feed" class="w-full h-full" autoplay playsinline></video>
+            <canvas id="photo-canvas" class="hidden w-full h-full"></canvas>
+            <div id="camera-gui" class="absolute inset-0 border-[40px] border-black/30 pointer-events-none"></div>
+        </div>
+        <div id="capture-controls" class="w-full flex items-center justify-between px-10 mt-10">
+            <button id="close-camera" class="text-white/60 active:scale-90"><span class="material-symbols-outlined text-3xl">close</span></button>
+            <button id="capture-btn" class="w-20 h-20 bg-white rounded-full p-1.5 active:scale-90 transition-transform shadow-xl"><div class="w-full h-full border-4 border-black rounded-full"></div></button>
+            <button class="text-white/60 active:scale-90"><span class="material-symbols-outlined text-3xl">flip_camera_android</span></button>
+        </div>
+        <div id="review-controls" class="hidden w-full flex flex-col gap-3 mt-8 px-6">
+            <button id="confirm-photo-btn" class="w-full py-4 bg-[#5A8363] text-white font-black rounded-2xl shadow-lg active:scale-95 transition-all uppercase tracking-widest text-sm">Confirmar Foto</button>
+            <button id="retake-btn" class="w-full py-3 bg-white/10 text-white font-bold rounded-2xl border border-white/20 active:scale-95 text-xs uppercase tracking-widest">Tirar Outra</button>
+        </div>
+        <p id="camera-hint" class="text-white/40 text-[10px] font-black uppercase mt-8 tracking-[0.2em]">Posicione seu rosto no centro</p>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const editProfileModal = document.getElementById('edit-profile-modal');
+        document.getElementById('edit-profile-trigger').onclick = () => editProfileModal.classList.remove('hidden');
+        document.getElementById('close-edit-modal').onclick = () => editProfileModal.classList.add('hidden');
+        document.getElementById('save-profile').onclick = () => editProfileModal.classList.add('hidden');
+
+        const photoModal = document.getElementById('photo-modal');
+        const cameraModal = document.getElementById('camera-modal');
+        const video = document.getElementById('camera-feed');
+        const canvas = document.getElementById('photo-canvas');
+        const captureBtn = document.getElementById('capture-btn');
+        const retakeBtn = document.getElementById('retake-btn');
+        const confirmBtn = document.getElementById('confirm-photo-btn');
+        const captureControls = document.getElementById('capture-controls');
+        const reviewControls = document.getElementById('review-controls');
+        const cameraGui = document.getElementById('camera-gui');
+        const cameraHint = document.getElementById('camera-hint');
+        let stream = null;
+
+        document.getElementById('edit-photo-btn').onclick = () => photoModal.classList.remove('hidden');
+        document.getElementById('close-photo-modal').onclick = () => photoModal.classList.add('hidden');
+
+        document.getElementById('tirar-foto-btn').onclick = async () => {
+            photoModal.classList.add('hidden');
+            cameraModal.classList.remove('hidden');
+            resetToFeed();
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', aspectRatio: 1 } });
+                video.srcObject = stream;
+            } catch (err) {
+                alert("Erro ao acessar câmera.");
+                cameraModal.classList.add('hidden');
+            }
+        };
+
+        captureBtn.onclick = () => {
+            const context = canvas.getContext('2d');
+            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            video.classList.add('hidden'); canvas.classList.remove('hidden');
+            captureControls.classList.add('hidden'); reviewControls.classList.remove('hidden');
+            cameraGui.classList.add('hidden'); cameraHint.textContent = "Revisar Foto";
+        };
+
+        retakeBtn.onclick = resetToFeed;
+        function resetToFeed() {
+            video.classList.remove('hidden'); canvas.classList.add('hidden');
+            captureControls.classList.remove('hidden'); reviewControls.classList.add('hidden');
+            cameraGui.classList.remove('hidden'); cameraHint.textContent = "Posicione seu rosto no centro";
+        }
+
+        confirmBtn.onclick = () => { alert("Foto atualizada!"); stopCamera(); };
+        const stopCamera = () => { if (stream) stream.getTracks().forEach(t => t.stop()); cameraModal.classList.add('hidden'); };
+        document.getElementById('close-camera').onclick = stopCamera;
+
+        window.onclick = (e) => {
+            if(e.target == editProfileModal) editProfileModal.classList.add('hidden');
+            if(e.target == photoModal) photoModal.classList.add('hidden');
+        };
+    });
+</script>
+
+</body>
+</html>
