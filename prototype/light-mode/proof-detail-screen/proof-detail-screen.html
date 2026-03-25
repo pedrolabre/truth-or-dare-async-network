@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#5A8363",
+              "secondary": "#5A8363",
+              "tertiary": "#D70015",
+              "background": "#FFFFFF",
+              "on-background": "#000000",
+              "surface": "#FFFFFF",
+              "outline": "#000000",
+              "primary-container": "#5A8363",
+              "on-primary-container": "#FFFFFF"
+            },
+            fontFamily: {
+              "headline": ["Inter", "sans-serif"],
+              "body": ["Inter", "sans-serif"],
+              "label": ["Inter", "sans-serif"]
+            },
+            borderRadius: {
+              "DEFAULT": "0px",
+              "lg": "0.5rem",
+              "xl": "0.75rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        background-color: #FFFFFF;
+        color: #000000;
+        font-family: 'Inter', sans-serif;
+      }
+      .neo-shadow {
+        box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+      }
+      .neo-shadow-button {
+        box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+      }
+    </style>
+<style>
+      body {
+        min-height: max(884px, 100dvh);
+      }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-4 h-16 bg-white border-b-2 border-black z-50">
+<div class="flex items-center">
+<button class="active:translate-x-[1px] active:translate-y-[1px] transition-colors p-2">
+<span class="material-symbols-outlined text-black" data-icon="arrow_back">arrow_back</span>
+</button>
+</div>
+<h1 class="font-['Inter'] font-black uppercase tracking-tighter text-lg text-black">Visualizar Resultado</h1>
+<div class="flex items-center">
+<button class="active:translate-x-[1px] active:translate-y-[1px] transition-colors p-2">
+<span class="material-symbols-outlined text-black" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex flex-col p-6 pb-24 items-center justify-center gap-6">
+<!-- Header Title Section -->
+<div class="w-full text-left mb-2">
+<h2 class="text-2xl font-black uppercase tracking-tight border-l-4 border-primary pl-4">
+                VISUALIZAR RESULTADO
+            </h2>
+</div>
+<!-- Video Playback Area -->
+<div class="relative w-full aspect-[9/16] max-h-[574px] bg-zinc-800 rounded-xl border-2 border-black overflow-hidden neo-shadow group">
+<img alt="Gym video preview" class="w-full h-full object-cover opacity-80" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAkp2Sfkj_DC7Ffdm767k10Dat5a2EjQOMOfP6emS4wPqljToaL3YpXJGXXyWo71eX50NuNC-K-K9QjAcjthTtyw3B5f0TpkcntFDELkjhtAWzEP064MxQWVmTQh-OQR21Mwy_4CufCVMJmU54kCK9wLC9ElV6_NPUS7nkCgoTJHrIT1m--rKmNYyeI_6IdNMSuGGV7cRtgiTRBn31EcklQhzhULc5i-u8t00zrH46JVqQp0lxbvhZTQbOym6WzBhjADV_ugvGU57OR"/>
+<!-- Overlay Play Icon -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="bg-primary p-6 rounded-full border-2 border-black active:scale-95 transition-transform cursor-pointer neo-shadow-button">
+<span class="material-symbols-outlined text-white text-5xl" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<!-- Video Info Tag -->
+<div class="absolute bottom-4 left-4 bg-white border-2 border-black px-3 py-1 rounded-lg">
+<p class="text-[10px] font-bold uppercase tracking-widest text-black">00:15 / HD PREVIEW</p>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<footer class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 bg-white border-t-2 border-black px-4 gap-4">
+<!-- Action: EXCLUIR VÍDEO -->
+<button class="flex-1 flex flex-col items-center justify-center bg-white text-black border-2 border-black h-14 active:translate-y-[2px] transition-all">
+<span class="material-symbols-outlined" data-icon="delete">delete</span>
+<span class="font-['Inter'] font-bold uppercase text-[10px] mt-1">Excluir</span>
+</button>
+<!-- Action: POSTAR -->
+<button class="flex-1 flex flex-col items-center justify-center bg-primary text-white border-2 border-black h-14 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-all">
+<span class="material-symbols-outlined" data-icon="send" style="font-variation-settings: 'FILL' 1;">send</span>
+<span class="font-['Inter'] font-black uppercase text-xs mt-1">Postar</span>
+</button>
+</footer>
+<!-- Decorative Screen Elements -->
+<div class="fixed top-20 right-4 pointer-events-none opacity-10">
+<p class="text-[60px] font-black leading-none select-none text-black rotate-90 origin-right">PREVIEW</p>
+</div>
+</body></html>
