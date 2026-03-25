@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html class="light" lang="pt-br">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Perfil do Clube - IFTO Paraíso</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+          tailwind.config = {
+            darkMode: "class",
+            theme: {
+              extend: {
+                colors: {
+                  "primary": "#5A8363",
+                  "secondary": "#D70015",
+                  "background": "#f5fbf6",
+                  "surface": "#ffffff",
+                  "on-surface": "#171d1a",
+                  "outline": "#6d7a74",
+                  "outline-variant": "#bccac2"
+                },
+                fontFamily: { "body": ["Inter"] },
+              },
+            },
+          }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body h-screen flex flex-col overflow-hidden relative">
+
+<header class="w-full shrink-0 flex items-center justify-between px-4 h-16 bg-primary text-white z-20 shadow-md relative">
+    <div class="flex items-center gap-3">
+        <button class="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-90">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <span class="font-bold text-lg tracking-tight">Clubes</span>
+    </div>
+    
+    <div class="relative">
+        <button id="menu-btn" class="p-2 hover:bg-white/10 rounded-full transition-colors active:scale-90">
+            <span class="material-symbols-outlined">more_vert</span>
+        </button>
+
+        <div id="dropdown-menu" class="hidden absolute right-0 top-12 w-48 bg-white rounded-xl shadow-xl border border-outline-variant/30 overflow-hidden z-[60]">
+            <ul class="py-1">
+                <li>
+                    <button id="info-club-btn" class="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-background flex items-center gap-3 transition-colors">
+                        <span class="material-symbols-outlined text-[18px] text-primary">info</span>
+                        Sobre o Clube
+                    </button>
+                </li>
+                <li>
+                    <button id="notif-club-btn" class="w-full text-left px-4 py-3 text-sm font-semibold text-on-surface hover:bg-background flex items-center gap-3 transition-colors">
+                        <span class="material-symbols-outlined text-[18px] text-primary">notifications</span>
+                        Notificações
+                    </button>
+                </li>
+                <li class="border-t border-outline-variant/20 mt-1 pt-1">
+                    <button id="leave-club-btn" class="w-full text-left px-4 py-3 text-sm font-bold text-secondary hover:bg-red-50 flex items-center gap-3 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">logout</span>
+                        Sair do Clube
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+<main class="flex-1 w-full overflow-y-auto hide-scrollbar relative">
+    <div class="w-full h-32 bg-gradient-to-r from-[#5A8363] to-[#86f7d0] relative shrink-0">
+        <div class="absolute -bottom-10 left-6">
+            <div class="w-24 h-24 rounded-2xl bg-white p-1 shadow-xl">
+                <div class="w-full h-full rounded-xl bg-primary flex items-center justify-center text-white">
+                    <span class="material-symbols-outlined text-5xl">school</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-6 pt-12 pb-6 space-y-4">
+        <div class="flex justify-between items-start">
+            <div class="max-w-[70%]">
+                <h2 class="text-2xl font-black text-on-surface leading-tight tracking-tight uppercase">IFTO - Campus Paraíso</h2>
+                <p class="text-sm text-outline font-medium flex items-center gap-1">
+                    <span class="material-symbols-outlined text-sm">location_on</span> Paraíso do Tocantins, TO
+                </p>
+            </div>
+            <button id="invite-main-btn" class="bg-primary/10 text-primary px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-wider active:scale-95 transition-all shadow-sm">
+                Convidar
+            </button>
+        </div>
+        
+        <p class="text-sm text-on-surface-variant leading-relaxed">
+            Grupo oficial da galera do IFTO Campus Paraíso. Verdades sobre os professores e desafios no pátio! 🎓🔥
+        </p>
+
+        <div class="flex gap-4 py-2 border-y border-outline-variant/30">
+            <div class="flex-1 text-center">
+                <span class="block text-lg font-black text-on-surface">89</span>
+                <span class="text-[10px] font-bold text-outline uppercase">Membros</span>
+            </div>
+            <div class="w-px h-8 bg-outline-variant/30 self-center"></div>
+            <div class="flex-1 text-center">
+                <span class="block text-lg font-black text-on-surface">12</span>
+                <span class="text-[10px] font-bold text-outline uppercase">Ativos</span>
+            </div>
+            <div class="w-px h-8 bg-outline-variant/30 self-center"></div>
+            <div class="flex-1 text-center">
+                <span class="block text-lg font-black text-on-surface">Alta</span>
+                <span class="text-[10px] font-bold text-outline uppercase">Atividade</span>
+            </div>
+        </div>
+
+        <div class="flex gap-6 border-b border-outline-variant/30 sticky top-0 bg-background z-10">
+            <button onclick="switchTab('mural')" id="tab-mural" class="tab-btn pb-2 text-sm font-black border-b-2 border-primary text-primary uppercase tracking-tight">Mural</button>
+            <button onclick="switchTab('membros')" id="tab-membros" class="tab-btn pb-2 text-sm font-bold text-outline hover:text-primary uppercase tracking-tight">Membros</button>
+            <button onclick="switchTab('midias')" id="tab-midias" class="tab-btn pb-2 text-sm font-bold text-outline hover:text-primary uppercase tracking-tight">Mídias</button>
+        </div>
+
+        <section id="content-mural" class="tab-content active space-y-4 pb-24">
+            <article class="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="bg-secondary/10 text-secondary text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded">Desafio</span>
+                    <span class="text-[10px] font-bold text-outline">HÁ 10 MIN</span>
+                </div>
+                <p class="text-sm font-bold text-on-surface leading-snug">Dançar a dancinha do TikTok no meio do refeitório em frente ao bloco B.</p>
+                <div class="mt-4 flex justify-between items-center">
+                    <div class="flex -space-x-2">
+                        <img class="w-6 h-6 rounded-full border-2 border-white" src="https://ui-avatars.com/api/?name=Alex&background=5A8363&color=fff">
+                        <img class="w-6 h-6 rounded-full border-2 border-white" src="https://ui-avatars.com/api/?name=Bia&background=D70015&color=fff">
+                    </div>
+                    <button class="text-xs font-black text-secondary uppercase tracking-tight">Aceitar</button>
+                </div>
+            </article>
+            <article class="bg-white p-4 rounded-2xl border border-outline-variant/30 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="bg-primary/10 text-primary text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded">Verdade</span>
+                    <span class="text-[10px] font-bold text-outline">HÁ 2H</span>
+                </div>
+                <p class="text-sm font-bold text-on-surface italic">"Qual a nota mais baixa que você já tirou e em qual matéria?"</p>
+                <div class="mt-4 flex justify-end"><span class="text-[10px] font-bold text-outline uppercase tracking-tight">45 RESPOSTAS</span></div>
+            </article>
+        </section>
+
+        <section id="content-membros" class="tab-content space-y-3 pb-24">
+            <div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-outline-variant/20">
+                <img class="w-10 h-10 rounded-full" src="https://ui-avatars.com/api/?name=Ricardo+Mendes&background=5A8363&color=fff">
+                <div class="flex-1"><p class="text-sm font-black text-on-surface">Ricardo Mendes</p><span class="text-[10px] font-bold text-primary uppercase">Criador</span></div>
+            </div>
+            <div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-outline-variant/20">
+                <img class="w-10 h-10 rounded-full" src="https://ui-avatars.com/api/?name=Jessica+Lins&background=D70015&color=fff">
+                <div class="flex-1"><p class="text-sm font-black text-on-surface">Jessica Lins</p><span class="text-[10px] font-bold text-outline uppercase tracking-tight">Membro</span></div>
+            </div>
+        </section>
+
+        <section id="content-midias" class="tab-content pb-24">
+            <div class="grid grid-cols-3 gap-2">
+                <div class="aspect-square bg-surface-container rounded-lg overflow-hidden border border-outline-variant/20"><img src="https://picsum.photos/200/200?random=1" class="w-full h-full object-cover"></div>
+                <div class="aspect-square bg-surface-container rounded-lg overflow-hidden border border-outline-variant/20"><img src="https://picsum.photos/200/200?random=2" class="w-full h-full object-cover"></div>
+            </div>
+        </section>
+    </div>
+</main>
+
+<div class="fixed bottom-[96px] right-6 z-30">
+    <button class="px-6 h-14 bg-secondary text-white rounded-full shadow-2xl flex items-center gap-2 active:scale-95 transition-all">
+        <span class="material-symbols-outlined">add_circle</span>
+        <span class="font-black text-xs uppercase tracking-widest">Novo Desafio</span>
+    </button>
+</div>
+
+<nav class="w-full shrink-0 flex justify-around items-center px-2 pb-safe h-20 bg-primary border-t border-white/10 rounded-t-2xl z-20">
+    <button class="flex flex-col items-center justify-center text-white/60 px-3 py-1"><span class="material-symbols-outlined">style</span><span class="text-[10px] font-bold uppercase tracking-tighter">Jogar</span></button>
+    <button class="flex flex-col items-center justify-center text-white/60 px-3 py-1"><span class="material-symbols-outlined">search</span><span class="text-[10px] font-bold uppercase tracking-tighter">Descobrir</span></button>
+    <button class="flex flex-col items-center justify-center text-white rounded-xl px-3 py-1 shadow-lg bg-secondary"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span><span class="text-[10px] font-bold uppercase tracking-tighter">Clubes</span></button>
+    <button class="flex flex-col items-center justify-center text-white/60 px-3 py-1"><span class="material-symbols-outlined">person</span><span class="text-[10px] font-bold uppercase tracking-tighter">Perfil</span></button>
+</nav>
+
+<div id="invite-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity px-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+        <div class="p-6 pb-4 border-b border-outline-variant/20 flex items-center justify-between">
+            <h3 class="text-xl font-black text-on-surface tracking-tight">Convidar Amigos</h3>
+            <button id="close-invite-modal" class="text-outline p-1.5 rounded-full hover:bg-background transition-colors"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="p-4"><input class="w-full px-6 py-3 bg-background border-outline-variant/30 rounded-full text-sm" placeholder="Buscar amigos..."></div>
+        <div class="flex-1 overflow-y-auto p-4 space-y-2">
+            <label class="flex items-center justify-between p-3 rounded-2xl bg-background/30 border border-outline-variant/10 cursor-pointer">
+                <div class="flex items-center gap-3"><img class="w-10 h-10 rounded-full" src="https://ui-avatars.com/api/?name=Lucas+Duarte"><p class="text-sm font-bold">Lucas Duarte</p></div>
+                <input type="checkbox" class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary">
+            </label>
+        </div>
+        <div class="p-6 border-t border-outline-variant/20"><button id="confirm-invite-btn" class="w-full bg-secondary text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg">Enviar Convites</button></div>
+    </div>
+</div>
+
+<div id="notif-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm px-0 sm:px-4 transition-opacity">
+    <div class="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden transform transition-transform pb-safe relative">
+        <button id="close-notif-modal" class="absolute top-4 right-4 text-outline hover:text-on-surface p-1.5 rounded-full hover:bg-surface-container transition-colors active:scale-90 z-10">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+        
+        <div class="p-6 pt-10">
+            <div class="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4">
+                <span class="material-symbols-outlined text-3xl">notifications_active</span>
+            </div>
+            <h3 class="text-2xl font-black text-on-surface mb-2 tracking-tight">Notificações do Clube</h3>
+            <p class="text-sm text-on-surface-variant font-medium mb-8">Escolha como você quer ser avisado sobre as interações no IFTO.</p>
+            
+            <div class="space-y-3">
+                <label class="flex items-center justify-between p-4 rounded-2xl border border-outline-variant/30 hover:border-primary/50 cursor-pointer bg-background/20 transition-all group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-primary">campaign</span>
+                        <div class="text-left">
+                            <span class="block font-bold text-on-surface text-sm">Tudo ativado</span>
+                            <span class="block text-[10px] text-outline uppercase font-bold tracking-widest">Padrão</span>
+                        </div>
+                    </div>
+                    <input type="radio" name="notif-pref" class="w-5 h-5 border-outline-variant text-primary focus:ring-primary" checked>
+                </label>
+                
+                <label class="flex items-center justify-between p-4 rounded-2xl border border-outline-variant/30 hover:border-primary/50 cursor-pointer bg-white transition-all group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">alternate_email</span>
+                        <div class="text-left">
+                            <span class="block font-bold text-on-surface text-sm">Apenas Menções</span>
+                            <span class="block text-[10px] text-outline uppercase font-bold tracking-widest">Respostas diretas</span>
+                        </div>
+                    </div>
+                    <input type="radio" name="notif-pref" class="w-5 h-5 border-outline-variant text-primary focus:ring-primary">
+                </label>
+
+                <label class="flex items-center justify-between p-4 rounded-2xl border border-outline-variant/30 hover:border-primary/50 cursor-pointer bg-white transition-all group">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-outline group-hover:text-secondary transition-colors">timer_off</span>
+                        <div class="text-left">
+                            <span class="block font-bold text-on-surface text-sm">Silenciar por 1h</span>
+                            <span class="block text-[10px] text-outline uppercase font-bold tracking-widest">Foco total</span>
+                        </div>
+                    </div>
+                    <input type="radio" name="notif-pref" class="w-5 h-5 border-outline-variant text-primary focus:ring-primary">
+                </label>
+            </div>
+
+            <button id="save-notif-btn" class="w-full mt-8 bg-primary text-white font-black py-4 rounded-2xl uppercase tracking-widest text-xs shadow-lg active:scale-95 transition-all">
+                Salvar Preferências
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="info-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 relative">
+        <button id="close-info-modal" class="absolute top-4 right-4 text-outline"><span class="material-symbols-outlined">close</span></button>
+        <div class="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-4"><span class="material-symbols-outlined text-3xl">info</span></div>
+        <h3 class="text-xl font-black text-on-surface text-center mb-2 uppercase tracking-tight">Sobre o Clube</h3>
+        <div class="space-y-3 text-sm text-on-surface-variant font-medium">
+            <p><strong>Criado em:</strong> 15 de Fevereiro de 2026</p>
+            <p><strong>Regras:</strong> Proibido ofensas, desafios apenas dentro do Campus, respeito aos horários de aula.</p>
+        </div>
+    </div>
+</div>
+
+<div id="leave-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 text-center">
+        <div class="w-16 h-16 bg-secondary/10 text-secondary rounded-full flex items-center justify-center mx-auto mb-4"><span class="material-symbols-outlined text-3xl">logout</span></div>
+        <h3 class="text-xl font-black text-on-surface mb-2 tracking-tight">Sair do Clube?</h3>
+        <p class="text-sm text-on-surface-variant font-medium mb-8">Você deixará de ter acesso aos desafios exclusivos e mídias deste grupo.</p>
+        <div class="flex gap-3">
+            <button id="cancel-leave-btn" class="flex-1 py-3 font-bold border border-outline-variant rounded-xl">Cancelar</button>
+            <button class="flex-1 py-3 font-bold bg-secondary text-white rounded-xl">Sair</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('border-b-2', 'border-primary', 'text-primary', 'font-black');
+            b.classList.add('text-outline', 'font-bold');
+        });
+        document.getElementById('content-' + tabName).classList.add('active');
+        document.getElementById('tab-' + tabName).classList.add('border-b-2', 'border-primary', 'text-primary', 'font-black');
+        document.getElementById('tab-' + tabName).classList.remove('text-outline', 'font-bold');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const menuBtn = document.getElementById('menu-btn');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        
+        menuBtn.addEventListener('click', (e) => { e.stopPropagation(); dropdownMenu.classList.toggle('hidden'); });
+        document.addEventListener('click', () => dropdownMenu.classList.add('hidden'));
+
+        const setupModal = (btnId, modalId, closeId) => {
+            const btn = document.getElementById(btnId);
+            const modal = document.getElementById(modalId);
+            const close = document.getElementById(closeId);
+            if(btn) btn.addEventListener('click', () => { modal.classList.remove('hidden'); dropdownMenu.classList.add('hidden'); });
+            if(close) close.addEventListener('click', () => modal.classList.add('hidden'));
+            if(modal) modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.add('hidden'); });
+        };
+
+        setupModal('invite-main-btn', 'invite-modal', 'close-invite-modal');
+        setupModal('info-club-btn', 'info-modal', 'close-info-modal');
+        setupModal('leave-club-btn', 'leave-modal', 'cancel-leave-btn');
+        setupModal('notif-club-btn', 'notif-modal', 'close-notif-modal');
+
+        // Lógica de salvar notificações
+        document.getElementById('save-notif-btn').addEventListener('click', () => {
+            document.getElementById('notif-modal').classList.add('hidden');
+        });
+
+        // Convidar Button Feedback
+        const inviteBtn = document.getElementById('invite-main-btn');
+        document.getElementById('confirm-invite-btn').addEventListener('click', () => {
+            document.getElementById('invite-modal').classList.add('hidden');
+            inviteBtn.classList.replace('bg-primary/10', 'bg-secondary');
+            inviteBtn.classList.replace('text-primary', 'text-white');
+            inviteBtn.textContent = 'Convites Enviados!';
+        });
+    });
+</script>
+
+</body>
+</html>
