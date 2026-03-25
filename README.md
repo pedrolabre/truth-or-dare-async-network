@@ -18,13 +18,12 @@ Tudo isso promovendo uma experiência social e interativa dentro da plataforma.
 
 ## 🎨 Protótipos de Interface
 
-As telas abaixo estão organizadas por responsabilidade dentro da aplicação.  
-Os arquivos fontes em HTML e CSS estão disponíveis na pasta `/prototype`.
+As telas abaixo representam o fluxo principal da aplicação. Sub-telas de interações (como modais de erro, configurações específicas e denúncias) estão disponíveis dentro de seus respectivos diretórios na pasta `/prototype`.
 
 ---
 
 <details>
-<summary><strong>🔐 Autenticação</strong></summary>
+<summary><strong>🔐 1. Autenticação</strong></summary>
 
 <br>
 
@@ -43,7 +42,7 @@ Os arquivos fontes em HTML e CSS estão disponíveis na pasta `/prototype`.
 ---
 
 <details>
-<summary><strong>🔁 Recuperação de Senha</strong></summary>
+<summary><strong>🔁 2. Recuperação de Senha</strong></summary>
 
 <br>
 
@@ -72,14 +71,101 @@ Os arquivos fontes em HTML e CSS estão disponíveis na pasta `/prototype`.
 ---
 
 <details>
-<summary><strong>🏠 Área Logada</strong></summary>
+<summary><strong>🏠 3. Área Logada: Feed e Ações</strong></summary>
 
 <br>
 
-### Feed
+### Feed Principal
 | Light Mode | Dark Mode |
 | :---: | :---: |
 | <img src="prototype/light-mode/feed-screen/tela-do-feed-modo-claro.png" width="250"> | <img src="prototype/dark-mode/feed-screen/tela-do-feed-modo-escuro.png" width="250"> |
+
+### Ação (Câmera)
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/action-screen/tela-da-camera-modo-claro.png" width="250"> | <img src="prototype/dark-mode/action-screen/tela-da-camera-modo-escuro.png" width="250"> |
+
+### Detalhes do Resultado (Proof Detail)
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/proof-detail-screen/tela-de-resultado-modo-claro.png" width="250"> | <img src="prototype/dark-mode/proof-detail-screen/tela-de-resultado-modo-escuro.png" width="250"> |
+
+### Criar Novo Desafio
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/create-challenge-screen/tela-de-criar-verdade-ou-desafio-modo-claro.png" width="250"> | <img src="prototype/dark-mode/create-challenge-screen/tela-de-criar-verdade-ou-desafio-modo-escuro.png" width="250"> |
+
+### Respostas e Comentários
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/answers-screen/tela-de-respostas-e-comentarios.png" width="250"> | <img src="prototype/dark-mode/answers-screen/tela-de-respostas-e-comentarios-modo-escuro.png" width="250"> |
+
+</details>
+
+---
+
+<details>
+<summary><strong>🔍 4. Busca e Perfis</strong></summary>
+
+<br>
+
+### Tela de Busca
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/search-screen/tela-de-busca-modo-claro.png" width="250"> | <img src="prototype/dark-mode/search-screen/tela-de-busca-modo-escuro.png" width="250"> |
+
+### Perfil Público (Outros Usuários)
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/public-profile-screen/tela-de-perfil-publico-modo-claro.png" width="250"> | <img src="prototype/dark-mode/public-profile-screen/tela-de-perfil-publico-modo-escuro.png" width="250"> |
+
+### Meu Perfil
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/profile-screen/tela-de-perfil-modo-claro.png" width="250"> | <img src="prototype/dark-mode/profile-screen/tela-de-perfil-modo-escuro.png" width="250"> |
+
+</details>
+
+---
+
+<details>
+<summary><strong>👥 5. Clubes e Grupos</strong></summary>
+
+<br>
+
+### Feed de Clubes
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/clubs-feed-screen/tela-do-feed-de-clube-modo-claro.png" width="250"> | <img src="prototype/dark-mode/clubs-feed-screen/tela-do-feed-de-clube-modo-escuro.png" width="250"> |
+
+### Perfil do Clube (Mural)
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/club-profile-screen/tela-do-perfil-de-clube-mural.png" width="250"> | <img src="prototype/dark-mode/club-profile-screen/tela-do-perfil-de-clube-mural-modo-escuro.png" width="250"> |
+
+### Criar Novo Grupo
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/create-group-screen/tela-de-criação-de-grupos-modo-claro.png" width="250"> | <img src="prototype/dark-mode/create-group-screen/tela-de-criação-de-grupos-modo-escuro.png" width="250"> |
+
+</details>
+
+---
+
+<details>
+<summary><strong>⚙️ 6. Sistema e Configurações</strong></summary>
+
+<br>
+
+### Notificações
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/notifications-screen/tela-de-notificações-modo-claro.png" width="250"> | <img src="prototype/dark-mode/notifications-screen/tela-de-notificações-modo-escuro.png" width="250"> |
+
+### Configurações
+| Light Mode | Dark Mode |
+| :---: | :---: |
+| <img src="prototype/light-mode/settings-screen/tela-de-configuração-modo-claro.png" width="250"> | <img src="prototype/dark-mode/settings-screen/tela-de-configuração-modo-escuro.png" width="250"> |
 
 </details>
 
