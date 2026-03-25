@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Configurações - Truth or Dare</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+          tailwind.config = {
+            darkMode: "class",
+            theme: {
+              extend: {
+                colors: {
+                  "surface-bright": "#f5fbf6",
+                  "on-surface": "#171d1a",
+                  "surface-container-highest": "#dee4df",
+                  "outline": "#6d7a74",
+                  "surface-container-low": "#eff5f0",
+                  "primary": "#006950",
+                  "background": "#f5fbf6",
+                  "surface-container": "#eaefea",
+                  "surface-container-lowest": "#f5fbf6",
+                  "custom-green": "#5A8363",
+                  "custom-red": "#D70015"
+                }
+              }
+            }
+          }
+    </script>
+    <style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        @keyframes modalPop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-pop { animation: modalPop 0.2s ease-out forwards; }
+        .dark body { background-color: #111412; color: #e2e3e0; }
+        .dark .bg-surface-container { background-color: #1a1f1c; }
+        .dark .bg-surface-container-lowest { background-color: #111412; }
+        .dark .text-on-surface { color: #e2e3e0; }
+        /* modal cards */
+        .dark .dark\:bg-\[#1a1f1c\] { background-color: #1a1f1c; }
+        /* inputs inside modals use bg-surface-container */
+        .dark input.bg-surface-container { background-color: #252b28; color: #e2e3e0; }
+        .dark input.bg-surface-container::placeholder { color: #6d7a74; }
+        /* divide lines */
+        .dark .dark\:divide-white\/5 > :not([hidden]) ~ :not([hidden]) { border-color: rgba(255,255,255,0.05); }
+    </style>
+</head>
+
+<body class="bg-surface-container-lowest dark:bg-[#111412] font-body text-on-surface dark:text-[#e2e3e0] min-h-screen flex flex-col transition-colors duration-300">
+
+<header class="w-full shrink-0 flex items-center justify-between px-4 h-16 bg-[#5A8363] shadow-sm border-b border-[#cff7ee]/20">
+    <div class="flex items-center gap-3">
+        <button class="text-[#cff7ee] hover:opacity-80 transition-opacity active:scale-95">
+            <span class="material-symbols-outlined">arrow_back</span>
+        </button>
+        <h1 class="font-bold text-lg text-[#cff7ee]">Truth or Dare</h1>
+    </div>
+    </header>
+
+<main class="flex-1 w-full px-4 py-8 max-w-2xl mx-auto">
+    <div class="mb-8">
+        <h2 class="text-3xl font-black tracking-tight mb-1">Configurações</h2>
+        <p class="text-outline font-medium text-sm">Gerencie sua conta e preferências</p>
+    </div>
+
+    <div class="space-y-6">
+        <section>
+            <h3 class="text-[12px] font-bold text-outline uppercase tracking-widest px-1 mb-3">Visual e App</h3>
+            <div class="bg-surface-container dark:bg-[#1a1f1c] rounded-2xl overflow-hidden divide-y divide-black/5 dark:divide-white/5">
+                <div id="btn-theme" class="flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-custom-green">dark_mode</span>
+                        <span class="font-semibold">Modo Escuro</span>
+                    </div>
+                    <button id="toggle-dark" class="w-12 h-6 bg-outline/30 rounded-full relative transition-all duration-300">
+                        <div id="dot-dark" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all duration-300"></div>
+                    </button>
+                </div>
+                <div onclick="openModal('modal-about')" class="flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-custom-green">info</span>
+                        <span class="font-semibold">Sobre o App</span>
+                    </div>
+                    <span class="material-symbols-outlined text-outline">chevron_right</span>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h3 class="text-[12px] font-bold text-outline uppercase tracking-widest px-1 mb-3">Conta</h3>
+            <div class="bg-surface-container dark:bg-[#1a1f1c] rounded-2xl overflow-hidden divide-y divide-black/5 dark:divide-white/5">
+                <div id="btn-private" class="flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-custom-green">lock</span>
+                        <div>
+                            <span class="font-semibold block">Conta Privada</span>
+                            <span id="private-desc" class="text-[11px] text-outline">Qualquer pessoa pode te seguir</span>
+                        </div>
+                    </div>
+                    <button id="toggle-private" class="w-12 h-6 bg-outline/30 rounded-full relative transition-all duration-300 shrink-0">
+                        <div id="dot-private" class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-all duration-300"></div>
+                    </button>
+                </div>
+                <div onclick="openModal('modal-account')" class="flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-custom-green">manage_accounts</span>
+                        <span class="font-semibold">Dados e Privacidade</span>
+                    </div>
+                    <span class="material-symbols-outlined text-outline">chevron_right</span>
+                </div>
+                <div onclick="openModal('modal-password')" class="flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-custom-green">lock_reset</span>
+                        <span class="font-semibold">Alterar Senha</span>
+                    </div>
+                    <span class="material-symbols-outlined text-outline">chevron_right</span>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h3 class="text-[12px] font-bold text-outline uppercase tracking-widest px-1 mb-3">Suporte</h3>
+            <div class="bg-surface-container dark:bg-[#1a1f1c] rounded-2xl overflow-hidden divide-y divide-black/5 dark:divide-white/5">
+                <div onclick="openModal('modal-help')" class="flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <span class="material-symbols-outlined text-custom-green">help_center</span>
+                        <span class="font-semibold">Central de Ajuda</span>
+                    </div>
+                    <span class="material-symbols-outlined text-outline">chevron_right</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="pt-4 pb-8">
+            <button onclick="openModal('modal-logout')" class="w-full bg-custom-red text-white py-4 rounded-xl font-black text-lg shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined">logout</span> SAIR
+            </button>
+            <p class="text-center text-outline text-[11px] mt-6 font-bold uppercase tracking-widest">Truth or Dare Settings</p>
+        </div>
+    </div>
+</main>
+
+<div id="modal-account" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-sm rounded-[32px] overflow-hidden animate-pop shadow-2xl p-8">
+        <h3 class="text-xl font-black mb-4 uppercase">Privacidade</h3>
+        <div class="space-y-4">
+            <div class="p-4 bg-surface-container dark:bg-[#252b28] rounded-xl">
+                <p class="text-xs font-bold text-custom-green uppercase mb-1">E-mail atual</p>
+                <p class="font-semibold"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="e89a818b899a8c87c6858d868c8d9ba88d85898184c68b8785">[email&#160;protected]</a></p>
+            </div>
+            <button onclick="switchModal('modal-account', 'modal-email-step2')" class="w-full py-4 bg-custom-green text-white font-black rounded-xl text-sm uppercase tracking-widest">Alterar E-mail</button>
+        </div>
+        <button onclick="closeModal('modal-account')" class="w-full mt-6 text-outline font-bold text-xs uppercase">Fechar</button>
+    </div>
+</div>
+
+<div id="modal-email-step2" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-sm rounded-[32px] p-8 animate-pop shadow-2xl">
+        <h3 class="text-xl font-black mb-6 uppercase">Novo E-mail</h3>
+        <div class="space-y-4">
+            <input type="email" placeholder="Novo e-mail" class="w-full p-4 bg-surface-container dark:bg-[#252b28] border-none rounded-xl font-bold text-on-surface dark:text-[#e2e3e0] placeholder:text-outline focus:ring-2 focus:ring-custom-green transition-all">
+            <input type="password" placeholder="Confirme sua senha" class="w-full p-4 bg-surface-container dark:bg-[#252b28] border-none rounded-xl font-bold text-on-surface dark:text-[#e2e3e0] placeholder:text-outline focus:ring-2 focus:ring-custom-green transition-all">
+            <button onclick="switchModal('modal-email-step2', 'modal-success-email')" class="w-full bg-custom-green text-white py-4 rounded-xl font-black uppercase tracking-widest">Confirmar Mudança</button>
+        </div>
+        <button onclick="switchModal('modal-email-step2', 'modal-account')" class="w-full mt-4 text-outline font-bold text-xs uppercase">Voltar</button>
+    </div>
+</div>
+
+<div id="modal-success-email" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-sm rounded-[32px] p-8 animate-pop shadow-2xl text-center">
+        <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="material-symbols-outlined text-5xl" style="font-variation-settings: 'wght' 700;">check_circle</span>
+        </div>
+        <h3 class="text-xl font-black mb-2 uppercase">E-mail Atualizado!</h3>
+        <p class="text-outline text-sm mb-8">Seu novo endereço de e-mail foi salvo com sucesso.</p>
+        <button onclick="closeModal('modal-success-email')" class="w-full bg-custom-green text-white py-4 rounded-xl font-black uppercase tracking-widest">Excelente</button>
+    </div>
+</div>
+
+<div id="modal-password" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-sm rounded-[32px] p-8 animate-pop shadow-2xl">
+        <h3 class="text-xl font-black mb-6 uppercase">Nova Senha</h3>
+        <div class="space-y-4">
+            <input type="password" placeholder="Senha Atual" class="w-full p-4 bg-surface-container dark:bg-[#252b28] border-none rounded-xl font-bold text-on-surface dark:text-[#e2e3e0] placeholder:text-outline">
+            <input type="password" placeholder="Nova Senha" class="w-full p-4 bg-surface-container dark:bg-[#252b28] border-none rounded-xl font-bold text-on-surface dark:text-[#e2e3e0] placeholder:text-outline">
+            <button onclick="switchModal('modal-password', 'modal-success-password')" class="w-full bg-custom-green text-white py-4 rounded-xl font-black uppercase tracking-widest">Atualizar Senha</button>
+        </div>
+        <button onclick="closeModal('modal-password')" class="w-full mt-4 text-outline font-bold text-xs uppercase">Cancelar</button>
+    </div>
+</div>
+
+<div id="modal-success-password" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-sm rounded-[32px] p-8 animate-pop shadow-2xl text-center">
+        <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="material-symbols-outlined text-5xl" style="font-variation-settings: 'wght' 700;">key</span>
+        </div>
+        <h3 class="text-xl font-black mb-2 uppercase">Senha Alterada!</h3>
+        <p class="text-outline text-sm mb-8">Sua conta está protegida com a nova credencial.</p>
+        <button onclick="closeModal('modal-success-password')" class="w-full bg-custom-green text-white py-4 rounded-xl font-black uppercase tracking-widest">Ok</button>
+    </div>
+</div>
+
+<div id="modal-help" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-sm rounded-[32px] p-8 animate-pop shadow-2xl max-h-[80vh] overflow-y-auto">
+        <h3 class="text-xl font-black mb-4 uppercase">Suporte</h3>
+        <div class="space-y-4 text-sm font-medium">
+            <p class="text-outline">Como jogar: Selecione entre Verdade ou Desafio e siga as instruções na tela!</p>
+            <hr class="opacity-10">
+            <button class="w-full text-left flex items-center justify-between font-bold text-custom-green">
+                <span>Denunciar Abuso</span>
+                <span class="material-symbols-outlined">flag</span>
+            </button>
+            <button class="w-full text-left flex items-center justify-between font-bold text-custom-green">
+                <span>Falar com Devs</span>
+                <span class="material-symbols-outlined">mail</span>
+            </button>
+        </div>
+        <button onclick="closeModal('modal-help')" class="w-full mt-8 bg-black/5 dark:bg-white/5 py-3 rounded-xl font-bold">Entendi</button>
+    </div>
+</div>
+
+<div id="modal-about" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-sm rounded-[32px] p-8 animate-pop shadow-2xl text-center">
+        <div class="w-16 h-16 bg-custom-green rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg">
+            <span class="material-symbols-outlined text-white text-4xl">style</span>
+        </div>
+        <h3 class="text-xl font-black uppercase">Truth or Dare</h3>
+        <div class="mt-6 text-xs text-left p-4 bg-black/5 dark:bg-white/5 rounded-xl space-y-2">
+            <p>• Termos de Uso atualizados</p>
+            <p>• Motor de renderização Lite v2</p>
+            <p>• Suporte a múltiplos idiomas</p>
+        </div>
+        <button onclick="closeModal('modal-about')" class="w-full mt-6 py-3 text-custom-green font-black uppercase text-xs">Fechar</button>
+    </div>
+</div>
+
+<div id="modal-private" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-sm rounded-[32px] p-8 animate-pop shadow-2xl text-center">
+        <div id="modal-private-icon" class="w-20 h-20 bg-surface-container dark:bg-[#252b28] rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="material-symbols-outlined text-4xl text-custom-green">lock</span>
+        </div>
+        <h3 id="modal-private-title" class="text-xl font-black mb-2 uppercase">Tornar Conta Privada?</h3>
+        <p id="modal-private-body" class="text-outline text-sm mb-8">Somente seguidores aprovados por você poderão ver seu perfil e atividade.</p>
+        <div class="space-y-3">
+            <button id="modal-private-confirm" onclick="confirmPrivacy()" class="w-full bg-custom-green text-white py-4 rounded-xl font-black uppercase tracking-widest">Confirmar</button>
+            <button onclick="cancelPrivacy()" class="w-full py-2 text-outline font-bold text-xs uppercase">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div id="modal-logout" class="hidden fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-md p-6">
+    <div class="bg-white dark:bg-[#1a1f1c] dark:text-[#e2e3e0] w-full max-w-xs rounded-[32px] p-8 animate-pop shadow-2xl text-center">
+        <h3 class="text-xl font-black mb-2">Deseja sair?</h3>
+        <p class="text-outline text-sm mb-8 font-medium">Sua sessão será encerrada com segurança.</p>
+        <div class="space-y-3">
+            <button onclick="location.reload()" class="w-full bg-custom-red text-white py-4 rounded-xl font-black shadow-md">SIM, DESLOGAR</button>
+            <button onclick="closeModal('modal-logout')" class="w-full py-2 text-outline font-bold text-xs uppercase">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<nav class="w-full shrink-0 flex justify-around items-center px-2 pb-safe h-20 bg-[#5A8363] rounded-t-xl mt-8">
+    <div class="flex flex-col items-center justify-center text-[#f9f9f9]/70 px-3 py-1 cursor-pointer">
+        <span class="material-symbols-outlined">style</span>
+        <span class="text-[10px] font-bold uppercase mt-1">Jogar</span>
+    </div>
+    <div class="flex flex-col items-center justify-center text-[#f9f9f9]/70 px-3 py-1 cursor-pointer">
+        <span class="material-symbols-outlined">search</span>
+        <span class="text-[10px] font-bold uppercase mt-1">Buscar</span>
+    </div>
+    <div class="flex flex-col items-center justify-center text-[#f9f9f9]/70 px-3 py-1 cursor-pointer">
+        <span class="material-symbols-outlined">groups</span>
+        <span class="text-[10px] font-bold uppercase mt-1">Clubes</span>
+    </div>
+    <div class="flex flex-col items-center justify-center bg-[#D70015] text-[#f9f9f9] rounded-xl px-5 py-2 shadow-md cursor-pointer">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+        <span class="text-[10px] font-bold uppercase mt-1">Perfil</span>
+    </div>
+</nav>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+    const html = document.documentElement;
+    const themeBtn = document.getElementById('btn-theme');
+    const darkDot = document.getElementById('dot-dark');
+    const darkBg = document.getElementById('toggle-dark');
+
+    themeBtn.addEventListener('click', () => {
+        html.classList.toggle('dark');
+        const isDark = html.classList.contains('dark');
+        darkDot.style.transform = isDark ? 'translateX(24px)' : 'translateX(0)';
+        darkBg.style.backgroundColor = isDark ? '#5A8363' : '';
+        darkBg.classList.toggle('bg-outline/30', !isDark);
+    });
+
+    // ── Conta Privada ──────────────────────────────────────────
+    const btnPrivate  = document.getElementById('btn-private');
+    const togglePriv  = document.getElementById('toggle-private');
+    const dotPriv     = document.getElementById('dot-private');
+    const privDesc    = document.getElementById('private-desc');
+
+    let isPrivate = localStorage.getItem('accountPrivate') === 'true';
+    let pendingPrivate = null; // valor aguardando confirmação
+
+    function applyPrivateState(value, animate) {
+        isPrivate = value;
+        localStorage.setItem('accountPrivate', value);
+        dotPriv.style.transform   = value ? 'translateX(24px)' : 'translateX(0)';
+        togglePriv.style.backgroundColor = value ? '#5A8363' : '';
+        togglePriv.classList.toggle('bg-outline/30', !value);
+        privDesc.textContent = value
+            ? 'Só seguidores aprovados veem seu perfil'
+            : 'Qualquer pessoa pode te seguir';
+    }
+
+    // estado inicial sem animação
+    applyPrivateState(isPrivate, false);
+
+    btnPrivate.addEventListener('click', () => {
+        pendingPrivate = !isPrivate;
+
+        // Atualiza o modal de confirmação conforme direção
+        const willBePrivate = pendingPrivate;
+        document.getElementById('modal-private-icon').innerHTML = willBePrivate
+            ? '<span class="material-symbols-outlined text-4xl text-custom-green">lock</span>'
+            : '<span class="material-symbols-outlined text-4xl text-custom-green">lock_open</span>';
+        document.getElementById('modal-private-title').textContent = willBePrivate
+            ? 'Tornar Conta Privada?' : 'Tornar Conta Pública?';
+        document.getElementById('modal-private-body').textContent = willBePrivate
+            ? 'Somente seguidores aprovados por você poderão ver seu perfil e atividade.'
+            : 'Qualquer pessoa poderá ver seu perfil e te seguir sem aprovação.';
+
+        openModal('modal-private');
+    });
+
+    function confirmPrivacy() {
+        applyPrivateState(pendingPrivate, true);
+        closeModal('modal-private');
+        pendingPrivate = null;
+    }
+
+    function cancelPrivacy() {
+        closeModal('modal-private');
+        pendingPrivate = null;
+    }
+    // ────────────────────────────────────────────────────────────
+
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+    }
+
+    // Função para trocar de um modal para outro instantaneamente
+    function switchModal(closeId, openId) {
+        closeModal(closeId);
+        setTimeout(() => openModal(openId), 10);
+    }
+
+    window.onclick = function(event) {
+        if (event.target.id && event.target.id.includes('modal-')) {
+            event.target.classList.add('hidden');
+        }
+    }
+</script>
+</body>
+</html>
