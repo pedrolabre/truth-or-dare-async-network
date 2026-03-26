@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Truth or Dare - Enviar Convite</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-bright": "#121212",
+                        "on-surface": "#f5fbf6",
+                        "surface-container-highest": "#333333",
+                        "outline": "#94a3b8",
+                        "surface-container-low": "#1e1e1e",
+                        "primary-container": "#5A8363",
+                        "secondary": "#5A8363",
+                        "tertiary": "#D70015",
+                        "background": "#121212",
+                        "on-background": "#f5fbf6",
+                        "surface-container-high": "#282828",
+                        "primary": "#5A8363",
+                        "surface-container": "#1e1e1e",
+                        "surface": "#121212",
+                        "on-surface-variant": "#cbd5e1",
+                        "outline-variant": "#475569"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-surface-bright font-body text-on-surface antialiased min-h-screen flex flex-col">
+
+<header class="w-full shrink-0 flex items-center justify-between px-4 h-16 bg-[#5A8363] shadow-lg border-b border-[#cff7ee]/20">
+    <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-[#cff7ee]">
+            <img alt="User Profile" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name=Ricardo+Mendes&background=121212&color=ffffff"/>
+        </div>
+        <h1 class="font-['Inter'] font-bold text-lg text-[#cff7ee]">Truth or Dare</h1>
+    </div>
+    <div class="flex items-center gap-4">
+        <button class="text-[#f9f9f9]/80 hover:opacity-80 transition-opacity active:scale-95 transition-transform">
+            <span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+        </button>
+    </div>
+</header>
+
+<main class="flex-1 w-full px-4 py-8 max-w-2xl mx-auto space-y-8">
+    
+    <section class="space-y-2">
+        <h2 class="text-3xl font-black tracking-tight text-[#5A8363]">Escolha Sua Arma</h2>
+        <p class="text-on-surface-variant font-medium">Escolha uma categoria e envie um desafio para seus amigos.</p>
+    </section>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button class="group relative overflow-hidden h-64 rounded-xl transition-all duration-300 active:scale-95 border-4 border-transparent hover:border-[#5A8363]">
+            <div class="absolute inset-0 bg-gradient-to-br from-[#5A8363] to-[#3e6657] z-0"></div>
+            <div class="relative z-10 h-full p-6 flex flex-col justify-between text-white text-left">
+                <span class="material-symbols-outlined text-4xl" data-icon="history_edu">history_edu</span>
+                <div>
+                    <h3 class="text-2xl font-black uppercase tracking-widest">VERDADE</h3>
+                    <p class="text-sm opacity-90 mt-1">Force uma resposta honesta.</p>
+                </div>
+            </div>
+            <div class="absolute -right-4 -bottom-4 opacity-10">
+                <span class="material-symbols-outlined text-9xl" data-icon="menu_book">menu_book</span>
+            </div>
+        </button>
+
+        <button class="group relative overflow-hidden h-64 rounded-xl transition-all duration-300 active:scale-95 border-4 border-[#5A8363]">
+            <div class="absolute inset-0 bg-gradient-to-br from-[#1c1c1c] to-[#000000] z-0"></div>
+            <div class="relative z-10 h-full p-6 flex flex-col justify-between text-white text-left">
+                <span class="material-symbols-outlined text-4xl text-[#5A8363]" data-icon="bolt">bolt</span>
+                <div>
+                    <h3 class="text-2xl font-black uppercase tracking-widest">DESAFIO</h3>
+                    <p class="text-sm opacity-90 mt-1">Desafie-os a agir.</p>
+                </div>
+            </div>
+            <div class="absolute top-4 right-4 bg-[#5A8363] text-white rounded-full p-1 z-20">
+                <span class="material-symbols-outlined text-sm font-bold" data-icon="check">check</span>
+            </div>
+            <div class="absolute -right-4 -bottom-4 opacity-10">
+                <span class="material-symbols-outlined text-9xl" data-icon="fireplace">fireplace</span>
+            </div>
+        </button>
+    </div>
+
+    <div class="space-y-4">
+        <label class="block text-sm font-bold uppercase tracking-wider text-outline">O DESAFIO</label>
+        <div class="relative group">
+            <textarea class="w-full bg-surface-container-low border-2 border-outline-variant rounded-xl p-4 focus:ring-2 focus:ring-[#5A8363] focus:border-[#5A8363] transition-all text-lg font-medium resize-none placeholder:text-outline/50 text-white" placeholder="Digite sua pergunta ou desafio aqui..." rows="4"></textarea>
+            <div class="absolute bottom-4 right-4 flex gap-2">
+                <button class="p-2 rounded-lg bg-surface-container-highest text-white/70 hover:text-[#5A8363] transition-colors">
+                    <span class="material-symbols-outlined" data-icon="casino">casino</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-surface-container-high rounded-xl p-4 flex items-center justify-between border border-outline-variant/30">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 rounded-lg overflow-hidden bg-[#5A8363]">
+                <img alt="Opponent" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name=Alex+Tank&background=121212&color=ffffff"/>
+            </div>
+            <div>
+                <p class="text-xs font-bold text-outline uppercase tracking-tighter">DESAFIANDO</p>
+                <h4 class="font-bold text-lg text-white">Alex "The Tank"</h4>
+            </div>
+        </div>
+        <button class="text-[#5A8363] font-bold text-sm px-4 py-2 hover:bg-[#5A8363]/10 rounded-lg transition-colors">ALTERAR</button>
+    </div>
+
+    <button class="w-full h-16 bg-[#D70015] hover:bg-[#bb0011] text-white rounded-xl shadow-xl shadow-[#D70015]/30 flex items-center justify-center gap-3 active:scale-[0.98] transition-all group">
+        <span class="text-xl font-black tracking-widest uppercase">ENVIAR DESAFIO</span>
+        <span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" data-icon="send">send</span>
+    </button>
+</main>
+
+<nav class="w-full shrink-0 flex justify-around items-center px-2 pb-safe h-20 bg-[#5A8363] shadow-[0_-4px_20px_rgba(0,0,0,0.3)] border-t border-white/10 rounded-t-xl mt-auto">
+    <a class="flex flex-col items-center justify-center bg-[#D70015] text-[#f9f9f9] rounded-2xl px-5 py-2 active:scale-90 transition-transform shadow-md" href="#">
+        <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;" data-icon="style">style</span>
+        <span class="font-['Inter'] text-[12px] font-bold mt-0.5">Jogar</span>
+    </a>
+    <a class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 transition-transform px-3 py-1" href="#">
+        <span class="material-symbols-outlined" data-icon="search">search</span>
+        <span class="font-['Inter'] text-[12px] font-medium mt-0.5">Buscar</span>
+    </a>
+    <a class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 transition-transform px-3 py-1" href="#">
+        <span class="material-symbols-outlined" data-icon="groups">groups</span>
+        <span class="font-['Inter'] text-[12px] font-medium mt-0.5">Clubes</span>
+    </a>
+    <a class="flex flex-col items-center justify-center text-[#f9f9f9]/70 hover:text-[#f9f9f9] transition-colors active:scale-90 transition-transform px-3 py-1" href="#">
+        <span class="material-symbols-outlined" data-icon="person">person</span>
+        <span class="font-['Inter'] text-[12px] font-medium mt-0.5">Você</span>
+    </a>
+</nav>
+
+</body>
+</html>
