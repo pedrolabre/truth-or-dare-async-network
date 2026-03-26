@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Truth or Dare - Respostas</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+          tailwind.config = {
+            darkMode: "class",
+            theme: {
+              extend: {
+                colors: {
+                  "surface-bright": "#1a261f",
+                  "on-surface": "#f9f9f9",
+                  "surface-container-highest": "#334b3d",
+                  "outline": "#78857e",
+                  "tertiary-fixed-dim": "#ffb4ab",
+                  "surface-container-low": "#111a15",
+                  "primary-container": "#008466",
+                  "on-primary-fixed": "#002117",
+                  "tertiary-container": "#e6171e",
+                  "on-error-container": "#93000a",
+                  "surface-variant": "#3b4a41",
+                  "secondary-fixed-dim": "#a5d0bd",
+                  "surface-dim": "#0e1511",
+                  "error-container": "#ffdad6",
+                  "secondary": "#a5d0bd",
+                  "on-surface-variant": "#b5c2bc",
+                  "primary-fixed": "#86f7d0",
+                  "on-primary-container": "#f5fff8",
+                  "tertiary": "#ffb4ab",
+                  "on-tertiary-fixed": "#410002",
+                  "surface-container-lowest": "#000000",
+                  "on-background": "#f9f9f9",
+                  "inverse-primary": "#006950",
+                  "on-secondary-container": "#c0ecd9",
+                  "surface-container-high": "#293d32",
+                  "secondary-fixed": "#c0ecd9",
+                  "on-secondary-fixed": "#002117",
+                  "background": "#121b16",
+                  "on-secondary": "#171d1a",
+                  "on-primary-fixed-variant": "#00513d",
+                  "primary": "#68dbb4",
+                  "on-secondary-fixed-variant": "#264e40",
+                  "surface-container": "#1f3026",
+                  "tertiary-fixed": "#ffdad6",
+                  "surface-tint": "#68dbb4",
+                  "primary-fixed-dim": "#68dbb4",
+                  "outline-variant": "#324038",
+                  "inverse-surface": "#f5fbf6",
+                  "on-tertiary-fixed-variant": "#93000a",
+                  "on-tertiary-container": "#ffdad6",
+                  "on-error": "#690005",
+                  "on-tertiary": "#690005",
+                  "on-primary": "#003829",
+                  "surface": "#121b16",
+                  "secondary-container": "#3e6657",
+                  "inverse-on-surface": "#171d1a",
+                  "error": "#ffb4ab"
+                },
+                fontFamily: {
+                  "headline": ["Inter"],
+                  "body": ["Inter"],
+                  "label": ["Inter"]
+                },
+              },
+            },
+          }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #121b16;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface antialiased h-screen flex flex-col overflow-hidden relative">
+
+<header class="w-full shrink-0 flex items-center justify-between px-4 h-16 bg-[#5A8363] border-b border-white/10 shadow-sm z-20 relative">
+    <div class="flex items-center gap-3">
+        <button class="text-[#f9f9f9] hover:opacity-80 active:scale-90 transition-transform flex items-center justify-center">
+            <span class="material-symbols-outlined text-2xl">arrow_back</span>
+        </button>
+        <span class="text-lg font-bold text-[#f9f9f9] tracking-tight">Respostas</span>
+    </div>
+    
+    <div class="relative flex items-center">
+        <button id="menu-btn" class="text-[#cff7ee] hover:opacity-80 transition-opacity active:scale-95 transition-transform p-1 rounded-full">
+            <span class="material-symbols-outlined pointer-events-none">more_vert</span>
+        </button>
+        
+        <div id="dropdown-menu" class="hidden absolute right-0 top-10 w-48 bg-[#5A8363] rounded-xl shadow-lg border border-white/20 overflow-hidden z-50 transform origin-top-right transition-all">
+            <ul class="py-1">
+                <li>
+                    <button id="share-btn" class="w-full text-left px-4 py-3 text-sm font-semibold text-white hover:bg-white/10 flex items-center gap-3 transition-colors">
+                        <span class="material-symbols-outlined text-[18px] text-white/80">share</span>
+                        Compartilhar link
+                    </button>
+                </li>
+                <li>
+                    <button id="mute-btn" class="w-full text-left px-4 py-3 text-sm font-semibold text-white hover:bg-white/10 flex items-center gap-3 transition-colors">
+                        <span class="material-symbols-outlined text-[18px] text-white/80">notifications_off</span>
+                        Silenciar post
+                    </button>
+                </li>
+                <li class="border-t border-white/20 mt-1 pt-1">
+                    <button id="report-btn" class="w-full text-left px-4 py-3 text-sm font-bold text-[#ffb4ab] hover:bg-white/10 flex items-center gap-3 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">flag</span>
+                        Denunciar
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</header>
+
+<main class="flex-1 w-full overflow-y-auto hide-scrollbar relative z-0">
+    <div class="max-w-2xl mx-auto px-4 py-6 space-y-6">
+        
+        <article class="bg-surface-container rounded-2xl p-5 border border-outline-variant/50 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-[#5A8363]/10 rounded-full flex items-center justify-center">
+                        <span class="material-symbols-outlined text-[#5A8363] text-lg">groups</span>
+                    </div>
+                    <span class="text-on-surface font-black text-xs uppercase tracking-tight">Clube dos Corajosos</span>
+                </div>
+                <span class="bg-[#5A8363]/10 text-[#5A8363] text-[10px] font-black uppercase px-2.5 py-1 rounded-md">Verdade</span>
+            </div>
+            <div class="border-l-4 border-[#5A8363]/30 pl-4 py-1 mb-2">
+                <p class="text-on-surface text-base font-semibold italic">"Qual o seu maior arrependimento amoroso que ninguém sabe?"</p>
+            </div>
+            <div class="flex items-center justify-between mt-4">
+                <div class="flex items-center gap-1.5 text-[#5A8363]">
+                    <span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">favorite</span>
+                    <span class="text-xs font-bold text-on-surface">215</span>
+                </div>
+                <span class="text-[11px] text-outline font-bold">84 pessoas responderam</span>
+            </div>
+        </article>
+
+        <div class="flex items-center gap-3">
+            <div class="h-px bg-outline-variant/30 flex-1"></div>
+            <span class="text-xs font-bold text-outline uppercase tracking-wider">Comentários</span>
+            <div class="h-px bg-outline-variant/30 flex-1"></div>
+        </div>
+
+        <section class="space-y-5 pb-6">
+            
+            <div class="flex gap-3">
+                <img alt="User avatar" class="w-9 h-9 rounded-full border border-outline-variant bg-surface shrink-0" src="https://ui-avatars.com/api/?name=Ana+Clara&background=ffdad6&color=410002"/>
+                <div class="flex-1">
+                    <div class="bg-surface-container rounded-2xl rounded-tl-none p-3.5 border border-outline-variant/20 shadow-sm">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-black text-on-surface tracking-tight">Ana Clara</span>
+                            <span class="text-[10px] font-medium text-outline">há 15m</span>
+                        </div>
+                        <p class="text-sm text-on-surface-variant leading-relaxed">Eu disse que ia dormir na casa de uma amiga, mas fui pra outra cidade tentar voltar com meu ex. Deu tudo errado 🤡</p>
+                    </div>
+                    <div class="flex items-center gap-4 mt-1.5 ml-2">
+                        <button class="flex items-center gap-1 text-outline hover:text-[#D70015] transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">favorite</span>
+                            <span class="text-[11px] font-bold">42</span>
+                        </button>
+                        <button class="text-[11px] font-bold text-outline hover:text-[#5A8363]">Responder</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <img alt="User avatar" class="w-9 h-9 rounded-full border border-outline-variant bg-surface shrink-0" src="https://ui-avatars.com/api/?name=Pedro+Henrique&background=c0ecd9&color=002117"/>
+                <div class="flex-1">
+                    <div class="bg-surface-container rounded-2xl rounded-tl-none p-3.5 border border-outline-variant/20 shadow-sm">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-black text-on-surface tracking-tight">Pedro Henrique</span>
+                            <span class="text-[10px] font-medium text-outline">há 42m</span>
+                        </div>
+                        <p class="text-sm text-on-surface-variant leading-relaxed">Vish, se eu falar isso aqui serei expulso do grupo kkkkkkkkk</p>
+                    </div>
+                    <div class="flex items-center gap-4 mt-1.5 ml-2">
+                        <button class="flex items-center gap-1 text-outline hover:text-[#D70015] transition-colors">
+                            <span class="material-symbols-outlined text-[16px]">favorite</span>
+                            <span class="text-[11px] font-bold">12</span>
+                        </button>
+                        <button class="text-[11px] font-bold text-outline hover:text-[#5A8363]">Responder</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-3">
+                <img alt="User avatar" class="w-9 h-9 rounded-full border border-outline-variant bg-surface shrink-0" src="https://ui-avatars.com/api/?name=Mariana+Costa&background=1f3026&color=f9f9f9"/>
+                <div class="flex-1">
+                    <div class="bg-surface-container rounded-2xl rounded-tl-none p-3.5 border border-outline-variant/20 shadow-sm">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-sm font-black text-on-surface tracking-tight">Mariana Costa</span>
+                            <span class="text-[10px] font-medium text-outline">há 1h</span>
+                        </div>
+                        <p class="text-sm text-on-surface-variant leading-relaxed">Ter namorado o Enzo. Foi um delírio coletivo.</p>
+                    </div>
+                    <div class="flex items-center gap-4 mt-1.5 ml-2">
+                        <button class="flex items-center gap-1 text-[#D70015] transition-colors">
+                            <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">favorite</span>
+                            <span class="text-[11px] font-bold">89</span>
+                        </button>
+                        <button class="text-[11px] font-bold text-outline hover:text-[#5A8363]">Responder</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-4 pb-2 flex justify-center">
+                <button class="flex items-center gap-2 px-6 py-2.5 bg-surface-container hover:bg-surface-bright text-[#5A8363] text-sm font-bold rounded-full transition-colors active:scale-95 border border-[#5A8363]/20 shadow-sm">
+                    <span class="material-symbols-outlined text-[18px]">sync</span>
+                    Carregar mais 81 respostas
+                </button>
+            </div>
+
+        </section>
+    </div>
+</main>
+
+<footer class="w-full shrink-0 bg-surface-bright border-t border-outline-variant/20 px-4 py-3 pb-safe shadow-[0_-4px_10px_rgba(0,0,0,0.03)] z-10">
+    <div class="max-w-2xl mx-auto flex items-end gap-3">
+        <img alt="Your avatar" class="w-9 h-9 rounded-full border border-outline-variant bg-surface shrink-0 mb-1" src="https://ui-avatars.com/api/?name=Ricardo+Mendes&background=1f3026&color=f9f9f9"/>
+        <div class="flex-1 bg-surface-container rounded-2xl border border-outline-variant/30 flex items-end px-3 py-1.5 focus-within:border-[#5A8363] focus-within:ring-1 focus-within:ring-[#5A8363]/50 transition-all">
+            <textarea class="w-full bg-transparent border-none focus:ring-0 text-sm text-on-surface placeholder-outline resize-none max-h-32 py-1.5 hide-scrollbar" rows="1" placeholder="Adicione sua resposta..."></textarea>
+            <button class="text-[#5A8363] p-1.5 hover:bg-[#5A8363]/10 rounded-full transition-colors active:scale-95 shrink-0 ml-1">
+                <span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">send</span>
+            </button>
+        </div>
+    </div>
+</footer>
+
+<div id="share-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity">
+    <div class="bg-surface-bright w-full sm:w-[90%] max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden transform transition-transform translate-y-0 pb-safe relative">
+        <button id="close-share-btn" class="absolute top-4 right-4 text-outline hover:text-on-surface p-1.5 rounded-full hover:bg-surface-container transition-colors active:scale-90 z-10">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+        <div class="p-6 pt-10 space-y-4">
+            <h3 class="text-xl font-black text-on-surface mb-6 tracking-tight">Compartilhar desafio</h3>
+            <button class="w-full flex items-center gap-4 p-3.5 rounded-xl hover:bg-surface-container transition-colors border border-outline-variant/30 active:scale-95">
+                <div class="w-12 h-12 bg-[#25D366]/15 text-[#25D366] rounded-full flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">forum</span> 
+                </div>
+                <div class="text-left flex-1">
+                    <span class="block font-bold text-on-surface text-sm">Enviar no WhatsApp</span>
+                    <span class="block text-xs font-medium text-on-surface-variant">Contatos ou Grupos</span>
+                </div>
+            </button>
+            <button class="w-full flex items-center gap-4 p-3.5 rounded-xl hover:bg-surface-container transition-colors border border-outline-variant/30 active:scale-95">
+                <div class="w-12 h-12 bg-[#5A8363]/15 text-[#5A8363] rounded-full flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined">link</span>
+                </div>
+                <div class="text-left flex-1">
+                    <span class="block font-bold text-on-surface text-sm">Copiar Link</span>
+                    <span class="block text-xs font-medium text-on-surface-variant">Link direto para este post</span>
+                </div>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="mute-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity px-4">
+    <div class="bg-surface-bright w-full max-w-sm rounded-3xl shadow-2xl overflow-hidden p-6 text-center transform transition-transform">
+        <div class="w-16 h-16 bg-surface-container rounded-full flex items-center justify-center mx-auto mb-4 text-[#5A8363]">
+            <span class="material-symbols-outlined text-3xl">notifications_off</span>
+        </div>
+        <h3 class="text-xl font-black text-on-surface mb-2 tracking-tight">Silenciar notificações?</h3>
+        <p class="text-sm text-on-surface-variant font-medium mb-8 leading-relaxed">Você deixará de receber alertas sobre novos comentários e reações nesta publicação.</p>
+        
+        <div class="flex gap-3">
+            <button id="cancel-mute-btn" class="flex-1 py-3 px-4 rounded-xl font-bold text-on-surface border border-outline-variant hover:bg-surface-container transition-colors active:scale-95">
+                Cancelar
+            </button>
+            <button id="confirm-mute-btn" class="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-[#5A8363] hover:bg-[#00513d] transition-colors active:scale-95 shadow-sm">
+                Silenciar
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="report-modal" class="hidden fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity">
+    <div class="bg-surface-bright w-full sm:w-[90%] max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden transform transition-transform translate-y-0 pb-safe relative">
+        
+        <button id="close-report-btn" class="absolute top-4 right-4 text-outline hover:text-on-surface p-1.5 rounded-full hover:bg-surface-container transition-colors active:scale-90 z-10">
+            <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+
+        <div id="report-step-1" class="p-6 pt-10">
+            <h3 class="text-xl font-black text-on-surface mb-2 tracking-tight">Denunciar publicação</h3>
+            <p class="text-sm text-on-surface-variant font-medium mb-5">Por que você está denunciando esta interação?</p>
+            
+            <div class="space-y-2">
+                <button class="report-reason-btn w-full text-left p-3.5 rounded-xl hover:bg-surface-container border border-outline-variant/30 text-sm font-bold text-on-surface transition-colors active:scale-95" data-reason="Spam ou fraude">Spam ou fraude</button>
+                <button class="report-reason-btn w-full text-left p-3.5 rounded-xl hover:bg-surface-container border border-outline-variant/30 text-sm font-bold text-on-surface transition-colors active:scale-95" data-reason="Discurso de ódio ou ofensa">Discurso de ódio ou ofensa</button>
+                <button class="report-reason-btn w-full text-left p-3.5 rounded-xl hover:bg-surface-container border border-outline-variant/30 text-sm font-bold text-on-surface transition-colors active:scale-95" data-reason="Conteúdo sexual ou nudez">Conteúdo sexual ou nudez</button>
+                <button class="report-reason-btn w-full text-left p-3.5 rounded-xl hover:bg-surface-container border border-outline-variant/30 text-sm font-bold text-on-surface transition-colors active:scale-95" data-reason="Assédio ou bullying">Assédio ou bullying</button>
+            </div>
+        </div>
+
+        <div id="report-step-2" class="hidden p-6 pt-10 text-center">
+            <div class="w-16 h-16 bg-[#D70015]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#D70015]">
+                <span class="material-symbols-outlined text-3xl">flag</span>
+            </div>
+            <h3 class="text-xl font-black text-on-surface mb-2 tracking-tight">Confirmar denúncia</h3>
+            <p class="text-sm text-on-surface-variant font-medium mb-8 leading-relaxed">Você está denunciando este conteúdo por <strong id="selected-reason-text" class="text-on-surface">...</strong>. Esta ação é totalmente anônima.</p>
+            
+            <div class="flex gap-3">
+                <button id="back-report-btn" class="flex-1 py-3 px-4 rounded-xl font-bold text-on-surface border border-outline-variant hover:bg-surface-container transition-colors active:scale-95">Voltar</button>
+                <button id="submit-report-btn" class="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-[#D70015] hover:bg-[#93000a] transition-colors active:scale-95 shadow-sm">Denunciar</button>
+            </div>
+        </div>
+
+        <div id="report-step-3" class="hidden p-6 pt-10 text-center">
+            <div class="w-16 h-16 bg-[#5A8363]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#5A8363]">
+                <span class="material-symbols-outlined text-3xl">check_circle</span>
+            </div>
+            <h3 class="text-xl font-black text-on-surface mb-2 tracking-tight">Denúncia recebida</h3>
+            <p class="text-sm text-on-surface-variant font-medium mb-8 leading-relaxed">Agradecemos por ajudar a manter nossa comunidade segura. Nossa equipe analisará o caso o mais rápido possível.</p>
+            
+            <button id="finish-report-btn" class="w-full py-3 px-4 rounded-xl font-bold text-on-surface bg-surface-container hover:bg-surface-dim transition-colors active:scale-95 shadow-sm">Concluir</button>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const menuBtn = document.getElementById('menu-btn');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdownMenu.classList.contains('hidden') && !dropdownMenu.contains(e.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+        function openModal(modalId) {
+            dropdownMenu.classList.add('hidden');
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        const shareModal = document.getElementById('share-modal');
+        document.getElementById('share-btn').addEventListener('click', (e) => { e.stopPropagation(); openModal('share-modal'); });
+        document.getElementById('close-share-btn').addEventListener('click', () => shareModal.classList.add('hidden'));
+        shareModal.addEventListener('click', (e) => { if (e.target === shareModal) shareModal.classList.add('hidden'); });
+
+        const muteModal = document.getElementById('mute-modal');
+        document.getElementById('mute-btn').addEventListener('click', (e) => { e.stopPropagation(); openModal('mute-modal'); });
+        document.getElementById('cancel-mute-btn').addEventListener('click', () => muteModal.classList.add('hidden'));
+        document.getElementById('confirm-mute-btn').addEventListener('click', () => {
+            muteModal.classList.add('hidden');
+        });
+        muteModal.addEventListener('click', (e) => { if (e.target === muteModal) muteModal.classList.add('hidden'); });
+
+        const reportModal = document.getElementById('report-modal');
+        const step1 = document.getElementById('report-step-1');
+        const step2 = document.getElementById('report-step-2');
+        const step3 = document.getElementById('report-step-3');
+        const reasonText = document.getElementById('selected-reason-text');
+        
+        let selectedReason = "";
+
+        document.getElementById('report-btn').addEventListener('click', (e) => { 
+            e.stopPropagation(); 
+            openModal('report-modal'); 
+            resetReportModal(); 
+        });
+
+        document.querySelectorAll('.report-reason-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                selectedReason = this.getAttribute('data-reason');
+                reasonText.textContent = selectedReason;
+                step1.classList.add('hidden');
+                step2.classList.remove('hidden');
+            });
+        });
+
+        document.getElementById('back-report-btn').addEventListener('click', () => {
+            step2.classList.add('hidden');
+            step1.classList.remove('hidden');
+        });
+
+        document.getElementById('submit-report-btn').addEventListener('click', () => {
+            step2.classList.add('hidden');
+            step3.classList.remove('hidden');
+        });
+
+        function closeReportModal() {
+            reportModal.classList.add('hidden');
+            setTimeout(resetReportModal, 300); 
+        }
+
+        document.getElementById('close-report-btn').addEventListener('click', closeReportModal);
+        document.getElementById('finish-report-btn').addEventListener('click', closeReportModal);
+        reportModal.addEventListener('click', (e) => { if (e.target === reportModal) closeReportModal(); });
+
+        function resetReportModal() {
+            step1.classList.remove('hidden');
+            step2.classList.add('hidden');
+            step3.classList.add('hidden');
+        }
+    });
+</script>
+
+</body>
+</html>
