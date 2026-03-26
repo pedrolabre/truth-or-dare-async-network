@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-BR">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Truth or Dare - Busca</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+          tailwind.config = {
+            darkMode: "class",
+            theme: {
+              extend: {
+                colors: {
+                  "surface-container-lowest": "#0b0f0d",
+                  "secondary-container": "#3e6657",
+                  "surface-dim": "#111412",
+                  "on-primary-fixed": "#002117",
+                  "inverse-surface": "#eaefea",
+                  "secondary-fixed-dim": "#a5d0bd",
+                  "on-secondary-container": "#c0ecd9",
+                  "outline-variant": "#3d4944",
+                  "surface-container-highest": "#333935",
+                  "on-secondary-fixed": "#002117",
+                  "on-primary-fixed-variant": "#00513d",
+                  "surface-variant": "#3d4944",
+                  "surface-container": "#1d211e",
+                  "on-secondary-fixed-variant": "#264e40",
+                  "error-container": "#93000a",
+                  "primary": "#68dbb4",
+                  "on-tertiary-fixed": "#ffdad6",
+                  "on-tertiary": "#ffffff",
+                  "tertiary-fixed-dim": "#ffb4ab",
+                  "tertiary-container": "#ba1a1a",
+                  "surface-tint": "#68dbb4",
+                  "surface-container-low": "#191d1a",
+                  "error": "#ffb4ab",
+                  "on-tertiary-fixed-variant": "#ffdad6",
+                  "tertiary": "#ffb4ab",
+                  "secondary": "#a5d0bd",
+                  "primary-fixed": "#86f7d0",
+                  "on-tertiary-container": "#ffdad6",
+                  "inverse-primary": "#006950",
+                  "secondary-fixed": "#c0ecd9",
+                  "tertiary-fixed": "#ffdad6",
+                  "primary-container": "#00513d",
+                  "background": "#0b0f0d",
+                  "inverse-on-surface": "#171d1a",
+                  "on-background": "#e1e3e0",
+                  "surface-container-high": "#272b28",
+                  "surface-bright": "#373a37",
+                  "on-secondary": "#09372a",
+                  "on-primary": "#003829",
+                  "surface": "#111412",
+                  "outline": "#8b938e",
+                  "on-error": "#690005",
+                  "on-surface-variant": "#bfc9c2",
+                  "on-primary-container": "#86f7d0",
+                  "primary-fixed-dim": "#68dbb4",
+                  "on-surface": "#e1e3e0",
+                  "on-error-container": "#ffdad6",
+                  "custom-green": "#5A8363",
+                  "custom-red": "#D70015"
+                },
+                fontFamily: {
+                  "headline": ["Inter"],
+                  "body": ["Inter"],
+                  "label": ["Inter"]
+                },
+                borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+              },
+            },
+          }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body antialiased min-h-screen flex flex-col">
+
+<header class="w-full z-50 flex items-center justify-between px-4 h-16 bg-custom-green border-b border-white/5 shadow-sm font-['Inter'] font-bold text-lg text-white">
+    <div class="flex items-center gap-3">
+        <button class="p-2 text-white/80 hover:opacity-80 transition-opacity active:scale-95 duration-150 rounded-full">
+            <span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+        </button>
+        <h1 class="text-xl font-black tracking-tight">Truth or Dare</h1>
+    </div>
+</header>
+
+<main class="flex-1 w-full max-w-2xl mx-auto px-4">
+
+    <section class="mt-8 mb-6 flex flex-col items-center">
+        <div class="relative group">
+            <div class="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-surface-container shadow-xl overflow-hidden mb-4 ring-4 ring-custom-green/20">
+                <img alt="Foto de perfil do usuário" class="w-full h-full object-cover" src="https://ui-avatars.com/api/?name=Jessica+Silva&background=5A8363&color=ffffff&size=128"/>
+            </div>
+        </div>
+            
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-extrabold text-on-surface tracking-tight">Jéssica Silva</h2>
+            <p class="text-on-surface-variant font-medium">@jessica_dare</p>
+        </div>
+
+        <button class="bg-custom-red text-white px-8 py-2.5 rounded-full font-bold shadow-[4px_4px_0px_#000000] hover:scale-105 transition-transform active:scale-95 flex items-center gap-2">
+            <span class="material-symbols-outlined text-lg text-white" data-icon="theater_comedy">theater_comedy</span>
+            DESAFIAR ESTE USUÁRIO
+        </button>
+    </section>
+
+    <section class="bg-custom-green rounded-3xl p-6 text-white shadow-lg mb-8">
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-black/20 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                <span class="text-2xl font-black">1.2k</span>
+                <span class="text-[10px] uppercase tracking-widest font-bold opacity-80 text-center">Seguidores</span>
+            </div>
+            <div class="bg-black/20 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                <span class="text-2xl font-black">458</span>
+                <span class="text-[10px] uppercase tracking-widest font-bold opacity-80 text-center">Seguindo</span>
+            </div>
+            <div class="bg-black/20 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                <span class="text-2xl font-black">24</span>
+                <span class="text-[10px] uppercase tracking-widest font-bold opacity-80 text-center">Desafios Criados</span>
+            </div>
+            <div class="bg-black/20 backdrop-blur-sm rounded-2xl p-4 flex flex-col items-center justify-center border border-white/5">
+                <span class="text-2xl font-black">186</span>
+                <span class="text-[10px] uppercase tracking-widest font-bold opacity-80 text-center">Desafios Respondidos</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="space-y-4 mb-8 w-full">
+        <h3 class="text-lg font-bold text-on-surface flex items-center gap-2 px-1">
+            <span class="material-symbols-outlined text-custom-red" data-icon="military_tech">military_tech</span>
+            Conquistas Recentes
+        </h3>
+        
+        <div class="flex justify-between pb-4 w-full">
+            
+            <div class="flex-shrink-0 w-[22%] flex flex-col items-center gap-2">
+                <div class="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 border-2 border-amber-500/20">
+                    <span class="material-symbols-outlined text-3xl" data-icon="local_fire_department" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+                </div>
+                <span class="text-[9px] leading-tight text-center font-bold uppercase text-on-surface-variant">Sem Limites</span>
+            </div>
+            
+            <div class="flex-shrink-0 w-[22%] flex flex-col items-center gap-2">
+                <div class="w-14 h-14 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-400 border-2 border-blue-500/20">
+                    <span class="material-symbols-outlined text-3xl" data-icon="verified" style="font-variation-settings: 'FILL' 1;">verified</span>
+                </div>
+                <span class="text-[9px] leading-tight text-center font-bold uppercase text-on-surface-variant">Rainha da Verdade</span>
+            </div>
+            
+            <div class="flex-shrink-0 w-[22%] flex flex-col items-center gap-2">
+                <div class="w-14 h-14 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-400 border-2 border-purple-500/20">
+                    <span class="material-symbols-outlined text-3xl" data-icon="auto_awesome" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+                </div>
+                <span class="text-[9px] leading-tight text-center font-bold uppercase text-on-surface-variant">Coragem</span>
+            </div>
+            
+            <div class="flex-shrink-0 w-[22%] flex flex-col items-center gap-2 opacity-40 grayscale">
+                <div class="w-14 h-14 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant border-2 border-outline-variant">
+                    <span class="material-symbols-outlined text-3xl" data-icon="lock">lock</span>
+                </div>
+                <span class="text-[9px] leading-tight text-center font-bold uppercase text-on-surface-variant">Bloqueado</span>
+            </div>
+            
+        </div>
+    </div>
+
+    <div class="mt-4 mb-12 p-6 rounded-3xl bg-surface-container border border-outline-variant/30 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer group">
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-custom-green/10 rounded-2xl flex items-center justify-center text-custom-green group-hover:bg-custom-green group-hover:text-white transition-colors">
+                <span class="material-symbols-outlined">groups</span>
+            </div>
+            <div>
+                <h4 class="font-bold text-on-surface">Truth or Dare Clubes</h4>
+                <p class="text-xs text-on-surface-variant">IFTO Paraíso, Midnight Gamers e +3</p>
+            </div>
+        </div>
+        <span class="material-symbols-outlined text-outline group-hover:text-custom-green transition-colors">chevron_right</span>
+    </div>
+
+</main>
+
+<nav class="w-full z-50 flex justify-around items-center px-2 pb-safe h-20 bg-custom-green border-t border-white/5 rounded-t-lg shadow-[0_-2px_10px_rgba(0,0,0,0.1)]">
+    <a class="flex flex-col items-center justify-center text-white/70 hover:text-white transition-colors active:scale-90 duration-150 px-3 py-1" href="#">
+        <span class="material-symbols-outlined" data-icon="style">style</span>
+        <span class="font-['Inter'] text-[12px] font-medium">Jogar</span>
+    </a>
+    
+    <a class="flex flex-col items-center justify-center bg-custom-red text-white rounded-xl active:scale-90 transition-transform px-3 py-1" href="#">
+        <span class="material-symbols-outlined" data-icon="search" style="font-variation-settings: 'FILL' 1;">search</span>
+        <span class="font-['Inter'] text-[12px] font-bold">Buscar</span>
+    </a>
+    
+    <a class="flex flex-col items-center justify-center text-white/70 hover:text-white transition-colors active:scale-90 duration-150 px-3 py-1" href="#">
+        <span class="material-symbols-outlined" data-icon="groups">groups</span>
+        <span class="font-['Inter'] text-[12px] font-medium">Clubes</span>
+    </a>
+    
+    <a class="flex flex-col items-center justify-center text-white/70 hover:text-white transition-colors active:scale-90 duration-150 px-3 py-1" href="#">
+        <span class="material-symbols-outlined" data-icon="person">person</span>
+        <span class="font-['Inter'] text-[12px] font-medium">Perfil</span>
+    </a>
+</nav>
+
+</body>
+</html>
