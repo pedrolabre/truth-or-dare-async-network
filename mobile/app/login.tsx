@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -194,14 +195,18 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.footer}>
-            <Text style={[styles.footerText, { color: COLORS.onSurfaceVariant }]}>
-              Não tem uma conta?
-              <Text style={[styles.footerLink, { color: COLORS.primary }]}>
-                {' '}
-                Criar conta
-              </Text>
-            </Text>
-          </View>
+  <Text style={[styles.footerText, { color: COLORS.onSurfaceVariant }]}>
+    Não tem uma conta?
+  </Text>
+
+  <Link href="/signup-screen" asChild>
+    <Pressable hitSlop={8}>
+      <Text style={[styles.footerLink, { color: COLORS.primary }]}>
+        Criar conta
+      </Text>
+    </Pressable>
+  </Link>
+</View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
