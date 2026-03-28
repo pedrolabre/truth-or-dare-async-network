@@ -1,0 +1,55 @@
+# mobile dependencies
+mobile/node_modules/
+
+# Expo
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+
+# Expo env
+mobile/expo-env.d.ts
+
+# Editor
+mobile/.vscode/
+
+# Native / signing
+mobile/.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+
+# Metro
+mobile/.metro-health-check*
+
+# debug logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# local env files
+.env
+.env.local
+.env*.local
+mobile/.env
+mobile/.env.local
+mobile/.env*.local
+
+# TypeScript
+*.tsbuildinfo
+mobile/*.tsbuildinfo
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# generated native folders
+mobile/ios/
+mobile/android/
+
+# examples
+mobile/app-example/
