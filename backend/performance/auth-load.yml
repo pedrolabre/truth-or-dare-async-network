@@ -1,0 +1,31 @@
+config:
+  target: "http://localhost:3333"
+  phases:
+    - duration: 10
+      arrivalRate: 2
+      name: warm up
+    - duration: 15
+      arrivalRate: 5
+      name: baseline load
+  defaults:
+    headers:
+      Content-Type: "application/json"
+
+scenarios:
+  - name: signup and login flow
+    flow:
+      - post:
+          url: "/auth/signup"
+          json:
+            name: "Load Test User"
+            email: "loadtest-{{ $randomString() }}@mail.com"
+            password: "123456"
+          capture:
+            - json: "$.user.email"
+              as: "createdEmail"
+
+      - post:
+          url: "/auth/login"
+          json:
+            email: "{{ createdEmail }}"
+            password: "123456"
