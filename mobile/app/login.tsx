@@ -1,7 +1,9 @@
+import { login } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -51,13 +53,35 @@ export default function LoginScreen() {
   const isDark = colorScheme === 'dark';
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
 
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const canSubmit = useMemo(() => {
-    return username.trim().length > 0 && password.trim().length > 0;
-  }, [username, password]);
+    return email.trim().length > 0 && password.trim().length > 0;
+  }, [email, password]);
+
+  async function handleLogin() {
+    try {
+      setLoading(true);
+
+      const data = await login({
+        email,
+        password,
+      });
+
+      console.log('Usuário autenticado:', data);
+
+      // TODO: salvar token depois
+    } catch (error: any) {
+      const message = error?.message || 'Não foi possível fazer login.';
+      console.error(message);
+      Alert.alert('Erro no login', message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.surfaceBright }]}>
@@ -109,14 +133,15 @@ export default function LoginScreen() {
               ]}
             >
               <View style={styles.leadingIcon}>
-                <MaterialIcons name="person" size={22} color={COLORS.outline} />
+                <MaterialIcons name="mail" size={22} color={COLORS.outline} />
               </View>
 
               <TextInput
-                value={username}
-                onChangeText={setUsername}
-                placeholder="Nome de usuário"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="E-mail"
                 placeholderTextColor={isDark ? 'rgba(143,153,147,0.7)' : 'rgba(109,122,116,0.6)'}
+                keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
                 style={[styles.input, { color: COLORS.onSurface }]}
@@ -166,16 +191,17 @@ export default function LoginScreen() {
             </View>
 
             <Pressable
-              disabled={!canSubmit}
+              disabled={!canSubmit || loading}
+              onPress={handleLogin}
               style={({ pressed }) => [
                 styles.loginButton,
                 { backgroundColor: COLORS.tertiary },
-                !canSubmit && styles.loginButtonDisabled,
-                pressed && canSubmit && styles.loginButtonPressed,
+                (!canSubmit || loading) && styles.loginButtonDisabled,
+                pressed && canSubmit && !loading && styles.loginButtonPressed,
               ]}
             >
               <Text style={[styles.loginButtonText, { color: COLORS.onTertiary }]}>
-                ENTRAR
+                {loading ? 'ENTRANDO...' : 'ENTRAR'}
               </Text>
               <MaterialIcons
                 name="arrow-forward"
@@ -195,18 +221,18 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.footer}>
-  <Text style={[styles.footerText, { color: COLORS.onSurfaceVariant }]}>
-    Não tem uma conta?
-  </Text>
+            <Text style={[styles.footerText, { color: COLORS.onSurfaceVariant }]}>
+              Não tem uma conta?
+            </Text>
 
-  <Link href="/signup-screen" asChild>
-    <Pressable hitSlop={8}>
-      <Text style={[styles.footerLink, { color: COLORS.primary }]}>
-        Criar conta
-      </Text>
-    </Pressable>
-  </Link>
-</View>
+            <Link href="/signup-screen" asChild>
+              <Pressable hitSlop={8}>
+                <Text style={[styles.footerLink, { color: COLORS.primary }]}>
+                  Criar conta
+                </Text>
+              </Pressable>
+            </Link>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

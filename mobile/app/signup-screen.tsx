@@ -1,7 +1,9 @@
+import { signup } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -59,6 +61,7 @@ export default function SignupScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const canSubmit = useMemo(() => {
     return (
@@ -68,6 +71,27 @@ export default function SignupScreen() {
       acceptedTerms
     );
   }, [fullName, email, password, acceptedTerms]);
+
+  async function handleSignup() {
+    try {
+      setLoading(true);
+
+      const data = await signup({
+        name: fullName,
+        email,
+        password,
+      });
+
+      console.log('Usuário criado:', data);
+
+    } catch (error: any) {
+      const message = error?.message || 'Não foi possível criar a conta.';
+      console.error(message);
+      Alert.alert('Erro no cadastro', message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: COLORS.surfaceBright }]}>
@@ -234,16 +258,18 @@ export default function SignupScreen() {
               </Pressable>
 
               <Pressable
-                disabled={!canSubmit}
+                testID="signup-button"
+                disabled={!canSubmit || loading}
+                onPress={handleSignup}
                 style={({ pressed }) => [
                   styles.signupButton,
                   { backgroundColor: COLORS.tertiary },
-                  !canSubmit && styles.signupButtonDisabled,
-                  pressed && canSubmit && styles.signupButtonPressed,
+                  (!canSubmit || loading) && styles.signupButtonDisabled,
+                  pressed && canSubmit && !loading && styles.signupButtonPressed,
                 ]}
               >
                 <Text style={[styles.signupButtonText, { color: COLORS.onTertiary }]}>
-                  COMEÇAR A JOGAR
+                  {loading ? 'CRIANDO...' : 'COMEÇAR A JOGAR'}
                 </Text>
                 <MaterialIcons
                   name="play-arrow"
