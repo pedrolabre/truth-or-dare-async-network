@@ -1,5 +1,3 @@
-const API_URL = 'http://192.168.1.37:3333';
-
 type SignupInput = {
   name: string;
   email: string;
@@ -11,18 +9,47 @@ type LoginInput = {
   password: string;
 };
 
+function getApiUrl() {
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
+
+  if (!apiUrl) {
+    throw new Error('EXPO_PUBLIC_API_URL não foi definida');
+  }
+
+  return apiUrl;
+}
+
 async function parseResponse(response: Response) {
-  const data = await response.json();
+  let data: any = null;
+  let text = '';
+
+  try {
+    data = await response.json();
+  } catch {
+    try {
+      text = await response.text();
+    } catch {
+      text = '';
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(data?.error || 'Erro na requisição');
+    const message =
+      data?.error ||
+      data?.message ||
+      text ||
+      `Erro na requisição (${response.status})`;
+
+    throw new Error(message);
   }
 
   return data;
 }
 
 export async function signup(data: SignupInput) {
-  const response = await fetch(`${API_URL}/auth/signup`, {
+  const baseUrl = getApiUrl();
+
+  const response = await fetch(`${baseUrl}/auth/signup`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -34,7 +61,9 @@ export async function signup(data: SignupInput) {
 }
 
 export async function login(data: LoginInput) {
-  const response = await fetch(`${API_URL}/auth/login`, {
+  const baseUrl = getApiUrl();
+
+  const response = await fetch(`${baseUrl}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

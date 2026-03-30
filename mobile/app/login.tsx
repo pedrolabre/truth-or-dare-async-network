@@ -5,6 +5,8 @@ import React, { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Keyboard,
+  TouchableWithoutFeedback,
   Platform,
   Pressable,
   StyleSheet,
@@ -109,7 +111,8 @@ export default function LoginScreen() {
         />
       </View>
 
-      <KeyboardAvoidingView
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+       <KeyboardAvoidingView
         style={styles.keyboard}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
@@ -235,6 +238,7 @@ export default function LoginScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+     </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
