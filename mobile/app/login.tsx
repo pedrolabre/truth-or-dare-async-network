@@ -1,6 +1,6 @@
 import { login } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
@@ -54,6 +54,7 @@ export default function LoginScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
+  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -74,8 +75,11 @@ export default function LoginScreen() {
       });
 
       console.log('Usuário autenticado:', data);
+      console.log('Vai navegar para /feed');
+      router.push('/feed');
 
       // TODO: salvar token depois
+      
     } catch (error: any) {
       const message = error?.message || 'Não foi possível fazer login.';
       console.error(message);
