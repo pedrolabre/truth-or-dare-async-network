@@ -1,4 +1,4 @@
-import { login } from '../services/api';
+import { login, saveToken } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Link, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
@@ -70,15 +70,16 @@ export default function LoginScreen() {
       setLoading(true);
 
       const data = await login({
-        email,
-        password,
-      });
+  email,
+  password,
+});
 
-      console.log('Usuário autenticado:', data);
-      console.log('Vai navegar para /feed');
-      router.push('/feed');
+console.log('Usuário autenticado:', data);
 
-      // TODO: salvar token depois
+await saveToken(data.token);
+
+console.log('Vai navegar para /feed');
+router.replace('/feed');
       
     } catch (error: any) {
       const message = error?.message || 'Não foi possível fazer login.';

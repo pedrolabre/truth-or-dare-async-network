@@ -33,7 +33,7 @@ export async function signup({ name, email, password }: SignupInput) {
     throw new Error('A senha deve ter pelo menos 6 caracteres');
   }
 
-  const existingUser = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findFirst({
     where: { email: normalizedEmail },
   });
 
@@ -79,7 +79,7 @@ export async function login({ email, password }: LoginInput) {
     throw new Error('Senha é obrigatória');
   }
 
-  const user = await prisma.user.findUnique({
+  const user = await prisma.user.findFirst({
     where: { email: normalizedEmail },
   });
 

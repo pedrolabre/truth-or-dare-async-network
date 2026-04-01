@@ -8,9 +8,82 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  createdAt    DateTime @default(now())
+  id              String       @id @default(uuid())
+  name            String
+  email           String       @unique
+  passwordHash    String
+  createdAt       DateTime     @default(now())
+
+  truths          Truth[]
+  dares           Dare[]
+  clubsCreated    Club[]
+  clubMemberships ClubMember[]
+  clubPrompts     ClubPrompt[]
+}
+
+model Truth {
+  id         String   @id @default(uuid())
+  authorId   String
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Dare {
+  id          String   @id @default(uuid())
+  authorId    String
+  content     String
+  maxAttempts Int      @default(1)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Club {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  members     ClubMember[]
+  prompts     ClubPrompt[]
+}
+
+model ClubMember {
+  id        String   @id @default(uuid())
+  clubId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+}
+
+model ClubPrompt {
+  id          String         @id @default(uuid())
+  clubId      String
+  authorId    String
+  type        ClubPromptType
+  content     String
+  maxAttempts Int?
+  expiresAt   DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  club        Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  author      User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+enum ClubPromptType {
+  truth
+  dare
 }

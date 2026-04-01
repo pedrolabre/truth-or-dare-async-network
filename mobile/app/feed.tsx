@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -14,7 +15,8 @@ import FeedCardTruth from '../components/feed/FeedCardTruth';
 import FeedFab from '../components/feed/FeedFab';
 import FeedFilters from '../components/feed/FeedFilters';
 import FeedHeader from '../components/feed/FeedHeader';
-import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS } from '../data/feedMock';
+import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS, FEED_ITEMS } from '../data/feedMock';
+import { getFeed, type FeedItem } from '../services/api';
 import { useFeedState } from '../hooks/useFeedState';
 
 const LIGHT_COLORS = {
@@ -83,10 +85,57 @@ export default function FeedScreen() {
     setActiveFilter,
     activeTab,
     setActiveTab,
-    filteredItems,
     toggleLike,
     isLiked,
   } = useFeedState();
+
+  const [apiItems, setApiItems] = useState<FeedItem[]>(FEED_ITEMS);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const loadFeed = useCallback(async (isRefresh = false) => {
+    try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setErrorMessage('');
+
+      const data = await getFeed();
+
+      setApiItems(data);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Não foi possível carregar o feed.';
+      console.log('Não foi possível carregar o feed da API:', error);
+      setErrorMessage(message);
+      setApiItems(FEED_ITEMS);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadFeed();
+  }, [loadFeed]);
+
+  const filteredItems = useMemo(() => {
+    switch (activeFilter) {
+      case 'friends':
+        return apiItems.filter((item) => item.type !== 'club');
+      case 'party':
+        return apiItems.filter((item) => item.type !== 'truth');
+      case 'spicy':
+        return apiItems.filter((item) => item.type !== 'club');
+      case 'popular':
+      default:
+        return apiItems;
+    }
+  }, [activeFilter, apiItems]);
 
   return (
     <View style={[styles.root, { backgroundColor: COLORS.headerGreen }]}>
@@ -163,6 +212,48 @@ export default function FeedScreen() {
               unselectedTextColor={COLORS.onSurface}
               unselectedBorderColor={COLORS.outlineVariant}
             />
+
+            {loading ? (
+              <View style={styles.statusWrapper}>
+                <ActivityIndicator size="small" color={COLORS.tertiary} />
+                <Text style={[styles.statusText, { color: COLORS.onSurfaceVariant }]}>
+                  Carregando feed...
+                </Text>
+              </View>
+            ) : null}
+
+            {!loading && errorMessage ? (
+              <View
+                style={[
+                  styles.errorBox,
+                  {
+                    backgroundColor: COLORS.surfaceContainer,
+                    borderColor: COLORS.outlineVariant,
+                  },
+                ]}
+              >
+                <Text style={[styles.errorText, { color: COLORS.onSurfaceVariant }]}>
+                  {errorMessage}
+                </Text>
+                <Text
+                  style={[styles.retryText, { color: COLORS.tertiary }]}
+                  onPress={() => {
+                    void loadFeed(true);
+                  }}
+                >
+                  Tentar novamente
+                </Text>
+              </View>
+            ) : null}
+
+            {!loading && refreshing ? (
+              <View style={styles.statusWrapper}>
+                <ActivityIndicator size="small" color={COLORS.tertiary} />
+                <Text style={[styles.statusText, { color: COLORS.onSurfaceVariant }]}>
+                  Atualizando feed...
+                </Text>
+              </View>
+            ) : null}
 
             <View style={styles.feedList}>
               {filteredItems.map((item) => {
@@ -353,6 +444,32 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 18,
     fontWeight: '500',
+  },
+  statusWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 14,
+  },
+  statusText: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  errorBox: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    gap: 8,
+  },
+  errorText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  retryText: {
+    fontSize: 13,
+    fontWeight: '800',
   },
   feedList: {
     gap: 16,
