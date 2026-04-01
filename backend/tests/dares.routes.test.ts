@@ -1,0 +1,140 @@
+import express from 'express';
+import request from 'supertest';
+import daresRoutes from '../src/routes/dares.routes';
+import { applyTestDatabaseHooks } from './test-db';
+import { createTestUser } from '../src/test-utils/factories';
+import { generateToken } from '../src/utils/jwt';
+import { prisma } from '../src/lib/prisma';
+
+function createTestApp() {
+  const app = express();
+
+  app.use(express.json());
+  app.use('/dares', daresRoutes);
+
+  return app;
+}
+
+describe('POST /dares', () => {
+  const app = createTestApp();
+
+  applyTestDatabaseHooks({
+    resetBeforeEach: true,
+    resetAfterAll: true,
+    disconnectAfterAll: true,
+  });
+
+  it('deve retornar 401 quando o token não for informado', async () => {
+    const response = await request(app).post('/dares').send({
+      content: 'Envie um áudio cantando o refrão da última música que ouviu.',
+    });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'Token não informado',
+    });
+  });
+
+  it('deve retornar 401 quando o token estiver mal formatado', async () => {
+    const response = await request(app)
+      .post('/dares')
+      .set('Authorization', 'Token abc123')
+      .send({
+        content: 'Envie um áudio cantando o refrão da última música que ouviu.',
+      });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'Token mal formatado',
+    });
+  });
+
+  it('deve retornar 401 quando o token for inválido', async () => {
+    const response = await request(app)
+      .post('/dares')
+      .set('Authorization', 'Bearer token-invalido')
+      .send({
+        content: 'Envie um áudio cantando o refrão da última música que ouviu.',
+      });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'Token inválido ou expirado',
+    });
+  });
+
+  it('deve criar um dare real no banco para usuário autenticado', async () => {
+    const user = await createTestUser({
+      name: 'Dare Author',
+      email: 'dare-author@test.com',
+      password: '123456',
+    });
+
+    const token = generateToken({
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    });
+
+    const payload = {
+      content: 'Grave um vídeo fazendo uma dança engraçada por 15 segundos.',
+    };
+
+    const response = await request(app)
+      .post('/dares')
+      .set('Authorization', `Bearer ${token}`)
+      .send(payload);
+
+    expect(response.status).toBe(201);
+    expect(response.body).toMatchObject({
+      id: expect.any(String),
+      content: payload.content,
+      authorId: user.id,
+      maxAttempts: expect.any(Number),
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+    });
+
+    const persistedDare = await prisma.dare.findUnique({
+      where: {
+        id: response.body.id,
+      },
+    });
+
+    expect(persistedDare).not.toBeNull();
+    expect(persistedDare).toMatchObject({
+      content: payload.content,
+      authorId: user.id,
+    });
+  });
+
+  it('deve retornar 400 quando o conteúdo não for informado', async () => {
+    const user = await createTestUser({
+      name: 'Dare Empty Content',
+      email: 'dare-empty-content@test.com',
+      password: '123456',
+    });
+
+    const token = generateToken({
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    });
+
+    const response = await request(app)
+      .post('/dares')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        content: '   ',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'content is required',
+    });
+
+    const daresCount = await prisma.dare.count();
+
+    expect(daresCount).toBe(0);
+  });
+});
