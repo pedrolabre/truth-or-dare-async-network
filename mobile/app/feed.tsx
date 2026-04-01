@@ -18,6 +18,7 @@ import FeedHeader from '../components/feed/FeedHeader';
 import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS, FEED_ITEMS } from '../data/feedMock';
 import { getFeed, type FeedItem } from '../services/api';
 import { useFeedState } from '../hooks/useFeedState';
+import { useRouter } from 'expo-router';
 
 const LIGHT_COLORS = {
   surfaceBright: '#f5fbf6',
@@ -79,6 +80,8 @@ export default function FeedScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
+  
+  const router = useRouter();
 
   const {
     activeFilter,
@@ -357,7 +360,7 @@ export default function FeedScreen() {
           <FeedFab
             backgroundColor={COLORS.tertiary}
             onPress={() => {
-              console.log('Abrir create-challenge futuramente');
+              router.push('/create-challenge');
             }}
           />
         </View>
