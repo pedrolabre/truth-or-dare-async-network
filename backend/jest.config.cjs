@@ -8,5 +8,6 @@ module.exports = {
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
+  setupFiles: ['<rootDir>/tests/load-test-env.ts'],
   maxWorkers: 1,
 };

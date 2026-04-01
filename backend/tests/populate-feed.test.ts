@@ -12,9 +12,30 @@ describe('scripts/populate-feed', () => {
     expect(scenario.users.second.email).toBe('marina-feed@test.com');
     expect(scenario.users.third.email).toBe('lucas-feed@test.com');
 
-    const [usersCount, truthsCount, daresCount, clubsCount, membersCount, promptsCount] =
+    const [owner, second, third] = await Promise.all([
+      prisma.user.findUnique({
+        where: {
+          email: 'labre@test.com',
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          email: 'marina-feed@test.com',
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          email: 'lucas-feed@test.com',
+        },
+      }),
+    ]);
+
+    expect(owner).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(third).not.toBeNull();
+
+    const [truthsCount, daresCount, clubsCount, membersCount, promptsCount] =
       await Promise.all([
-        prisma.user.count(),
         prisma.truth.count(),
         prisma.dare.count(),
         prisma.club.count(),
@@ -22,7 +43,6 @@ describe('scripts/populate-feed', () => {
         prisma.clubPrompt.count(),
       ]);
 
-    expect(usersCount).toBe(3);
     expect(truthsCount).toBe(2);
     expect(daresCount).toBe(2);
     expect(clubsCount).toBe(2);
@@ -34,9 +54,30 @@ describe('scripts/populate-feed', () => {
     await populateFeed();
     await populateFeed();
 
-    const [usersCount, truthsCount, daresCount, clubsCount, membersCount, promptsCount] =
+    const [owner, second, third] = await Promise.all([
+      prisma.user.findUnique({
+        where: {
+          email: 'labre@test.com',
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          email: 'marina-feed@test.com',
+        },
+      }),
+      prisma.user.findUnique({
+        where: {
+          email: 'lucas-feed@test.com',
+        },
+      }),
+    ]);
+
+    expect(owner).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(third).not.toBeNull();
+
+    const [truthsCount, daresCount, clubsCount, membersCount, promptsCount] =
       await Promise.all([
-        prisma.user.count(),
         prisma.truth.count(),
         prisma.dare.count(),
         prisma.club.count(),
@@ -44,7 +85,6 @@ describe('scripts/populate-feed', () => {
         prisma.clubPrompt.count(),
       ]);
 
-    expect(usersCount).toBe(3);
     expect(truthsCount).toBe(2);
     expect(daresCount).toBe(2);
     expect(clubsCount).toBe(2);

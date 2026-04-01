@@ -11,7 +11,12 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "db:populate": "tsx scripts/populate-feed.ts",
-    "db:inspect-user": "tsx scripts/inspect-user-table.ts"
+    "db:inspect-user": "tsx scripts/inspect-user-table.ts",
+    "test:db:deploy": "tsx scripts/run-prisma-test-command.ts migrate deploy",
+    "test:db:reset": "tsx scripts/run-prisma-test-command.ts migrate reset --force",
+    "test:db:studio": "tsx scripts/run-prisma-test-command.ts studio",
+    "test:prepare": "npm run test:db:reset",
+    "test:full": "npm run test:prepare && npm test"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.6.0",
