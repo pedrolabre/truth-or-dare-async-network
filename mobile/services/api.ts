@@ -21,6 +21,10 @@ type LoginResponse = {
   };
 };
 
+type CreateChallengeInput = {
+  content: string;
+};
+
 export type FeedItem =
   | {
       id: string;
@@ -49,6 +53,12 @@ export type FeedItem =
       quote: string;
       answersCount: number;
     };
+
+export type ChallengeUser = {
+  id: string;
+  name: string;
+  email: string;
+};
 
 const TOKEN_KEY = 'auth_token';
 
@@ -143,6 +153,76 @@ export async function getFeed(): Promise<FeedItem[]> {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
+  });
+
+  return parseResponse(response);
+}
+
+export async function getUsers(query?: string): Promise<ChallengeUser[]> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const searchParams = new URLSearchParams();
+
+  if (query?.trim()) {
+    searchParams.set('query', query.trim());
+  }
+
+  const queryString = searchParams.toString();
+  const url = queryString
+    ? `${baseUrl}/users?${queryString}`
+    : `${baseUrl}/users`;
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}
+
+export async function createTruth(data: CreateChallengeInput) {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+
+  return parseResponse(response);
+}
+
+export async function createDare(data: CreateChallengeInput) {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/dares`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
   });
 
   return parseResponse(response);

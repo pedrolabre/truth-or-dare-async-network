@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   Keyboard,
   KeyboardAvoidingView,
@@ -23,8 +24,12 @@ type PickerUser = {
 type Props = {
   visible: boolean;
   users: PickerUser[];
+  loading?: boolean;
+  errorMessage?: string;
   onClose: () => void;
   onSelectUser: (user: PickerUser) => void;
+  onRetry?: () => void;
+  onSearchUsers?: (query: string) => void | Promise<void>;
   COLORS: {
     surfaceBright?: string;
     surfaceContainerHigh: string;
@@ -40,8 +45,12 @@ type Props = {
 export default function CreateChallengeUserPickerModal({
   visible,
   users,
+  loading = false,
+  errorMessage = '',
   onClose,
   onSelectUser,
+  onRetry,
+  onSearchUsers,
   COLORS,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -54,7 +63,23 @@ export default function CreateChallengeUserPickerModal({
     }
   }, [visible]);
 
+  useEffect(() => {
+    if (!visible || !onSearchUsers) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      void onSearchUsers(query.trim());
+    }, 300);
+
+    return () => clearTimeout(timeout);
+  }, [visible, query, onSearchUsers]);
+
   const filteredUsers = useMemo(() => {
+    if (onSearchUsers) {
+      return users;
+    }
+
     const normalizedQuery = query.trim().toLowerCase();
 
     if (!normalizedQuery) {
@@ -64,7 +89,7 @@ export default function CreateChallengeUserPickerModal({
     return users.filter((user) =>
       user.name.toLowerCase().includes(normalizedQuery)
     );
-  }, [query, users]);
+  }, [onSearchUsers, query, users]);
 
   function handleClose() {
     Keyboard.dismiss();
@@ -81,6 +106,9 @@ export default function CreateChallengeUserPickerModal({
     onClose();
   }
 
+  const showEmptyState = !loading && !errorMessage && filteredUsers.length === 0;
+  const showList = !loading && !errorMessage && filteredUsers.length > 0;
+
   return (
     <Modal
       transparent
@@ -90,10 +118,7 @@ export default function CreateChallengeUserPickerModal({
       onRequestClose={handleClose}
     >
       <View style={styles.overlay}>
-        <Pressable
-          style={styles.backdrop}
-          onPress={handleDismissKeyboard}
-        />
+        <Pressable style={styles.backdrop} onPress={handleDismissKeyboard} />
 
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -167,7 +192,61 @@ export default function CreateChallengeUserPickerModal({
               />
             </View>
 
-            {filteredUsers.length === 0 ? (
+            {loading ? (
+              <View style={styles.feedbackState}>
+                <ActivityIndicator size="small" color={COLORS.headerGreen} />
+                <Text style={[styles.feedbackText, { color: COLORS.onSurfaceVariant }]}>
+                  Buscando usuários...
+                </Text>
+              </View>
+            ) : null}
+
+            {!loading && errorMessage ? (
+              <View style={styles.feedbackState}>
+                <View
+                  style={[
+                    styles.emptyIconWrap,
+                    { backgroundColor: COLORS.surfaceContainer },
+                  ]}
+                >
+                  <MaterialIcons
+                    name="error-outline"
+                    size={28}
+                    color={COLORS.outline}
+                  />
+                </View>
+
+                <Text style={[styles.emptyTitle, { color: COLORS.onSurface }]}>
+                  Não foi possível carregar
+                </Text>
+
+                <Text
+                  style={[
+                    styles.emptySubtitle,
+                    { color: COLORS.onSurfaceVariant },
+                  ]}
+                >
+                  {errorMessage}
+                </Text>
+
+                {onRetry ? (
+                  <Pressable
+                    onPress={onRetry}
+                    style={({ pressed }) => [
+                      styles.retryButton,
+                      {
+                        backgroundColor: COLORS.headerGreen,
+                      },
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <Text style={styles.retryButtonText}>Tentar novamente</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+
+            {showEmptyState ? (
               <View style={styles.emptyState}>
                 <View
                   style={[
@@ -195,7 +274,9 @@ export default function CreateChallengeUserPickerModal({
                   Tente buscar por outro nome.
                 </Text>
               </View>
-            ) : (
+            ) : null}
+
+            {showList ? (
               <FlatList
                 data={filteredUsers}
                 keyExtractor={(item) => item.id}
@@ -245,7 +326,7 @@ export default function CreateChallengeUserPickerModal({
                   </Pressable>
                 )}
               />
-            )}
+            ) : null}
           </View>
         </KeyboardAvoidingView>
       </View>
@@ -373,6 +454,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingBottom: 24,
   },
+  feedbackState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    gap: 12,
+  },
+  feedbackText: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
   emptyIconWrap: {
     width: 64,
     height: 64,
@@ -392,6 +487,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '500',
     textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 8,
+    minHeight: 44,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
   },
   pressed: {
     opacity: 0.78,

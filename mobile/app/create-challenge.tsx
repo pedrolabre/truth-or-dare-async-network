@@ -1,7 +1,8 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StatusBar,
@@ -18,6 +19,12 @@ import CreateChallengeUserPickerModal from '../components/create-challenge/Creat
 import FeedBottomNav from '../components/feed/FeedBottomNav';
 import FeedHeader from '../components/feed/FeedHeader';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
+import {
+  createDare,
+  createTruth,
+  getUsers,
+  type ChallengeUser,
+} from '../services/api';
 
 const LIGHT_COLORS = {
   surfaceBright: '#f5fbf6',
@@ -87,6 +94,23 @@ type PickerUser = {
   initials: string;
 };
 
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? '')
+    .join('');
+}
+
+function mapUsersToPicker(users: ChallengeUser[]): PickerUser[] {
+  return users.map((user) => ({
+    id: user.id,
+    name: user.name,
+    initials: getInitials(user.name),
+  }));
+}
+
 export default function CreateChallengeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -99,24 +123,118 @@ export default function CreateChallengeScreen() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showUserPickerModal, setShowUserPickerModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<SelectedUser>(null);
-
-  const availableUsers: PickerUser[] = [];
+  const [availableUsers, setAvailableUsers] = useState<PickerUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [usersErrorMessage, setUsersErrorMessage] = useState('');
+  const [submitErrorMessage, setSubmitErrorMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const fieldLabel = useMemo(() => {
     return selectedType === 'truth' ? 'A VERDADE' : 'O DESAFIO';
   }, [selectedType]);
 
   const submitLabel = useMemo(() => {
+    if (submitting) {
+      return selectedType === 'truth'
+        ? 'ENVIANDO VERDADE...'
+        : 'ENVIANDO DESAFIO...';
+    }
+
     return selectedType === 'truth' ? 'ENVIAR VERDADE' : 'ENVIAR DESAFIO';
-  }, [selectedType]);
+  }, [selectedType, submitting]);
 
   function handleCancelCreation() {
+    if (submitting) {
+      return;
+    }
+
     setShowCancelModal(true);
   }
 
   function confirmCancelCreation() {
     setShowCancelModal(false);
     router.replace('/feed');
+  }
+
+  const loadUsers = useCallback(async (query?: string) => {
+    try {
+      setLoadingUsers(true);
+      setUsersErrorMessage('');
+
+      const users = await getUsers(query);
+      setAvailableUsers(mapUsersToPicker(users));
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível carregar os usuários.';
+
+      console.log('Não foi possível carregar usuários:', error);
+      setUsersErrorMessage(message);
+      setAvailableUsers([]);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, []);
+
+  async function handleOpenUserPicker() {
+    setShowUserPickerModal(true);
+  }
+
+  const handleRetryLoadUsers = useCallback(async () => {
+    await loadUsers('');
+  }, [loadUsers]);
+
+  const handleSearchUsers = useCallback(
+    async (query: string) => {
+      await loadUsers(query);
+    },
+    [loadUsers],
+  );
+
+  async function handleSubmit() {
+    const normalizedText = challengeText.trim();
+
+    if (!normalizedText) {
+      setSubmitErrorMessage(
+        selectedType === 'truth'
+          ? 'Digite o conteúdo da verdade antes de enviar.'
+          : 'Digite o conteúdo do desafio antes de enviar.',
+      );
+      return;
+    }
+
+    if (!selectedUser) {
+      setSubmitErrorMessage('Selecione um usuário antes de enviar.');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      setSubmitErrorMessage('');
+
+      if (selectedType === 'truth') {
+        await createTruth({
+          content: normalizedText,
+        });
+      } else {
+        await createDare({
+          content: normalizedText,
+        });
+      }
+
+      router.replace('/feed');
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível enviar o challenge.';
+
+      console.log('Não foi possível enviar challenge:', error);
+      setSubmitErrorMessage(message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -127,7 +245,10 @@ export default function CreateChallengeScreen() {
       />
 
       <View style={[styles.screen, { backgroundColor: COLORS.surfaceBright }]}>
-        <View pointerEvents="none" style={[styles.bg, { opacity: isDark ? 0.1 : 0.16 }]}>
+        <View
+          pointerEvents="none"
+          style={[styles.bg, { opacity: isDark ? 0.1 : 0.16 }]}
+        >
           <View
             style={[
               styles.blurBlob,
@@ -180,7 +301,12 @@ export default function CreateChallengeScreen() {
               <Text style={[styles.screenTitle, { color: COLORS.greenText }]}>
                 Escolha Sua Arma
               </Text>
-              <Text style={[styles.screenSubtitle, { color: COLORS.onSurfaceVariant }]}>
+              <Text
+                style={[
+                  styles.screenSubtitle,
+                  { color: COLORS.onSurfaceVariant },
+                ]}
+              >
                 Escolha uma categoria e envie um desafio para seus amigos.
               </Text>
             </View>
@@ -197,7 +323,14 @@ export default function CreateChallengeScreen() {
                 borderColor={COLORS.headerGreen}
                 iconColor="#ffffff"
                 accentColor={COLORS.headerGreen}
-                onPress={() => setSelectedType('truth')}
+                onPress={() => {
+                  if (submitting) {
+                    return;
+                  }
+
+                  setSubmitErrorMessage('');
+                  setSelectedType('truth');
+                }}
               />
 
               <CreateChallengeTypeCard
@@ -211,14 +344,27 @@ export default function CreateChallengeScreen() {
                 borderColor={COLORS.headerGreen}
                 iconColor={isDark ? COLORS.greenAccent : '#cff7ee'}
                 accentColor={COLORS.headerGreen}
-                onPress={() => setSelectedType('dare')}
+                onPress={() => {
+                  if (submitting) {
+                    return;
+                  }
+
+                  setSubmitErrorMessage('');
+                  setSelectedType('dare');
+                }}
               />
             </View>
 
             <CreateChallengeComposer
               label={fieldLabel}
               value={challengeText}
-              onChangeText={setChallengeText}
+              onChangeText={(text) => {
+                setChallengeText(text);
+
+                if (submitErrorMessage) {
+                  setSubmitErrorMessage('');
+                }
+              }}
               placeholder="Digite sua pergunta ou desafio aqui..."
               labelColor={COLORS.outline}
               textColor={COLORS.onSurface}
@@ -251,29 +397,79 @@ export default function CreateChallengeScreen() {
               emptySubtitleColor={COLORS.onSurfaceVariant}
               emptyIconColor="#ffffff"
               onPressChange={() => {
-                setShowUserPickerModal(true);
+                if (submitting) {
+                  return;
+                }
+
+                setSubmitErrorMessage('');
+                void handleOpenUserPicker();
               }}
             />
 
+            {submitErrorMessage ? (
+              <View
+                style={[
+                  styles.inlineErrorBox,
+                  {
+                    backgroundColor: COLORS.surfaceContainerHigh,
+                    borderColor: COLORS.outlineVariant,
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.inlineErrorText,
+                    { color: COLORS.onSurfaceVariant },
+                  ]}
+                >
+                  {submitErrorMessage}
+                </Text>
+              </View>
+            ) : null}
+
             <Pressable
               onPress={() => {
-                console.log('Enviar challenge futuramente', {
-                  type: selectedType,
-                  text: challengeText,
-                  user: selectedUser,
-                });
+                if (submitting) {
+                  return;
+                }
+
+                void handleSubmit();
               }}
               style={({ pressed }) => [
                 styles.submitButton,
-                { backgroundColor: COLORS.tertiary },
-                pressed && styles.submitButtonPressed,
+                {
+                  backgroundColor: COLORS.tertiary,
+                  opacity: submitting ? 0.78 : 1,
+                },
+                pressed && !submitting && styles.submitButtonPressed,
               ]}
             >
-              <Text style={[styles.submitButtonText, { color: COLORS.onTertiary }]}>
+              {submitting ? (
+                <ActivityIndicator size="small" color={COLORS.onTertiary} />
+              ) : (
+                <MaterialIcons name="send" size={22} color={COLORS.onTertiary} />
+              )}
+
+              <Text
+                style={[styles.submitButtonText, { color: COLORS.onTertiary }]}
+              >
                 {submitLabel}
               </Text>
-              <MaterialIcons name="send" size={22} color={COLORS.onTertiary} />
             </Pressable>
+
+            {loadingUsers && !showUserPickerModal ? (
+              <View style={styles.loadingUsersBox}>
+                <ActivityIndicator size="small" color={COLORS.tertiary} />
+                <Text
+                  style={[
+                    styles.loadingUsersText,
+                    { color: COLORS.onSurfaceVariant },
+                  ]}
+                >
+                  Carregando usuários...
+                </Text>
+              </View>
+            ) : null}
           </ScrollView>
         </View>
 
@@ -281,6 +477,10 @@ export default function CreateChallengeScreen() {
           items={FEED_BOTTOM_NAV_ITEMS}
           activeKey={activeTab}
           onSelect={(key) => {
+            if (submitting) {
+              return;
+            }
+
             if (key === 'play') {
               handleCancelCreation();
               return;
@@ -320,14 +520,19 @@ export default function CreateChallengeScreen() {
         />
 
         <CreateChallengeUserPickerModal
-          visible={showUserPickerModal}
-          users={availableUsers}
-          onClose={() => setShowUserPickerModal(false)}
-          onSelectUser={(user) => {
-            setSelectedUser(user);
-          }}
-          COLORS={COLORS}
-        />
+  visible={showUserPickerModal}
+  users={availableUsers}
+  loading={loadingUsers}
+  errorMessage={usersErrorMessage}
+  onClose={() => setShowUserPickerModal(false)}
+  onSelectUser={(user) => {
+    setSelectedUser(user);
+    setSubmitErrorMessage('');
+  }}
+  onRetry={handleRetryLoadUsers}
+  onSearchUsers={handleSearchUsers}
+  COLORS={COLORS}
+/>
       </View>
     </View>
   );
@@ -395,6 +600,28 @@ const styles = StyleSheet.create({
   },
   typeGrid: {
     gap: 14,
+  },
+  inlineErrorBox: {
+    borderWidth: 1,
+    borderRadius: 14,
+    padding: 14,
+    gap: 8,
+  },
+  inlineErrorText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  loadingUsersBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: -8,
+  },
+  loadingUsersText: {
+    fontSize: 13,
+    fontWeight: '500',
   },
   submitButton: {
     height: 62,
