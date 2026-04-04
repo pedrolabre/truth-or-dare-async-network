@@ -4,10 +4,11 @@ import { createTruth } from '../services/truths.service';
 export async function createTruthController(req: Request, res: Response) {
   try {
     const authorId = req.user?.sub;
-    const { content } = req.body;
+    const { content, targetUserId } = req.body;
 
     const truth = await createTruth({
       authorId: authorId ?? '',
+      targetUserId: typeof targetUserId === 'string' ? targetUserId : '',
       content: typeof content === 'string' ? content : '',
     });
 
@@ -18,6 +19,7 @@ export async function createTruthController(req: Request, res: Response) {
 
     const status =
       message === 'Usuário autenticado não encontrado' ||
+      message === 'Usuário alvo é obrigatório' ||
       message === 'Conteúdo é obrigatório'
         ? 400
         : 500;

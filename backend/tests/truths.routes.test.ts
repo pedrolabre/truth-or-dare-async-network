@@ -27,6 +27,7 @@ describe('POST /truths', () => {
   it('deve retornar 401 quando o token não for informado', async () => {
     const response = await request(app).post('/truths').send({
       content: 'Qual foi a maior loucura que você já fez por amor?',
+      targetUserId: 'target-user-id',
     });
 
     expect(response.status).toBe(401);
@@ -41,6 +42,7 @@ describe('POST /truths', () => {
       .set('Authorization', 'Token abc123')
       .send({
         content: 'Qual foi a maior loucura que você já fez por amor?',
+        targetUserId: 'target-user-id',
       });
 
     expect(response.status).toBe(401);
@@ -55,6 +57,7 @@ describe('POST /truths', () => {
       .set('Authorization', 'Bearer token-invalido')
       .send({
         content: 'Qual foi a maior loucura que você já fez por amor?',
+        targetUserId: 'target-user-id',
       });
 
     expect(response.status).toBe(401);
@@ -63,21 +66,28 @@ describe('POST /truths', () => {
     });
   });
 
-  it('deve criar uma truth real no banco para usuário autenticado', async () => {
-    const user = await createTestUser({
+  it('deve criar uma truth real no banco para usuário autenticado com targetUserId persistido', async () => {
+    const author = await createTestUser({
       name: 'Truth Author',
       email: 'truth-author@test.com',
       password: '123456',
     });
 
+    const targetUser = await createTestUser({
+      name: 'Truth Target',
+      email: 'truth-target@test.com',
+      password: '123456',
+    });
+
     const token = generateToken({
-      sub: user.id,
-      email: user.email,
-      name: user.name,
+      sub: author.id,
+      email: author.email,
+      name: author.name,
     });
 
     const payload = {
       content: 'Qual foi a coisa mais vergonhosa que você já fez escondido?',
+      targetUserId: targetUser.id,
     };
 
     const response = await request(app)
@@ -92,9 +102,14 @@ describe('POST /truths', () => {
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
       author: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+        id: author.id,
+        name: author.name,
+        email: author.email,
+      },
+      targetUser: {
+        id: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
       },
     });
 
@@ -104,32 +119,75 @@ describe('POST /truths', () => {
       },
       include: {
         author: true,
+        targetUser: true,
       },
     });
 
     expect(persistedTruth).not.toBeNull();
     expect(persistedTruth).toMatchObject({
       content: payload.content,
-      authorId: user.id,
+      authorId: author.id,
+      targetUserId: targetUser.id,
       author: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+        id: author.id,
+        name: author.name,
+        email: author.email,
+      },
+      targetUser: {
+        id: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
       },
     });
   });
 
+  it('deve retornar 400 quando o targetUserId não for informado', async () => {
+    const author = await createTestUser({
+      name: 'Truth Missing Target',
+      email: 'truth-missing-target@test.com',
+      password: '123456',
+    });
+
+    const token = generateToken({
+      sub: author.id,
+      email: author.email,
+      name: author.name,
+    });
+
+    const response = await request(app)
+      .post('/truths')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        content: 'Qual segredo você nunca contou para ninguém?',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Usuário alvo é obrigatório',
+    });
+
+    const truthsCount = await prisma.truth.count();
+
+    expect(truthsCount).toBe(0);
+  });
+
   it('deve retornar 400 quando o conteúdo não for informado', async () => {
-    const user = await createTestUser({
+    const author = await createTestUser({
       name: 'Truth Empty Content',
       email: 'truth-empty-content@test.com',
       password: '123456',
     });
 
+    const targetUser = await createTestUser({
+      name: 'Truth Empty Content Target',
+      email: 'truth-empty-content-target@test.com',
+      password: '123456',
+    });
+
     const token = generateToken({
-      sub: user.id,
-      email: user.email,
-      name: user.name,
+      sub: author.id,
+      email: author.email,
+      name: author.name,
     });
 
     const response = await request(app)
@@ -137,6 +195,7 @@ describe('POST /truths', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         content: '   ',
+        targetUserId: targetUser.id,
       });
 
     expect(response.status).toBe(400);

@@ -21,17 +21,23 @@ describe('Dare → Feed integration', () => {
 
   applyTestDatabaseHooks();
 
-  it('deve refletir no feed um dare criado via API', async () => {
-    const user = await createTestUser({
+  it('deve refletir no feed um dare criado via API com targetUserId', async () => {
+    const author = await createTestUser({
       name: 'Integration Dare User',
       email: 'integration-dare-user@test.com',
       password: '123456',
     });
 
+    const targetUser = await createTestUser({
+      name: 'Integration Dare Target User',
+      email: 'integration-dare-target-user@test.com',
+      password: '123456',
+    });
+
     const token = generateToken({
-      sub: user.id,
-      email: user.email,
-      name: user.name,
+      sub: author.id,
+      email: author.email,
+      name: author.name,
     });
 
     const content =
@@ -40,7 +46,10 @@ describe('Dare → Feed integration', () => {
     const createResponse = await request(app)
       .post('/dares')
       .set('Authorization', `Bearer ${token}`)
-      .send({ content });
+      .send({
+        content,
+        targetUserId: targetUser.id,
+      });
 
     expect(createResponse.status).toBe(201);
 
@@ -55,21 +64,26 @@ describe('Dare → Feed integration', () => {
     );
 
     expect(dareItems.length).toBeGreaterThan(0);
-
     expect(dareItems.some((item: any) => item.title === content)).toBe(true);
   });
 
-  it('deve manter o contrato do feed ao criar novos dares dinamicamente', async () => {
-    const user = await createTestUser({
+  it('deve manter o contrato do feed ao criar novos dares dinamicamente com targetUserId', async () => {
+    const author = await createTestUser({
       name: 'Contract Dare User',
       email: 'contract-dare-user@test.com',
       password: '123456',
     });
 
+    const targetUser = await createTestUser({
+      name: 'Contract Dare Target User',
+      email: 'contract-dare-target-user@test.com',
+      password: '123456',
+    });
+
     const token = generateToken({
-      sub: user.id,
-      email: user.email,
-      name: user.name,
+      sub: author.id,
+      email: author.email,
+      name: author.name,
     });
 
     await request(app)
@@ -77,6 +91,7 @@ describe('Dare → Feed integration', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         content: 'Grave um vídeo fazendo a careta mais estranha que conseguir.',
+        targetUserId: targetUser.id,
       });
 
     const feedResponse = await request(app)

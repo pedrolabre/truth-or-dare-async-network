@@ -23,6 +23,7 @@ type LoginResponse = {
 
 type CreateChallengeInput = {
   content: string;
+  targetUserId: string;
 };
 
 export type FeedItem =

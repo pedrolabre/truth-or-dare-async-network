@@ -4,10 +4,11 @@ import { createDare } from '../services/dares.service';
 export async function createDareController(req: Request, res: Response) {
   try {
     const authorId = req.user?.sub;
-    const { content } = req.body;
+    const { content, targetUserId } = req.body;
 
     const dare = await createDare({
       authorId: authorId ?? '',
+      targetUserId: typeof targetUserId === 'string' ? targetUserId : '',
       content: typeof content === 'string' ? content : '',
     });
 
@@ -17,7 +18,9 @@ export async function createDareController(req: Request, res: Response) {
       error instanceof Error ? error.message : 'Erro interno ao criar dare';
 
     const status =
-      message === 'authorId is required' || message === 'content is required'
+      message === 'authorId is required' ||
+      message === 'targetUserId is required' ||
+      message === 'content is required'
         ? 400
         : 500;
 

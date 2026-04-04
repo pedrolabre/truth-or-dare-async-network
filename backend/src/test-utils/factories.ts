@@ -14,11 +14,13 @@ type CreateTestUserInput = BaseDateInput & {
 
 type CreateTestTruthInput = BaseDateInput & {
   authorId: string;
+  targetUserId: string;
   content?: string;
 };
 
 type CreateTestDareInput = BaseDateInput & {
   authorId: string;
+  targetUserId: string;
   content?: string;
   maxAttempts?: number;
   expiresAt?: Date | null;
@@ -169,6 +171,7 @@ export async function createTestTruth(input: CreateTestTruthInput) {
     data: withOptionalCreatedAt(
       {
         authorId: input.authorId,
+        targetUserId: input.targetUserId,
         content:
           input.content ??
           'Qual foi a situação mais constrangedora que você já viveu?',
@@ -183,6 +186,7 @@ export async function createTestDare(input: CreateTestDareInput) {
     data: withOptionalCreatedAt(
       {
         authorId: input.authorId,
+        targetUserId: input.targetUserId,
         content:
           input.content ??
           'Envie um áudio cantando o refrão da última música que ouviu.',
@@ -277,6 +281,7 @@ export async function buildFeedScenario(
 
   const truth1 = await createTestTruth({
     authorId: owner.id,
+    targetUserId: second.id,
     content:
       'Qual foi a mentira mais deslavada que você já contou para os seus pais?',
     createdAt: minutesAfter(baseDate, -40),
@@ -284,6 +289,7 @@ export async function buildFeedScenario(
 
   const truth2 = await createTestTruth({
     authorId: second.id,
+    targetUserId: owner.id,
     content:
       'Qual foi a situação mais constrangedora que você já viveu em público?',
     createdAt: minutesAfter(baseDate, -30),
@@ -291,6 +297,7 @@ export async function buildFeedScenario(
 
   const dare1 = await createTestDare({
     authorId: third.id,
+    targetUserId: owner.id,
     content:
       'Envie um áudio cantando o refrão da última música que você ouviu hoje.',
     maxAttempts: 8,
@@ -300,6 +307,7 @@ export async function buildFeedScenario(
 
   const dare2 = await createTestDare({
     authorId: owner.id,
+    targetUserId: third.id,
     content:
       'Ligue para um amigo e fale com sotaque por pelo menos 30 segundos.',
     maxAttempts: 5,

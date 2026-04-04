@@ -14,33 +14,45 @@ model User {
   passwordHash    String
   createdAt       DateTime     @default(now())
 
-  truths          Truth[]
-  dares           Dare[]
+  truths          Truth[]      @relation("TruthAuthor")
+  targetedTruths  Truth[]      @relation("TruthTarget")
+  dares           Dare[]       @relation("DareAuthor")
+  targetedDares   Dare[]       @relation("DareTarget")
   clubsCreated    Club[]
   clubMemberships ClubMember[]
   clubPrompts     ClubPrompt[]
 }
 
 model Truth {
-  id         String   @id @default(uuid())
-  authorId   String
-  content    String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           String   @id @default(uuid())
+  authorId     String
+  targetUserId String
+  content      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author       User     @relation("TruthAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  targetUser   User     @relation("TruthTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([targetUserId])
 }
 
 model Dare {
-  id          String   @id @default(uuid())
-  authorId    String
-  content     String
-  maxAttempts Int      @default(1)
-  expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  authorId     String
+  targetUserId String
+  content      String
+  maxAttempts  Int      @default(1)
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  author       User     @relation("DareAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  targetUser   User     @relation("DareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([targetUserId])
 }
 
 model Club {

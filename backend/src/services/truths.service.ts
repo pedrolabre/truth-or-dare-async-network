@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma';
 
 export type CreateTruthInput = {
   authorId: string;
+  targetUserId: string;
   content: string;
 };
 
@@ -15,10 +16,16 @@ export type CreatedTruthResponse = {
     name: string;
     email: string;
   };
+  targetUser: {
+    id: string;
+    name: string;
+    email: string;
+  };
 };
 
 export async function createTruth({
   authorId,
+  targetUserId,
   content,
 }: CreateTruthInput): Promise<CreatedTruthResponse> {
   const normalizedContent = content.trim();
@@ -27,17 +34,37 @@ export async function createTruth({
     throw new Error('Usuário autenticado não encontrado');
   }
 
+  if (!targetUserId) {
+    throw new Error('Usuário alvo é obrigatório');
+  }
+
   if (!normalizedContent) {
     throw new Error('Conteúdo é obrigatório');
   }
 
   const truth = await prisma.truth.create({
     data: {
-      authorId,
-      content: normalizedContent,
+  content: normalizedContent,
+  author: {
+    connect: {
+      id: authorId,
     },
+  },
+  targetUser: {
+    connect: {
+      id: targetUserId,
+    },
+  },
+},
     include: {
       author: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      targetUser: {
         select: {
           id: true,
           name: true,
@@ -53,5 +80,6 @@ export async function createTruth({
     createdAt: truth.createdAt,
     updatedAt: truth.updatedAt,
     author: truth.author,
+    targetUser: truth.targetUser,
   };
 }

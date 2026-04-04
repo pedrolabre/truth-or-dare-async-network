@@ -214,14 +214,16 @@ export default function CreateChallengeScreen() {
       setSubmitErrorMessage('');
 
       if (selectedType === 'truth') {
-        await createTruth({
-          content: normalizedText,
-        });
-      } else {
-        await createDare({
-          content: normalizedText,
-        });
-      }
+  await createTruth({
+    content: normalizedText,
+    targetUserId: selectedUser.id,
+  });
+} else {
+  await createDare({
+    content: normalizedText,
+    targetUserId: selectedUser.id,
+  });
+}
 
       router.replace('/feed');
     } catch (error) {

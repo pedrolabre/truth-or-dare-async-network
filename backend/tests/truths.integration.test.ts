@@ -21,31 +21,38 @@ describe('Truth → Feed integration', () => {
 
   applyTestDatabaseHooks();
 
-  it('deve refletir no feed uma truth criada via API', async () => {
-    const user = await createTestUser({
+  it('deve refletir no feed uma truth criada via API com targetUserId', async () => {
+    const author = await createTestUser({
       name: 'Integration User',
       email: 'integration-user@test.com',
       password: '123456',
     });
 
+    const targetUser = await createTestUser({
+      name: 'Integration Target User',
+      email: 'integration-target-user@test.com',
+      password: '123456',
+    });
+
     const token = generateToken({
-      sub: user.id,
-      email: user.email,
-      name: user.name,
+      sub: author.id,
+      email: author.email,
+      name: author.name,
     });
 
     const content =
       'Qual foi a coisa mais estranha que você já fez sozinho em casa?';
 
-    // cria truth
     const createResponse = await request(app)
       .post('/truths')
       .set('Authorization', `Bearer ${token}`)
-      .send({ content });
+      .send({
+        content,
+        targetUserId: targetUser.id,
+      });
 
     expect(createResponse.status).toBe(201);
 
-    // busca feed
     const feedResponse = await request(app)
       .get('/feed')
       .set('Authorization', `Bearer ${token}`);
@@ -63,17 +70,23 @@ describe('Truth → Feed integration', () => {
     ).toBe(true);
   });
 
-  it('deve manter o contrato do feed ao criar novas truths dinamicamente', async () => {
-    const user = await createTestUser({
+  it('deve manter o contrato do feed ao criar novas truths dinamicamente com targetUserId', async () => {
+    const author = await createTestUser({
       name: 'Contract User',
       email: 'contract-user@test.com',
       password: '123456',
     });
 
+    const targetUser = await createTestUser({
+      name: 'Contract Target User',
+      email: 'contract-target-user@test.com',
+      password: '123456',
+    });
+
     const token = generateToken({
-      sub: user.id,
-      email: user.email,
-      name: user.name,
+      sub: author.id,
+      email: author.email,
+      name: author.name,
     });
 
     await request(app)
@@ -81,6 +94,7 @@ describe('Truth → Feed integration', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         content: 'Qual foi o seu maior medo na infância?',
+        targetUserId: targetUser.id,
       });
 
     const feedResponse = await request(app)
