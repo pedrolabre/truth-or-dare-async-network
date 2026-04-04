@@ -27,6 +27,7 @@ type FeedCardDareProps = {
   shareIconColor: string;
   onPressAccept?: (id: string) => void;
   onPressShare?: (id: string) => void;
+  onPressDelete?: (id: string) => void;
 };
 
 export default function FeedCardDare({
@@ -53,6 +54,7 @@ export default function FeedCardDare({
   shareIconColor,
   onPressAccept,
   onPressShare,
+  onPressDelete,
 }: FeedCardDareProps) {
   const hasChallenger = item.challenger.trim().length > 0;
   const hasTitle = item.title.trim().length > 0;
@@ -78,9 +80,21 @@ export default function FeedCardDare({
         },
       ]}
     >
-      <View style={[styles.lockIcon, { opacity: 0.55 }]}>
-        <MaterialIcons name="lock-outline" size={18} color={lockColor} />
-      </View>
+      <View style={styles.topRightActions}>
+  <View style={[styles.lockIcon, { opacity: 0.55 }]}>
+    <MaterialIcons name="lock-outline" size={18} color={lockColor} />
+  </View>
+
+  {onPressDelete ? (
+    <Pressable
+      onPress={() => onPressDelete(item.id)}
+      hitSlop={10}
+      style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+    >
+      <MaterialIcons name="delete-outline" size={20} color={lockColor} />
+    </Pressable>
+  ) : null}
+</View>
 
       <View style={styles.challengerRow}>
         <View
@@ -257,11 +271,19 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
-  lockIcon: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-  },
+  topRightActions: {
+  position: 'absolute',
+  top: 16,
+  right: 16,
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+},
+
+deleteButton: {
+  alignItems: 'center',
+  justifyContent: 'center',
+},
   challengerRow: {
     flexDirection: 'row',
     alignItems: 'center',

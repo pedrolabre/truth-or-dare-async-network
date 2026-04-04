@@ -24,6 +24,8 @@ type LoginResponse = {
 type CreateChallengeInput = {
   content: string;
   targetUserId: string;
+  maxAttempts?: number;
+  expiresAt?: string | null;
 };
 
 export type FeedItem =
@@ -224,6 +226,42 @@ export async function createDare(data: CreateChallengeInput) {
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
+  });
+
+  return parseResponse(response);
+}
+
+export async function deleteTruth(id: string) {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}
+
+export async function deleteDare(id: string) {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/dares/${id}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   return parseResponse(response);

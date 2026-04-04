@@ -44,18 +44,18 @@ export async function createTruth({
 
   const truth = await prisma.truth.create({
     data: {
-  content: normalizedContent,
-  author: {
-    connect: {
-      id: authorId,
+      content: normalizedContent,
+      author: {
+        connect: {
+          id: authorId,
+        },
+      },
+      targetUser: {
+        connect: {
+          id: targetUserId,
+        },
+      },
     },
-  },
-  targetUser: {
-    connect: {
-      id: targetUserId,
-    },
-  },
-},
     include: {
       author: {
         select: {
@@ -82,4 +82,42 @@ export async function createTruth({
     author: truth.author,
     targetUser: truth.targetUser,
   };
+}
+
+type DeleteTruthServiceInput = {
+  truthId: string;
+  userId: string;
+};
+
+export async function deleteTruthService({
+  truthId,
+  userId,
+}: DeleteTruthServiceInput) {
+  if (!truthId) {
+    throw new Error('Truth não encontrada');
+  }
+
+  if (!userId) {
+    throw new Error('Não autorizado');
+  }
+
+  const truth = await prisma.truth.findUnique({
+    where: {
+      id: truthId,
+    },
+  });
+
+  if (!truth) {
+    throw new Error('Truth não encontrada');
+  }
+
+  if (truth.authorId !== userId) {
+    throw new Error('Não autorizado');
+  }
+
+  await prisma.truth.delete({
+    where: {
+      id: truthId,
+    },
+  });
 }

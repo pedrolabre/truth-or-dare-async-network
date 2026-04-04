@@ -208,3 +208,160 @@ describe('POST /truths', () => {
     expect(truthsCount).toBe(0);
   });
 });
+
+describe('DELETE /truths/:id', () => {
+  const app = createTestApp();
+
+  applyTestDatabaseHooks({
+    resetBeforeEach: true,
+    resetAfterAll: true,
+    disconnectAfterAll: true,
+  });
+
+  it('deve retornar 401 quando o token não for informado', async () => {
+    const response = await request(app).delete('/truths/qualquer-id');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'Token não informado',
+    });
+  });
+
+  it('deve retornar 401 quando o token estiver mal formatado', async () => {
+    const response = await request(app)
+      .delete('/truths/qualquer-id')
+      .set('Authorization', 'Token abc123');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'Token mal formatado',
+    });
+  });
+
+  it('deve retornar 401 quando o token for inválido', async () => {
+    const response = await request(app)
+      .delete('/truths/qualquer-id')
+      .set('Authorization', 'Bearer token-invalido');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toEqual({
+      error: 'Token inválido ou expirado',
+    });
+  });
+
+  it('deve deletar uma truth do próprio autor', async () => {
+    const author = await createTestUser({
+      name: 'Truth Delete Author',
+      email: 'truth-delete-author@test.com',
+      password: '123456',
+    });
+
+    const targetUser = await createTestUser({
+      name: 'Truth Delete Target',
+      email: 'truth-delete-target@test.com',
+      password: '123456',
+    });
+
+    const truth = await prisma.truth.create({
+      data: {
+        content: 'Truth que será deletada',
+        authorId: author.id,
+        targetUserId: targetUser.id,
+      },
+    });
+
+    const token = generateToken({
+      sub: author.id,
+      email: author.email,
+      name: author.name,
+    });
+
+    const response = await request(app)
+      .delete(`/truths/${truth.id}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(204);
+
+    const deletedTruth = await prisma.truth.findUnique({
+      where: {
+        id: truth.id,
+      },
+    });
+
+    expect(deletedTruth).toBeNull();
+  });
+
+  it('deve retornar 400 quando a truth não existir', async () => {
+    const author = await createTestUser({
+      name: 'Truth Delete Missing',
+      email: 'truth-delete-missing@test.com',
+      password: '123456',
+    });
+
+    const token = generateToken({
+      sub: author.id,
+      email: author.email,
+      name: author.name,
+    });
+
+    const response = await request(app)
+      .delete('/truths/id-inexistente')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Truth não encontrada',
+    });
+  });
+
+  it('deve retornar 400 quando o usuário tentar deletar truth de outro autor', async () => {
+    const author = await createTestUser({
+      name: 'Truth Original Author',
+      email: 'truth-original-author@test.com',
+      password: '123456',
+    });
+
+    const otherUser = await createTestUser({
+      name: 'Truth Other User',
+      email: 'truth-other-user@test.com',
+      password: '123456',
+    });
+
+    const targetUser = await createTestUser({
+      name: 'Truth Protected Target',
+      email: 'truth-protected-target@test.com',
+      password: '123456',
+    });
+
+    const truth = await prisma.truth.create({
+      data: {
+        content: 'Truth protegida',
+        authorId: author.id,
+        targetUserId: targetUser.id,
+      },
+    });
+
+    const token = generateToken({
+      sub: otherUser.id,
+      email: otherUser.email,
+      name: otherUser.name,
+    });
+
+    const response = await request(app)
+      .delete(`/truths/${truth.id}`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({
+      error: 'Não autorizado',
+    });
+
+    const persistedTruth = await prisma.truth.findUnique({
+      where: {
+        id: truth.id,
+      },
+    });
+
+    expect(persistedTruth).not.toBeNull();
+  });
+});

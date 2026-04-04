@@ -21,6 +21,7 @@ type FeedCardTruthProps = {
   extraAvatarBorderColor: string;
   onPressLike?: (id: string) => void;
   onPressComments?: (id: string) => void;
+  onPressDelete?: (id: string) => void;
   liked?: boolean;
 };
 
@@ -38,6 +39,7 @@ export default function FeedCardTruth({
   onPressLike,
   onPressComments,
   liked = false,
+  onPressDelete,
 }: FeedCardTruthProps) {
   const hasTitle = item.title.trim().length > 0;
   const hasTime = item.time.trim().length > 0;
@@ -55,16 +57,33 @@ export default function FeedCardTruth({
       ]}
     >
       <View style={styles.cardTopRow}>
-        <View style={[styles.badge, { backgroundColor: badgeBackgroundColor }]}>
-          <Text style={[styles.badgeText, { color: badgeTextColor }]}>Verdade</Text>
-        </View>
+  <View style={[styles.badge, { backgroundColor: badgeBackgroundColor }]}>
+    <Text style={[styles.badgeText, { color: badgeTextColor }]}>Verdade</Text>
+  </View>
 
-        {hasTime ? (
-          <Text style={[styles.metaText, { color: metaColor }]}>{item.time}</Text>
-        ) : (
-          <View style={[styles.metaPlaceholder, { backgroundColor: metaColor, opacity: 0.15 }]} />
-        )}
-      </View>
+  <View style={styles.topRightActions}>
+    {hasTime ? (
+      <Text style={[styles.metaText, { color: metaColor }]}>{item.time}</Text>
+    ) : (
+      <View
+        style={[
+          styles.metaPlaceholder,
+          { backgroundColor: metaColor, opacity: 0.15 },
+        ]}
+      />
+    )}
+
+    {onPressDelete ? (
+      <Pressable
+        onPress={() => onPressDelete(item.id)}
+        hitSlop={10}
+        style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+      >
+        <MaterialIcons name="delete-outline" size={19} color={metaColor} />
+      </Pressable>
+    ) : null}
+  </View>
+</View>
 
       {hasTitle ? (
         <Text style={[styles.cardTitle, { color: titleColor }]}>{item.title}</Text>
@@ -267,5 +286,14 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.88,
     transform: [{ scale: 0.97 }],
+  },
+  topRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  deleteButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

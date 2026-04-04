@@ -1,7 +1,7 @@
 import express from 'express';
 import request from 'supertest';
-import feedRoutes from '../src/routes/feed.routes';
 import daresRoutes from '../src/routes/dares.routes';
+import feedRoutes from '../src/routes/feed.routes';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';
@@ -19,18 +19,22 @@ function createTestApp() {
 describe('Dare → Feed integration', () => {
   const app = createTestApp();
 
-  applyTestDatabaseHooks();
+  applyTestDatabaseHooks({
+    resetBeforeEach: true,
+    resetAfterAll: true,
+    disconnectAfterAll: true,
+  });
 
   it('deve refletir no feed um dare criado via API com targetUserId', async () => {
     const author = await createTestUser({
-      name: 'Integration Dare User',
-      email: 'integration-dare-user@test.com',
+      name: 'Integration Dare Author',
+      email: 'integration-dare-author@test.com',
       password: '123456',
     });
 
     const targetUser = await createTestUser({
-      name: 'Integration Dare Target User',
-      email: 'integration-dare-target-user@test.com',
+      name: 'Integration Dare Target',
+      email: 'integration-dare-target@test.com',
       password: '123456',
     });
 
@@ -40,14 +44,11 @@ describe('Dare → Feed integration', () => {
       name: author.name,
     });
 
-    const content =
-      'Envie uma mensagem de voz cantando o refrão da última música que ouviu.';
-
     const createResponse = await request(app)
       .post('/dares')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        content,
+        content: 'Grave um vídeo imitando um personagem famoso.',
         targetUserId: targetUser.id,
       });
 
@@ -58,25 +59,39 @@ describe('Dare → Feed integration', () => {
       .set('Authorization', `Bearer ${token}`);
 
     expect(feedResponse.status).toBe(200);
+    expect(Array.isArray(feedResponse.body)).toBe(true);
 
-    const dareItems = feedResponse.body.filter(
+    const dareItem = feedResponse.body.find(
       (item: any) => item.type === 'dare',
     );
 
-    expect(dareItems.length).toBeGreaterThan(0);
-    expect(dareItems.some((item: any) => item.title === content)).toBe(true);
+    expect(dareItem).toBeDefined();
+    expect(dareItem).toMatchObject({
+      type: 'dare',
+      content: 'Grave um vídeo imitando um personagem famoso.',
+      author: {
+        id: author.id,
+        name: author.name,
+        email: author.email,
+      },
+      targetUser: {
+        id: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
+      },
+    });
   });
 
   it('deve manter o contrato do feed ao criar novos dares dinamicamente com targetUserId', async () => {
     const author = await createTestUser({
-      name: 'Contract Dare User',
-      email: 'contract-dare-user@test.com',
+      name: 'Integration Dare Contract Author',
+      email: 'integration-dare-contract-author@test.com',
       password: '123456',
     });
 
     const targetUser = await createTestUser({
-      name: 'Contract Dare Target User',
-      email: 'contract-dare-target-user@test.com',
+      name: 'Integration Dare Contract Target',
+      email: 'integration-dare-contract-target@test.com',
       password: '123456',
     });
 
@@ -90,7 +105,7 @@ describe('Dare → Feed integration', () => {
       .post('/dares')
       .set('Authorization', `Bearer ${token}`)
       .send({
-        content: 'Grave um vídeo fazendo a careta mais estranha que conseguir.',
+        content: 'Faça uma dublagem engraçada.',
         targetUserId: targetUser.id,
       });
 
@@ -100,16 +115,84 @@ describe('Dare → Feed integration', () => {
 
     expect(feedResponse.status).toBe(200);
 
-    const dareItem = feedResponse.body.find((item: any) => item.type === 'dare');
+    const dareItem = feedResponse.body.find(
+      (item: any) => item.type === 'dare',
+    );
+
+    expect(dareItem).toBeDefined();
 
     expect(dareItem).toMatchObject({
       id: expect.any(String),
       type: 'dare',
-      challenger: expect.any(String),
-      title: expect.any(String),
-      attemptsLabel: expect.any(String),
-      expiresIn: expect.any(String),
-      progress: expect.any(Number),
+      content: expect.any(String),
+      createdAt: expect.any(String),
+      updatedAt: expect.any(String),
+      author: {
+        id: expect.any(String),
+        name: expect.any(String),
+        email: expect.any(String),
+      },
+      targetUser: {
+        id: expect.any(String),
+        name: expect.any(String),
+        email: expect.any(String),
+      },
+    });
+  });
+
+  it('deve refletir no feed um dare com maxAttempts e expiresAt customizados', async () => {
+    const author = await createTestUser({
+      name: 'Integration Dare Config Author',
+      email: 'integration-dare-config-author@test.com',
+      password: '123456',
+    });
+
+    const targetUser = await createTestUser({
+      name: 'Integration Dare Config Target',
+      email: 'integration-dare-config-target@test.com',
+      password: '123456',
+    });
+
+    const token = generateToken({
+      sub: author.id,
+      email: author.email,
+      name: author.name,
+    });
+
+    const customExpiresAt = '2026-04-15T18:00:00.000Z';
+
+    const createResponse = await request(app)
+      .post('/dares')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        content: 'Faça uma encenação dramática por 30 segundos.',
+        targetUserId: targetUser.id,
+        maxAttempts: 7,
+        expiresAt: customExpiresAt,
+      });
+
+    expect(createResponse.status).toBe(201);
+
+    const feedResponse = await request(app)
+      .get('/feed')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(feedResponse.status).toBe(200);
+
+    const dareItem = feedResponse.body.find(
+      (item: any) => item.type === 'dare',
+    );
+
+    expect(dareItem).toBeDefined();
+    expect(dareItem).toMatchObject({
+      type: 'dare',
+      content: 'Faça uma encenação dramática por 30 segundos.',
+      author: {
+        id: author.id,
+      },
+      targetUser: {
+        id: targetUser.id,
+      },
     });
   });
 });

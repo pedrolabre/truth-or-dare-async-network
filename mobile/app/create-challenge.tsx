@@ -16,6 +16,7 @@ import CreateChallengeComposer from '../components/create-challenge/CreateChalle
 import CreateChallengeTargetCard from '../components/create-challenge/CreateChallengeTargetCard';
 import CreateChallengeTypeCard from '../components/create-challenge/CreateChallengeTypeCard';
 import CreateChallengeUserPickerModal from '../components/create-challenge/CreateChallengeUserPickerModal';
+import CreateChallengeDareSettings from '../components/create-challenge/CreateChallengeDareSettings';
 import FeedBottomNav from '../components/feed/FeedBottomNav';
 import FeedHeader from '../components/feed/FeedHeader';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
@@ -128,6 +129,8 @@ export default function CreateChallengeScreen() {
   const [usersErrorMessage, setUsersErrorMessage] = useState('');
   const [submitErrorMessage, setSubmitErrorMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [maxAttempts, setMaxAttempts] = useState(5);
+  const [durationMinutes, setDurationMinutes] = useState(60);
 
   const fieldLabel = useMemo(() => {
     return selectedType === 'truth' ? 'A VERDADE' : 'O DESAFIO';
@@ -220,9 +223,13 @@ export default function CreateChallengeScreen() {
   });
 } else {
   await createDare({
-    content: normalizedText,
-    targetUserId: selectedUser.id,
-  });
+  content: normalizedText,
+  targetUserId: selectedUser.id,
+  maxAttempts,
+  expiresAt: new Date(
+    Date.now() + durationMinutes * 60 * 1000,
+  ).toISOString(),
+});
 }
 
       router.replace('/feed');
@@ -382,42 +389,52 @@ export default function CreateChallengeScreen() {
               }}
             />
 
-            <CreateChallengeTargetCard
-              label="DESAFIANDO"
-              name={selectedUser?.name}
-              initials={selectedUser?.initials}
-              backgroundColor={COLORS.surfaceContainerHigh}
-              borderColor={
-                isDark ? 'rgba(255,255,255,0.08)' : 'rgba(188,202,194,0.30)'
-              }
-              avatarBackgroundColor={COLORS.headerGreen}
-              avatarTextColor="#ffffff"
-              labelColor={COLORS.outline}
-              nameColor={COLORS.onSurface}
-              actionColor={COLORS.headerGreen}
-              emptyTitleColor={COLORS.onSurface}
-              emptySubtitleColor={COLORS.onSurfaceVariant}
-              emptyIconColor="#ffffff"
-              onPressChange={() => {
-                if (submitting) {
-                  return;
-                }
+           <CreateChallengeTargetCard
+  label="DESAFIANDO"
+  name={selectedUser?.name}
+  initials={selectedUser?.initials}
+  backgroundColor={COLORS.surfaceContainerHigh}
+  borderColor={
+    isDark ? 'rgba(255,255,255,0.08)' : 'rgba(188,202,194,0.30)'
+  }
+  avatarBackgroundColor={COLORS.headerGreen}
+  avatarTextColor="#ffffff"
+  labelColor={COLORS.outline}
+  nameColor={COLORS.onSurface}
+  actionColor={COLORS.headerGreen}
+  emptyTitleColor={COLORS.onSurface}
+  emptySubtitleColor={COLORS.onSurfaceVariant}
+  emptyIconColor="#ffffff"
+  onPressChange={() => {
+    if (submitting) {
+      return;
+    }
 
-                setSubmitErrorMessage('');
-                void handleOpenUserPicker();
-              }}
-            />
+    setSubmitErrorMessage('');
+    void handleOpenUserPicker();
+  }}
+/>
 
-            {submitErrorMessage ? (
-              <View
-                style={[
-                  styles.inlineErrorBox,
-                  {
-                    backgroundColor: COLORS.surfaceContainerHigh,
-                    borderColor: COLORS.outlineVariant,
-                  },
-                ]}
-              >
+{selectedType === 'dare' && (
+  <CreateChallengeDareSettings
+    maxAttempts={maxAttempts}
+    onChangeMaxAttempts={setMaxAttempts}
+    durationMinutes={durationMinutes}
+    onChangeDurationMinutes={setDurationMinutes}
+    COLORS={COLORS}
+  />
+)}
+
+{submitErrorMessage ? (
+  <View
+    style={[
+      styles.inlineErrorBox,
+      {
+        backgroundColor: COLORS.surfaceContainerHigh,
+        borderColor: COLORS.outlineVariant,
+      },
+    ]}
+  >
                 <Text
                   style={[
                     styles.inlineErrorText,

@@ -7,6 +7,7 @@ import {
   Text,
   useColorScheme,
   View,
+  RefreshControl,
 } from 'react-native';
 import FeedBottomNav from '../components/feed/FeedBottomNav';
 import FeedCardClub from '../components/feed/FeedCardClub';
@@ -18,6 +19,7 @@ import FeedHeader from '../components/feed/FeedHeader';
 import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS, FEED_ITEMS } from '../data/feedMock';
 import { getFeed, type FeedItem } from '../services/api';
 import { useFeedState } from '../hooks/useFeedState';
+import { useDeleteChallenge } from '../hooks/useDeleteChallenge';
 import { useRouter } from 'expo-router';
 
 const LIGHT_COLORS = {
@@ -80,7 +82,7 @@ export default function FeedScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
-  
+
   const router = useRouter();
 
   const {
@@ -96,6 +98,8 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  const { handleDelete } = useDeleteChallenge(setApiItems);
 
   const loadFeed = useCallback(async (isRefresh = false) => {
     try {
@@ -195,6 +199,14 @@ export default function FeedScreen() {
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => loadFeed(true)}
+                colors={[COLORS.tertiary]}
+                tintColor={COLORS.tertiary}
+              />
+            }
           >
             <View style={styles.introSection}>
               <Text style={[styles.screenTitle, { color: COLORS.onSurface }]}>
@@ -249,15 +261,6 @@ export default function FeedScreen() {
               </View>
             ) : null}
 
-            {!loading && refreshing ? (
-              <View style={styles.statusWrapper}>
-                <ActivityIndicator size="small" color={COLORS.tertiary} />
-                <Text style={[styles.statusText, { color: COLORS.onSurfaceVariant }]}>
-                  Atualizando feed...
-                </Text>
-              </View>
-            ) : null}
-
             <View style={styles.feedList}>
               {filteredItems.map((item) => {
                 if (item.type === 'truth') {
@@ -283,6 +286,7 @@ export default function FeedScreen() {
                       onPressComments={(id) => {
                         console.log('Abrir comentários do card:', id);
                       }}
+                      onPressDelete={() => handleDelete(item)}
                       liked={isLiked(item.id)}
                     />
                   );
@@ -325,6 +329,7 @@ export default function FeedScreen() {
                       onPressShare={(id) => {
                         console.log('Compartilhar desafio:', id);
                       }}
+                      onPressDelete={() => handleDelete(item)}
                     />
                   );
                 }
