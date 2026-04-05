@@ -16,6 +16,7 @@ import FeedCardTruth from '../components/feed/FeedCardTruth';
 import FeedFab from '../components/feed/FeedFab';
 import FeedFilters from '../components/feed/FeedFilters';
 import FeedHeader from '../components/feed/FeedHeader';
+import DeleteChallengeConfirmModal from '../components/feed/DeleteChallengeConfirmModal';
 import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS, FEED_ITEMS } from '../data/feedMock';
 import { getFeed, type FeedItem } from '../services/api';
 import { useFeedState } from '../hooks/useFeedState';
@@ -98,6 +99,7 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [itemToDelete, setItemToDelete] = useState<FeedItem | null>(null);
 
   const { handleDelete } = useDeleteChallenge(setApiItems);
 
@@ -286,7 +288,13 @@ export default function FeedScreen() {
                       onPressComments={(id) => {
                         console.log('Abrir comentários do card:', id);
                       }}
-                      onPressDelete={() => handleDelete(item)}
+                      onPressDelete={
+                        item.canDelete
+                          ? () => {
+                              setItemToDelete(item);
+                            }
+                          : undefined
+                      }
                       liked={isLiked(item.id)}
                     />
                   );
@@ -329,7 +337,13 @@ export default function FeedScreen() {
                       onPressShare={(id) => {
                         console.log('Compartilhar desafio:', id);
                       }}
-                      onPressDelete={() => handleDelete(item)}
+                      onPressDelete={
+                        item.canDelete
+                          ? () => {
+                              setItemToDelete(item);
+                            }
+                          : undefined
+                      }
                     />
                   );
                 }
@@ -369,6 +383,34 @@ export default function FeedScreen() {
             }}
           />
         </View>
+
+        <DeleteChallengeConfirmModal
+          visible={!!itemToDelete}
+          title="Excluir post"
+          description="Tem certeza que deseja excluir este post? Essa ação não poderá ser desfeita."
+          onCancel={() => {
+            setItemToDelete(null);
+          }}
+          onConfirm={() => {
+            if (!itemToDelete) {
+              return;
+            }
+
+            void handleDelete(itemToDelete);
+            setItemToDelete(null);
+          }}
+          backdropColor={isDark ? 'rgba(0,0,0,0.72)' : 'rgba(23,29,26,0.38)'}
+          cardBackgroundColor={COLORS.surfaceContainer}
+          borderColor={COLORS.outlineVariant}
+          iconBackgroundColor={COLORS.redBgSoft}
+          iconColor={COLORS.tertiary}
+          titleColor={COLORS.onSurface}
+          descriptionColor={COLORS.onSurfaceVariant}
+          cancelBackgroundColor={COLORS.surfaceContainerLow}
+          cancelTextColor={COLORS.onSurface}
+          confirmBackgroundColor={COLORS.tertiary}
+          confirmTextColor="#ffffff"
+        />
 
         <FeedBottomNav
           items={FEED_BOTTOM_NAV_ITEMS}

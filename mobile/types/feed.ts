@@ -13,6 +13,7 @@ export type FeedTruthItem = {
   comments: number;
   participants: string[];
   extraCount: number;
+  canDelete: boolean;
 };
 
 export type FeedDareItem = {
@@ -23,6 +24,7 @@ export type FeedDareItem = {
   attemptsLabel: string;
   expiresIn: string;
   progress: number;
+  canDelete: boolean;
 };
 
 export type FeedClubItem = {

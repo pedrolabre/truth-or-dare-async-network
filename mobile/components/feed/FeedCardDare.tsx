@@ -7,7 +7,6 @@ type FeedCardDareProps = {
   item: FeedDareItem;
   backgroundColor: string;
   borderLeftColor: string;
-  lockColor: string;
   friendAvatarBackgroundColor: string;
   friendAvatarBorderColor: string;
   friendAvatarTextColor: string;
@@ -34,7 +33,6 @@ export default function FeedCardDare({
   item,
   backgroundColor,
   borderLeftColor,
-  lockColor,
   friendAvatarBackgroundColor,
   friendAvatarBorderColor,
   friendAvatarTextColor,
@@ -81,17 +79,13 @@ export default function FeedCardDare({
       ]}
     >
       <View style={styles.topRightActions}>
-  <View style={[styles.lockIcon, { opacity: 0.55 }]}>
-    <MaterialIcons name="lock-outline" size={18} color={lockColor} />
-  </View>
-
   {onPressDelete ? (
     <Pressable
       onPress={() => onPressDelete(item.id)}
-      hitSlop={10}
+      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
       style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
     >
-      <MaterialIcons name="delete-outline" size={20} color={lockColor} />
+      <MaterialIcons name="delete-outline" size={20} color={shareIconColor} />
     </Pressable>
   ) : null}
 </View>
@@ -278,9 +272,12 @@ const styles = StyleSheet.create({
   flexDirection: 'row',
   alignItems: 'center',
   gap: 10,
+  zIndex: 10,
 },
-
 deleteButton: {
+  width: 36,
+  height: 36,
+  borderRadius: 18,
   alignItems: 'center',
   justifyContent: 'center',
 },

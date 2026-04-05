@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { FeedItem } from '../types/feed';
 
 type SignupInput = {
   name: string;
@@ -27,35 +28,6 @@ type CreateChallengeInput = {
   maxAttempts?: number;
   expiresAt?: string | null;
 };
-
-export type FeedItem =
-  | {
-      id: string;
-      type: 'truth';
-      title: string;
-      time: string;
-      likes: number;
-      comments: number;
-      participants: string[];
-      extraCount: number;
-    }
-  | {
-      id: string;
-      type: 'dare';
-      challenger: string;
-      title: string;
-      attemptsLabel: string;
-      expiresIn: string;
-      progress: number;
-    }
-  | {
-      id: string;
-      type: 'club';
-      clubName: string;
-      badge: 'Verdade' | 'Desafio';
-      quote: string;
-      answersCount: number;
-    };
 
 export type ChallengeUser = {
   id: string;
