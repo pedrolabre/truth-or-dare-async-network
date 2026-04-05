@@ -238,3 +238,34 @@ export async function deleteDare(id: string) {
 
   return parseResponse(response);
 }
+
+export async function toggleLike(
+  targetId: string,
+  type: 'truth' | 'dare' | 'club',
+): Promise<{ liked: boolean }> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  let endpoint = '';
+
+  if (type === 'truth') {
+    endpoint = `/truths/${targetId}/like`;
+  } else if (type === 'dare') {
+    endpoint = `/dares/${targetId}/like`;
+  } else {
+    endpoint = `/clubs/${targetId}/like`;
+  }
+
+  const response = await fetch(`${baseUrl}${endpoint}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}

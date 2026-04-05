@@ -16,8 +16,8 @@ function loadEnvFileIfExists(filename: string) {
   });
 }
 
-loadEnvFileIfExists('.env');
 loadEnvFileIfExists('.env.test');
+loadEnvFileIfExists('.env');
 loadEnvFileIfExists('.env.test.local');
 
 if (process.env.TEST_DATABASE_URL) {

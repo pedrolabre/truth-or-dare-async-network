@@ -102,6 +102,8 @@ describe('POST /dares', () => {
       authorId: author.id,
       targetUserId: targetUser.id,
       maxAttempts: expect.any(Number),
+      attemptsUsed: 0,
+      completedAt: null,
       createdAt: expect.any(String),
       updatedAt: expect.any(String),
       author: {
@@ -131,6 +133,8 @@ describe('POST /dares', () => {
       content: payload.content,
       authorId: author.id,
       targetUserId: targetUser.id,
+      attemptsUsed: 0,
+      completedAt: null,
       author: {
         id: author.id,
         name: author.name,
@@ -181,6 +185,8 @@ describe('POST /dares', () => {
       authorId: author.id,
       targetUserId: targetUser.id,
       maxAttempts: 9,
+      attemptsUsed: 0,
+      completedAt: null,
       expiresAt: customExpiresAt,
     });
 
@@ -196,6 +202,8 @@ describe('POST /dares', () => {
       authorId: author.id,
       targetUserId: targetUser.id,
       maxAttempts: 9,
+      attemptsUsed: 0,
+      completedAt: null,
     });
     expect(persistedDare?.expiresAt?.toISOString()).toBe(customExpiresAt);
   });
@@ -403,7 +411,9 @@ describe('DELETE /dares/:id', () => {
         authorId: author.id,
         targetUserId: targetUser.id,
         maxAttempts: 5,
+        attemptsUsed: 0,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        completedAt: null,
       },
     });
 
@@ -476,7 +486,9 @@ describe('DELETE /dares/:id', () => {
         authorId: author.id,
         targetUserId: targetUser.id,
         maxAttempts: 5,
+        attemptsUsed: 0,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60),
+        completedAt: null,
       },
     });
 

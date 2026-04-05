@@ -8,6 +8,29 @@ type CreateDareInput = {
   expiresAt?: string | null;
 };
 
+export type DareStatus = 'active' | 'concluded' | 'expired' | 'failed';
+
+export function computeDareStatus(dare: {
+  completedAt: Date | null;
+  maxAttempts: number | null;
+  attemptsUsed: number;
+  expiresAt: Date | null;
+}): DareStatus {
+  if (dare.completedAt) {
+    return 'concluded';
+  }
+
+  if (dare.maxAttempts !== null && dare.attemptsUsed >= dare.maxAttempts) {
+    return 'failed';
+  }
+
+  if (dare.expiresAt && new Date() > dare.expiresAt) {
+    return 'expired';
+  }
+
+  return 'active';
+}
+
 export async function createDare({
   content,
   authorId,
@@ -61,7 +84,9 @@ export async function createDare({
       authorId,
       targetUserId,
       maxAttempts: normalizedMaxAttempts,
+      attemptsUsed: 0,
       expiresAt: normalizedExpiresAt,
+      completedAt: null,
     },
     include: {
       author: {

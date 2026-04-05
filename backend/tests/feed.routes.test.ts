@@ -150,6 +150,9 @@ describe('GET /feed', () => {
       progress: expect.any(Number),
     });
 
+    expect(dareItem.progress).toBeGreaterThanOrEqual(0);
+    expect(dareItem.progress).toBeLessThanOrEqual(1);
+
     expect(clubItem).toMatchObject({
       id: expect.any(String),
       type: 'club',

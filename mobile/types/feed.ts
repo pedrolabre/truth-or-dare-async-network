@@ -9,7 +9,9 @@ export type FeedTruthItem = {
   type: 'truth';
   title: string;
   time: string;
-  likes: number;
+  likes: number; // manter por compatibilidade
+  likesCount: number;
+  likedByMe: boolean;
   comments: number;
   participants: string[];
   extraCount: number;
@@ -25,6 +27,14 @@ export type FeedDareItem = {
   expiresIn: string;
   progress: number;
   canDelete: boolean;
+  status: 'active' | 'concluded' | 'expired' | 'failed';
+  attemptsUsed: number;
+  maxAttempts: number | null;
+  completedAt: string | null;
+  expiresAt: string | null;
+  interactionDisabled: boolean;
+  likesCount: number;
+  likedByMe: boolean;
 };
 
 export type FeedClubItem = {
@@ -34,6 +44,8 @@ export type FeedClubItem = {
   badge: FeedBadge;
   quote: string;
   answersCount: number;
+  likesCount: number;
+  likedByMe: boolean;
 };
 
 export type FeedItem = FeedTruthItem | FeedDareItem | FeedClubItem;

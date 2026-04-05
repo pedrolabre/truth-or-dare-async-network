@@ -59,6 +59,7 @@ export default function FeedCardDare({
   const hasAttemptsLabel = item.attemptsLabel.trim().length > 0;
   const hasExpiresIn = item.expiresIn.trim().length > 0;
   const hasProgress = item.progress > 0;
+  const isDisabled = item.interactionDisabled;
 
   const challengerInitials = hasChallenger
     ? item.challenger
@@ -68,6 +69,15 @@ export default function FeedCardDare({
         .join('')
     : '';
 
+  const actionButtonLabel =
+    item.status === 'concluded'
+      ? 'DESAFIO CONCLUÍDO'
+      : item.status === 'failed'
+        ? 'DESAFIO FALHOU'
+        : item.status === 'expired'
+          ? 'DESAFIO EXPIRADO'
+          : 'ACEITAR DESAFIO';
+
   return (
     <View
       style={[
@@ -75,20 +85,21 @@ export default function FeedCardDare({
         {
           backgroundColor,
           borderLeftColor,
+          opacity: isDisabled ? 0.82 : 1,
         },
       ]}
     >
       <View style={styles.topRightActions}>
-  {onPressDelete ? (
-    <Pressable
-      onPress={() => onPressDelete(item.id)}
-      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-      style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
-    >
-      <MaterialIcons name="delete-outline" size={20} color={shareIconColor} />
-    </Pressable>
-  ) : null}
-</View>
+        {onPressDelete ? (
+          <Pressable
+            onPress={() => onPressDelete(item.id)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+          >
+            <MaterialIcons name="delete-outline" size={20} color={shareIconColor} />
+          </Pressable>
+        ) : null}
+      </View>
 
       <View style={styles.challengerRow}>
         <View
@@ -225,20 +236,23 @@ export default function FeedCardDare({
 
       <View style={styles.dareFooter}>
         <Pressable
+          disabled={isDisabled}
           onPress={() => onPressAccept?.(item.id)}
           style={({ pressed }) => [
             styles.primaryActionButton,
             { backgroundColor: primaryButtonBackgroundColor },
-            pressed && styles.pressed,
+            isDisabled && styles.disabledButton,
+            pressed && !isDisabled && styles.pressed,
           ]}
         >
           <Text
             style={[
               styles.primaryActionButtonText,
               { color: primaryButtonTextColor },
+              isDisabled && styles.disabledButtonText,
             ]}
           >
-            ACEITAR DESAFIO
+            {actionButtonLabel}
           </Text>
         </Pressable>
 
@@ -266,21 +280,21 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   topRightActions: {
-  position: 'absolute',
-  top: 16,
-  right: 16,
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 10,
-  zIndex: 10,
-},
-deleteButton: {
-  width: 36,
-  height: 36,
-  borderRadius: 18,
-  alignItems: 'center',
-  justifyContent: 'center',
-},
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 10,
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   challengerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -415,6 +429,12 @@ deleteButton: {
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 0.3,
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
+  disabledButtonText: {
+    opacity: 0.9,
   },
   shareButton: {
     width: 42,

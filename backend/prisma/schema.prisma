@@ -21,6 +21,7 @@ model User {
   clubsCreated    Club[]
   clubMemberships ClubMember[]
   clubPrompts     ClubPrompt[]
+  likes           Like[]
 }
 
 model Truth {
@@ -44,7 +45,9 @@ model Dare {
   targetUserId String
   content      String
   maxAttempts  Int      @default(1)
+  attemptsUsed Int      @default(0)
   expiresAt    DateTime?
+  completedAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -98,4 +101,23 @@ model ClubPrompt {
 enum ClubPromptType {
   truth
   dare
+}
+
+model Like {
+  id         String          @id @default(uuid())
+  userId     String
+  targetId   String
+  targetType LikeTargetType
+  createdAt  DateTime        @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId, targetType])
+  @@index([targetId, targetType])
+}
+
+enum LikeTargetType {
+  truth
+  dare
+  club
 }

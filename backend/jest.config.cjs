@@ -9,5 +9,6 @@ module.exports = {
     '^.+\\.ts$': 'ts-jest',
   },
   setupFiles: ['<rootDir>/tests/load-test-env.ts'],
+  globalSetup: '<rootDir>/tests/setup-test-db.ts', // 👈 AQUI
   maxWorkers: 1,
 };

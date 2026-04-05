@@ -18,7 +18,7 @@ import FeedFilters from '../components/feed/FeedFilters';
 import FeedHeader from '../components/feed/FeedHeader';
 import DeleteChallengeConfirmModal from '../components/feed/DeleteChallengeConfirmModal';
 import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS, FEED_ITEMS } from '../data/feedMock';
-import { getFeed, type FeedItem } from '../services/api';
+import { getFeed, toggleLike, type FeedItem } from '../services/api';
 import { useFeedState } from '../hooks/useFeedState';
 import { useDeleteChallenge } from '../hooks/useDeleteChallenge';
 import { useRouter } from 'expo-router';
@@ -91,8 +91,6 @@ export default function FeedScreen() {
     setActiveFilter,
     activeTab,
     setActiveTab,
-    toggleLike,
-    isLiked,
   } = useFeedState();
 
   const [apiItems, setApiItems] = useState<FeedItem[]>(FEED_ITEMS);
@@ -284,7 +282,33 @@ export default function FeedScreen() {
                       extraAvatarBackgroundColor={COLORS.surfaceDim}
                       extraAvatarTextColor={COLORS.onSurface}
                       extraAvatarBorderColor={COLORS.surfaceContainer}
-                      onPressLike={toggleLike}
+                      onPressLike={async (id) => {
+                        try {
+                          const result = await toggleLike(id, 'truth');
+
+                          setApiItems((prev) =>
+                            prev.map((item) => {
+                              if (item.id !== id || item.type !== 'truth') return item;
+
+                              const newLiked = result.liked;
+
+                              return {
+                               ...item,
+                               likedByMe: newLiked,
+                               likesCount: newLiked
+                                 ? item.likesCount + 1
+                                 : item.likesCount - 1,
+                               likes: newLiked
+                                 ? item.likes + 1
+                                 : item.likes - 1,
+                              };
+                             }),
+                           );
+                        } catch (error) {
+                         console.log('Erro ao curtir:', error);
+                       }
+                      }}
+                      liked={item.likedByMe}
                       onPressComments={(id) => {
                         console.log('Abrir comentários do card:', id);
                       }}
@@ -295,7 +319,7 @@ export default function FeedScreen() {
                             }
                           : undefined
                       }
-                      liked={isLiked(item.id)}
+                      liked={item.likedByMe}
                     />
                   );
                 }
@@ -307,7 +331,6 @@ export default function FeedScreen() {
                       item={item}
                       backgroundColor={COLORS.surfaceContainer}
                       borderLeftColor={COLORS.tertiary}
-                      lockColor={COLORS.outline}
                       friendAvatarBackgroundColor={
                         isDark ? '#5A8363' : COLORS.surfaceContainerLow
                       }
@@ -331,9 +354,13 @@ export default function FeedScreen() {
                       primaryButtonBackgroundColor={COLORS.tertiary}
                       primaryButtonTextColor="#ffffff"
                       shareIconColor={COLORS.outline}
-                      onPressAccept={(id) => {
-                        console.log('Aceitar desafio:', id);
-                      }}
+                      onPressAccept={
+                        item.interactionDisabled
+                          ? undefined
+                          : (id) => {
+                              console.log('Aceitar desafio:', id);
+                            }
+                      }
                       onPressShare={(id) => {
                         console.log('Compartilhar desafio:', id);
                       }}

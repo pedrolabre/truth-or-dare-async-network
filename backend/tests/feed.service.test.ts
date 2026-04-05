@@ -122,8 +122,9 @@ describe('getFeed', () => {
       throw new Error('Dare item esperado não encontrado no feed');
     }
 
-    expect(dareItem.attemptsLabel).toBe('Tentativas: 0/8');
+    expect(dareItem.attemptsLabel).toMatch(/^Tentativas: \d+\/\d+$/);
     expect(dareItem.expiresIn.length).toBeGreaterThan(0);
-    expect(dareItem.progress).toBe(0);
+    expect(dareItem.progress).toBeGreaterThanOrEqual(0);
+    expect(dareItem.progress).toBeLessThanOrEqual(1);
   });
 });

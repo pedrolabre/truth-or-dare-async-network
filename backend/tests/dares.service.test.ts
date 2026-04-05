@@ -15,6 +15,7 @@ describe('createDare', () => {
 
     const result = await createDare({
       authorId: user.id,
+      targetUserId: user.id,
       content: 'Envie um áudio cantando o refrão da última música que você ouviu.',
     });
 
@@ -22,8 +23,11 @@ describe('createDare', () => {
       id: expect.any(String),
       content: 'Envie um áudio cantando o refrão da última música que você ouviu.',
       authorId: user.id,
+      targetUserId: user.id,
       maxAttempts: expect.any(Number),
+      attemptsUsed: 0,
       expiresAt: expect.any(Date),
+      completedAt: null,
       createdAt: expect.any(Date),
       updatedAt: expect.any(Date),
     });
@@ -39,6 +43,9 @@ describe('createDare', () => {
       id: result.id,
       content: 'Envie um áudio cantando o refrão da última música que você ouviu.',
       authorId: user.id,
+      targetUserId: user.id,
+      attemptsUsed: 0,
+      completedAt: null,
     });
   });
 
@@ -51,6 +58,7 @@ describe('createDare', () => {
 
     const result = await createDare({
       authorId: user.id,
+      targetUserId: user.id,
       content: '   Grave um vídeo fazendo uma careta engraçada.   ',
     });
 
@@ -72,6 +80,7 @@ describe('createDare', () => {
     await expect(
       createDare({
         authorId: '',
+        targetUserId: 'any-id',
         content: 'Imite um professor famoso por 30 segundos.',
       }),
     ).rejects.toThrow('authorId is required');
@@ -91,6 +100,7 @@ describe('createDare', () => {
     await expect(
       createDare({
         authorId: user.id,
+        targetUserId: user.id,
         content: '   ',
       }),
     ).rejects.toThrow('content is required');
