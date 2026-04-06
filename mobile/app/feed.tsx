@@ -310,8 +310,25 @@ export default function FeedScreen() {
                       }}
                       liked={item.likedByMe}
                       onPressComments={(id) => {
-                        console.log('Abrir comentários do card:', id);
-                      }}
+  const selectedItem = apiItems.find(
+    (feedItem) => feedItem.id === id && feedItem.type === 'truth',
+  );
+
+  if (!selectedItem || selectedItem.type !== 'truth') {
+    return;
+  }
+
+  router.push({
+    pathname: '/feed-comments',
+    params: {
+      itemId: selectedItem.id,
+      itemType: selectedItem.type,
+      title: selectedItem.title,
+      commentsCount: String(selectedItem.comments),
+      likesCount: String(selectedItem.likesCount),
+    },
+  });
+}}
                       onPressDelete={
                         item.canDelete
                           ? () => {

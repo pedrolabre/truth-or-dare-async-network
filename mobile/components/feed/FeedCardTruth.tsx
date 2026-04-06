@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { FeedTruthItem } from '../../types/feed';
@@ -41,10 +42,30 @@ export default function FeedCardTruth({
   liked = false,
   onPressDelete,
 }: FeedCardTruthProps) {
+  const router = useRouter();
+
   const hasTitle = item.title.trim().length > 0;
   const hasTime = item.time.trim().length > 0;
   const hasLikes = item.likes > 0;
   const hasComments = item.comments > 0;
+
+  function handleOpenComments() {
+    if (onPressComments) {
+      onPressComments(item.id);
+      return;
+    }
+
+    router.push({
+      pathname: '/feed-comments',
+      params: {
+        itemId: item.id,
+        itemType: item.type,
+        title: item.title,
+        commentsCount: String(item.comments),
+        likesCount: String(item.likesCount),
+      },
+    });
+  }
 
   return (
     <View
@@ -57,33 +78,33 @@ export default function FeedCardTruth({
       ]}
     >
       <View style={styles.cardTopRow}>
-  <View style={[styles.badge, { backgroundColor: badgeBackgroundColor }]}>
-    <Text style={[styles.badgeText, { color: badgeTextColor }]}>Verdade</Text>
-  </View>
+        <View style={[styles.badge, { backgroundColor: badgeBackgroundColor }]}>
+          <Text style={[styles.badgeText, { color: badgeTextColor }]}>Verdade</Text>
+        </View>
 
-  <View style={styles.topRightActions}>
-    {hasTime ? (
-      <Text style={[styles.metaText, { color: metaColor }]}>{item.time}</Text>
-    ) : (
-      <View
-        style={[
-          styles.metaPlaceholder,
-          { backgroundColor: metaColor, opacity: 0.15 },
-        ]}
-      />
-    )}
+        <View style={styles.topRightActions}>
+          {hasTime ? (
+            <Text style={[styles.metaText, { color: metaColor }]}>{item.time}</Text>
+          ) : (
+            <View
+              style={[
+                styles.metaPlaceholder,
+                { backgroundColor: metaColor, opacity: 0.15 },
+              ]}
+            />
+          )}
 
-    {onPressDelete ? (
-      <Pressable
-        onPress={() => onPressDelete(item.id)}
-        hitSlop={10}
-        style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
-      >
-        <MaterialIcons name="delete-outline" size={19} color={metaColor} />
-      </Pressable>
-    ) : null}
-  </View>
-</View>
+          {onPressDelete ? (
+            <Pressable
+              onPress={() => onPressDelete(item.id)}
+              hitSlop={10}
+              style={({ pressed }) => [styles.deleteButton, pressed && styles.pressed]}
+            >
+              <MaterialIcons name="delete-outline" size={19} color={metaColor} />
+            </Pressable>
+          ) : null}
+        </View>
+      </View>
 
       {hasTitle ? (
         <Text style={[styles.cardTitle, { color: titleColor }]}>{item.title}</Text>
@@ -158,7 +179,7 @@ export default function FeedCardTruth({
           </Pressable>
 
           <Pressable
-            onPress={() => onPressComments?.(item.id)}
+            onPress={handleOpenComments}
             style={({ pressed }) => [styles.iconStat, pressed && styles.pressed]}
           >
             <MaterialIcons
