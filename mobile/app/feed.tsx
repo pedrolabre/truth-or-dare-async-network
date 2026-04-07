@@ -5,7 +5,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
   RefreshControl,
 } from 'react-native';
@@ -22,6 +21,7 @@ import { getFeed, toggleLike, type FeedItem } from '../services/api';
 import { useFeedState } from '../hooks/useFeedState';
 import { useDeleteChallenge } from '../hooks/useDeleteChallenge';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../context/ThemeContext';
 
 const LIGHT_COLORS = {
   surfaceBright: '#f5fbf6',
@@ -80,8 +80,7 @@ const DARK_COLORS = {
 };
 
 export default function FeedScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
 
   const router = useRouter();
@@ -190,7 +189,7 @@ export default function FeedScreen() {
           }
           avatarBackgroundColor={isDark ? '#121212' : COLORS.surfaceContainer}
           onPressNotifications={() => {
-            console.log('Notificações em breve');
+            router.push('/notifications');
           }}
         />
 
@@ -461,8 +460,14 @@ export default function FeedScreen() {
           activeKey={activeTab}
           onSelect={(key) => {
             setActiveTab(key);
-            console.log(`Abrir rota futura: ${key}`);
-          }}
+
+            if (key === 'profile') {
+              router.push('/profile');
+              return;
+            }
+
+  console.log(`Abrir rota futura: ${key}`);
+}}
           backgroundColor={COLORS.headerGreen}
           borderTopColor={
             isDark ? 'rgba(255,255,255,0.10)' : 'rgba(207,247,238,0.10)'

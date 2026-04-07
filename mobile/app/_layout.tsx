@@ -1,11 +1,19 @@
 import { Stack } from 'expo-router';
+import { ThemeProvider } from '../context/ThemeContext';
 
 export default function RootLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="signup-screen" />
-      <Stack.Screen name="feed" />
-    </Stack>
+    <ThemeProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="login" />
+        <Stack.Screen name="signup-screen" />
+        <Stack.Screen name="feed" />
+        <Stack.Screen name="feed-comments" />
+        <Stack.Screen name="create-challenge" />
+        <Stack.Screen name="profile" />
+        <Stack.Screen name="notifications" />
+        <Stack.Screen name="settings" />
+      </Stack>
+    </ThemeProvider>
   );
 }

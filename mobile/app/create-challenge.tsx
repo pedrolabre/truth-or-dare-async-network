@@ -8,7 +8,6 @@ import {
   StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
   View,
 } from 'react-native';
 import CreateChallengeCancelModal from '../components/create-challenge/CreateChallengeCancelModal';
@@ -20,6 +19,7 @@ import CreateChallengeDareSettings from '../components/create-challenge/CreateCh
 import FeedBottomNav from '../components/feed/FeedBottomNav';
 import FeedHeader from '../components/feed/FeedHeader';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
+import { useTheme } from '../context/ThemeContext';
 import {
   createDare,
   createTruth,
@@ -113,8 +113,7 @@ function mapUsersToPicker(users: ChallengeUser[]): PickerUser[] {
 }
 
 export default function CreateChallengeScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
   const router = useRouter();
 

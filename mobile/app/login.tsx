@@ -12,11 +12,11 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useColorScheme,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import LoginLogo from '../components/LoginLogo';
+import { useTheme } from '../context/ThemeContext';
 
 const LIGHT_COLORS = {
   surfaceBright: '#f5fbf6',
@@ -51,8 +51,7 @@ const DARK_COLORS = {
 };
 
 export default function LoginScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
   const router = useRouter();
 

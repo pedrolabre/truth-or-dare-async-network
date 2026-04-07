@@ -11,10 +11,10 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useColorScheme,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../context/ThemeContext';
 import LoginLogo from '../components/LoginLogo';
 
 const LIGHT_COLORS = {
@@ -52,8 +52,7 @@ const DARK_COLORS = {
 };
 
 export default function SignupScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
 
   const [fullName, setFullName] = useState('');

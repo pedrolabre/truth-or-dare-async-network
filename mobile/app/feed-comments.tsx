@@ -7,9 +7,9 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
-import { useColorScheme } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../context/ThemeContext';
 
 import FeedCommentsHeader from '../components/feed-comments/FeedCommentsHeader';
 import FeedCommentsContextCard from '../components/feed-comments/FeedCommentsContextCard';
@@ -31,8 +31,7 @@ import type { FeedCommentsRouteParams } from '../types/comments';
 export default function FeedCommentsScreen() {
   const params = useLocalSearchParams<FeedCommentsRouteParams>();
   const insets = useSafeAreaInsets();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   const themeColors = isDark
     ? DARK_FEED_COMMENTS_COLORS
