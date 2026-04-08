@@ -1,4 +1,4 @@
-import { LikeTargetType } from '../generated/prisma';
+import { LikeTargetType } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 
 type ToggleLikeInput = {
