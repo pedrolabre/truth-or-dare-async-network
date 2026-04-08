@@ -4,22 +4,28 @@ import { View, Text, StyleSheet } from 'react-native';
 type Props = {
   followers: string;
   following: string;
-  created: number;
-  answered: number;
+  truthsCreated: number;
+  daresCreated: number;
 };
 
 export default function ProfileStatsGrid({
   followers,
   following,
-  created,
-  answered,
+  truthsCreated,
+  daresCreated,
 }: Props) {
   return (
     <View style={styles.container}>
       <Stat value={followers} label="Seguidores" />
       <Stat value={following} label="Seguindo" />
-      <Stat value={created === 0 ? '—' : created} label="Desafios Criados" />
-      <Stat value={answered === 0 ? '—' : answered} label="Respondidos" />
+      <Stat
+        value={truthsCreated === 0 ? '—' : truthsCreated}
+        label="Verdades Criadas"
+      />
+      <Stat
+        value={daresCreated === 0 ? '—' : daresCreated}
+        label="Desafios Criados"
+      />
     </View>
   );
 }

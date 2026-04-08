@@ -1,4 +1,13 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { getMyProfile } from '../services/api';
+
+type ProfileData = {
+  id: string;
+  name: string;
+  email: string;
+  createdTruthsCount: number;
+  createdDaresCount: number;
+};
 
 export function useProfileScreen() {
   const [editVisible, setEditVisible] = useState(false);
@@ -6,6 +15,29 @@ export function useProfileScreen() {
 
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
+
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadProfile = useCallback(async () => {
+    try {
+      setIsLoading(true);
+
+      const data = await getMyProfile();
+
+      setProfile(data);
+      setDisplayName(data.name);
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+      setProfile(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadProfile();
+  }, [loadProfile]);
 
   function openEditModal() {
     setEditVisible(true);
@@ -58,6 +90,8 @@ export function useProfileScreen() {
   }
 
   return {
+    profile,
+    isLoading,
     displayName,
     username,
     setDisplayName,
@@ -72,5 +106,6 @@ export function useProfileScreen() {
     openCamera,
     openGallery,
     removePhoto,
+    loadProfile,
   };
 }

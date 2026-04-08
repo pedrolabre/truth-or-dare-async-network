@@ -269,3 +269,30 @@ export async function toggleLike(
 
   return parseResponse(response);
 }
+
+export type MyProfileResponse = {
+  id: string;
+  name: string;
+  email: string;
+  createdTruthsCount: number;
+  createdDaresCount: number;
+};
+
+export async function getMyProfile(): Promise<MyProfileResponse> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/users/me`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}

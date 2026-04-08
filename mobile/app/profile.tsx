@@ -63,8 +63,18 @@ export default function ProfileScreen() {
     }
   }
 
-  const displayName = profile.displayName?.trim() || 'Seu nome';
-  const username = profile.username?.trim().replace(/^@/, '') || 'seu_usuario';
+   const displayName =
+    profile.displayName?.trim() ||
+    profile.profile?.name?.trim() ||
+    'Seu nome';
+
+  const username =
+    profile.username?.trim().replace(/^@/, '') || profile.profile?.email || '—';
+
+  const bio = profile.isLoading ? 'Carregando perfil...' : undefined;
+
+  const truthsCreatedCount = profile.profile?.createdTruthsCount ?? 0;
+  const daresCreatedCount = profile.profile?.createdDaresCount ?? 0;
 
   return (
     <View style={[styles.root, { backgroundColor: c.green }]}>
@@ -93,8 +103,8 @@ export default function ProfileScreen() {
           <ProfileIdentityCard
             name={displayName}
             username={username}
-            initials="?"
-            bio="Seu perfil aparecerá aqui quando os dados reais forem carregados."
+            initials={displayName.charAt(0).toUpperCase() || '?'}
+            bio={bio}
             backgroundColor={c.bg}
             textColor={c.text}
             subTextColor={c.sub}
@@ -105,8 +115,8 @@ export default function ProfileScreen() {
           <ProfileStatsGrid
             followers="—"
             following="—"
-            created={0}
-            answered={0}
+            truthsCreated={truthsCreatedCount}
+            daresCreated={daresCreatedCount}
           />
 
           <ProfileAchievements

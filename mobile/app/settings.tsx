@@ -6,6 +6,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { removeToken } from '../services/api';
 
 import { useTheme } from '../context/ThemeContext';
 import AccountScreenHeader from '../components/account/AccountScreenHeader';
@@ -155,9 +156,14 @@ export default function SettingsScreen() {
     switchModal('password-success');
   }
 
-  function handleConfirmLogout() {
-    closeModal();
-    // TODO: integrar logout com backend (remover token + redirect)
+  async function handleConfirmLogout() {
+    try {
+      closeModal();
+      await removeToken();
+      router.replace('/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   }
 
   const privateAccountDescription = settings.privateAccountEnabled

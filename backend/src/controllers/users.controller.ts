@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { listUsersForChallenge } from '../services/users.service';
+import { getMyProfile, listUsersForChallenge } from '../services/users.service';
 
 export async function listUsersController(req: Request, res: Response) {
   try {
@@ -21,6 +21,32 @@ export async function listUsersController(req: Request, res: Response) {
 
     const status =
       message === 'Usuário autenticado não encontrado' ? 400 : 500;
+
+    return res.status(status).json({
+      error: message,
+    });
+  }
+}
+
+export async function getMyProfileController(req: Request, res: Response) {
+  try {
+    const userId = req.user?.sub ?? '';
+
+    const profile = await getMyProfile(userId);
+
+    return res.status(200).json(profile);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao buscar perfil';
+
+    const status =
+      message === 'Usuário autenticado não encontrado'
+        ? 400
+        : message === 'Usuário não encontrado'
+        ? 404
+        : 500;
 
     return res.status(status).json({
       error: message,
