@@ -15,6 +15,8 @@ export type MyProfile = {
   id: string;
   name: string;
   email: string;
+  username: string | null;
+  bio: string | null;
   createdTruthsCount: number;
   createdDaresCount: number;
 };
@@ -78,6 +80,8 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
       id: true,
       name: true,
       email: true,
+      username: true,
+      bio: true,
     },
   });
 
@@ -102,7 +106,79 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
     id: user.id,
     name: user.name,
     email: user.email,
+    username: user.username,
+    bio: user.bio,
     createdTruthsCount,
     createdDaresCount,
   };
+}
+
+type UpdateMyProfileInput = {
+  name?: string;
+  username?: string | null;
+  bio?: string | null;
+};
+
+export async function updateMyProfile(
+  userId: string,
+  data: UpdateMyProfileInput,
+): Promise<MyProfile> {
+  if (!userId) {
+    throw new Error('Usuário autenticado não encontrado');
+  }
+
+  const { name, username, bio } = data;
+
+  const updateData: {
+    name?: string;
+    username?: string | null;
+    bio?: string | null;
+  } = {};
+
+  if (typeof name === 'string') {
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      throw new Error('Nome inválido');
+    }
+
+    updateData.name = trimmedName;
+  }
+
+  if (typeof username === 'string') {
+    const trimmedUsername = username.trim();
+
+    updateData.username = trimmedUsername || null;
+  }
+
+  if (typeof bio === 'string') {
+    const trimmedBio = bio.trim();
+
+    updateData.bio = trimmedBio || null;
+  }
+
+if (
+    updateData.name === undefined &&
+    updateData.username === undefined &&
+    updateData.bio === undefined
+  ) {
+    throw new Error('Nenhum campo válido para atualização');
+  }
+
+  try {
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: updateData,
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002' && error.meta?.target?.includes('username')) {
+      throw new Error('Username já está em uso');
+    }
+
+    throw error;
+  }
+
+  return getMyProfile(userId);
 }

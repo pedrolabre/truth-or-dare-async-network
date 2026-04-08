@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
-import { getMyProfile, listUsersForChallenge } from '../services/users.service';
+import {
+  getMyProfile,
+  listUsersForChallenge,
+  updateMyProfile,
+} from '../services/users.service';
 
 export async function listUsersController(req: Request, res: Response) {
   try {
@@ -46,6 +50,43 @@ export async function getMyProfileController(req: Request, res: Response) {
         ? 400
         : message === 'Usuário não encontrado'
         ? 404
+        : 500;
+
+    return res.status(status).json({
+      error: message,
+    });
+  }
+}
+
+export async function updateMyProfileController(req: Request, res: Response) {
+  try {
+    const userId = req.user?.sub ?? '';
+
+    const { name, username, bio } = req.body;
+
+    const updatedProfile = await updateMyProfile(userId, {
+      name,
+      username,
+      bio,
+    });
+
+    return res.status(200).json(updatedProfile);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao atualizar perfil';
+
+    const status =
+      message === 'Usuário autenticado não encontrado'
+        ? 400
+        : message === 'Usuário não encontrado'
+        ? 404
+        : message === 'Nome inválido' ||
+          message === 'Nenhum campo válido para atualização'
+        ? 400
+        : message === 'Username já está em uso'
+        ? 409
         : 500;
 
     return res.status(status).json({

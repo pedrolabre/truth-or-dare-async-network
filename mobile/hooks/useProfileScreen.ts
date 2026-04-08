@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getMyProfile } from '../services/api';
+import { getMyProfile, updateMyProfile } from '../services/api';
 
 type ProfileData = {
   id: string;
   name: string;
   email: string;
+  username: string | null;
+  bio: string | null;
   createdTruthsCount: number;
   createdDaresCount: number;
 };
@@ -15,6 +17,7 @@ export function useProfileScreen() {
 
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
+  const [bio, setBio] = useState('');
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +30,8 @@ export function useProfileScreen() {
 
       setProfile(data);
       setDisplayName(data.name);
+      setUsername(data.username ?? '');
+      setBio(data.bio ?? '');
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
       setProfile(null);
@@ -40,6 +45,9 @@ export function useProfileScreen() {
   }, [loadProfile]);
 
   function openEditModal() {
+    setDisplayName(profile?.name ?? '');
+    setUsername(profile?.username ?? '');
+    setBio(profile?.bio ?? '');
     setEditVisible(true);
   }
 
@@ -55,15 +63,24 @@ export function useProfileScreen() {
     setPhotoVisible(false);
   }
 
-  function saveProfile() {
-    setEditVisible(false);
+  async function saveProfile() {
+  try {
+    const updated = await updateMyProfile({
+      name: displayName,
+      username,
+      bio,
+    });
 
-    // backend futuro:
-    // updateProfile({
-    //   displayName,
-    //   username,
-    // });
+    setProfile(updated);
+    setDisplayName(updated.name);
+    setUsername(updated.username ?? '');
+    setBio(updated.bio ?? '');
+
+    setEditVisible(false);
+  } catch (error) {
+    console.error('Erro ao atualizar perfil:', error);
   }
+}
 
   function openCamera() {
     setPhotoVisible(false);
@@ -94,8 +111,10 @@ export function useProfileScreen() {
     isLoading,
     displayName,
     username,
+    bio,
     setDisplayName,
     setUsername,
+    setBio,
     editVisible,
     photoVisible,
     openEditModal,

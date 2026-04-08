@@ -7,8 +7,10 @@ type Props = {
   photoVisible: boolean;
   displayName: string;
   username: string;
+  bio: string;
   setDisplayName: (value: string) => void;
   setUsername: (value: string) => void;
+  setBio: (value: string) => void;
   onCloseEdit: () => void;
   onSaveProfile: () => void;
   onClosePhoto: () => void;
@@ -22,8 +24,10 @@ export default function ProfileModals({
   photoVisible,
   displayName,
   username,
+  bio,
   setDisplayName,
   setUsername,
+  setBio,
   onCloseEdit,
   onSaveProfile,
   onClosePhoto,
@@ -39,8 +43,10 @@ export default function ProfileModals({
         onSave={onSaveProfile}
         name={displayName}
         username={username}
+        bio={bio}
         setName={setDisplayName}
         setUsername={setUsername}
+        setBio={setBio}
       />
 
       <ProfilePhotoModal

@@ -274,6 +274,8 @@ export type MyProfileResponse = {
   id: string;
   name: string;
   email: string;
+  username: string | null;
+  bio: string | null;
   createdTruthsCount: number;
   createdDaresCount: number;
 };
@@ -292,6 +294,34 @@ export async function getMyProfile(): Promise<MyProfileResponse> {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
+  });
+
+  return parseResponse(response);
+}
+
+type UpdateMyProfileInput = {
+  name?: string;
+  username?: string | null;
+  bio?: string | null;
+};
+
+export async function updateMyProfile(
+  data: UpdateMyProfileInput,
+): Promise<MyProfileResponse> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/users/me`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
   });
 
   return parseResponse(response);

@@ -71,7 +71,10 @@ export default function ProfileScreen() {
   const username =
     profile.username?.trim().replace(/^@/, '') || profile.profile?.email || '—';
 
-  const bio = profile.isLoading ? 'Carregando perfil...' : undefined;
+  const bio =
+  profile.isLoading
+    ? 'Carregando perfil...'
+    : profile.bio?.trim() || 'Sem bio ainda';
 
   const truthsCreatedCount = profile.profile?.createdTruthsCount ?? 0;
   const daresCreatedCount = profile.profile?.createdDaresCount ?? 0;
@@ -152,6 +155,8 @@ export default function ProfileScreen() {
         photoVisible={profile.photoVisible}
         displayName={profile.displayName}
         username={profile.username}
+        bio={profile.bio}
+        setBio={profile.setBio}
         setDisplayName={profile.setDisplayName}
         setUsername={profile.setUsername}
         onCloseEdit={profile.closeEditModal}

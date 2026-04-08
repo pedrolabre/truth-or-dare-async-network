@@ -1,11 +1,16 @@
 import React from 'react';
 import {
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
-  View,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
-  StyleSheet,
   TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from 'react-native';
 
 type Props = {
@@ -14,8 +19,10 @@ type Props = {
   onSave: () => void;
   name: string;
   username: string;
+  bio: string;
   setName: (v: string) => void;
   setUsername: (v: string) => void;
+  setBio: (v: string) => void;
 };
 
 export default function ProfileEditModal({
@@ -24,36 +31,71 @@ export default function ProfileEditModal({
   onSave,
   name,
   username,
+  bio,
   setName,
   setUsername,
+  setBio,
 }: Props) {
   return (
     <Modal transparent visible={visible} animationType="fade">
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>Editar Perfil</Text>
+      <KeyboardAvoidingView
+        style={styles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <View style={styles.overlay}>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              <TouchableWithoutFeedback>
+                <View style={styles.modal}>
+                  <Text style={styles.title}>Editar Perfil</Text>
 
-          <Field
-            label="Nome"
-            value={name}
-            onChange={setName}
-          />
+                  <Field
+                    label="Nome"
+                    value={name}
+                    onChange={setName}
+                  />
 
-          <Field
-            label="Usuário"
-            value={username}
-            onChange={setUsername}
-          />
+                  <Field
+                    label="Usuário"
+                    value={username}
+                    onChange={setUsername}
+                  />
 
-          <TouchableOpacity style={styles.save} onPress={onSave}>
-            <Text style={styles.saveText}>Salvar alterações</Text>
-          </TouchableOpacity>
+                  <Field
+                    label="Bio"
+                    value={bio}
+                    onChange={setBio}
+                    multiline
+                  />
 
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.cancel}>Cancelar</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+                  <TouchableOpacity
+                    style={styles.save}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      onSave();
+                    }}
+                  >
+                    <Text style={styles.saveText}>Salvar alterações</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      onClose();
+                    }}
+                  >
+                    <Text style={styles.cancel}>Cancelar</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </ScrollView>
+          </View>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -62,10 +104,12 @@ function Field({
   label,
   value,
   onChange,
+  multiline = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  multiline?: boolean;
 }) {
   return (
     <View style={styles.field}>
@@ -73,9 +117,13 @@ function Field({
       <TextInput
         value={value}
         onChangeText={onChange}
-        style={styles.input}
+        style={[styles.input, multiline ? styles.inputMultiline : null]}
         placeholder={`Digite seu ${label.toLowerCase()}`}
         placeholderTextColor="#9ca3af"
+        multiline={multiline}
+        textAlignVertical={multiline ? 'top' : 'center'}
+        returnKeyType={multiline ? 'default' : 'done'}
+        blurOnSubmit={!multiline}
       />
     </View>
   );
@@ -86,16 +134,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
   },
 
-  modal: {
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 24,
+    paddingHorizontal: 24,
+  },
+
+   modal: {
     width: '100%',
+    maxWidth: 420,
     backgroundColor: '#ffffff',
     borderRadius: 28,
     padding: 24,
     gap: 12,
+    alignSelf: 'center',
   },
 
   title: {
@@ -122,6 +177,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontWeight: '600',
+  },
+
+  inputMultiline: {
+    minHeight: 96,
+    paddingTop: 12,
   },
 
   save: {
