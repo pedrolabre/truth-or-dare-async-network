@@ -130,18 +130,21 @@ export default function FeedScreen() {
   }, [loadFeed]);
 
   const filteredItems = useMemo(() => {
-    switch (activeFilter) {
-      case 'friends':
-        return apiItems.filter((item) => item.type !== 'club');
-      case 'party':
-        return apiItems.filter((item) => item.type !== 'truth');
-      case 'spicy':
-        return apiItems.filter((item) => item.type !== 'club');
-      case 'popular':
-      default:
-        return apiItems;
-    }
-  }, [activeFilter, apiItems]);
+  switch (activeFilter) {
+    case 'dares':
+      return apiItems.filter((item) => item.type === 'dare');
+
+    case 'truths':
+      return apiItems.filter((item) => item.type === 'truth');
+
+    case 'clubs':
+      return apiItems.filter((item) => item.type === 'club');
+
+    case 'popular':
+    default:
+      return apiItems;
+  }
+}, [activeFilter, apiItems]);
 
   return (
     <View style={[styles.root, { backgroundColor: COLORS.headerGreen }]}>
@@ -292,42 +295,42 @@ export default function FeedScreen() {
                               const newLiked = result.liked;
 
                               return {
-                               ...item,
-                               likedByMe: newLiked,
-                               likesCount: newLiked
-                                 ? item.likesCount + 1
-                                 : item.likesCount - 1,
-                               likes: newLiked
-                                 ? item.likes + 1
-                                 : item.likes - 1,
+                                ...item,
+                                likedByMe: newLiked,
+                                likesCount: newLiked
+                                  ? item.likesCount + 1
+                                  : item.likesCount - 1,
+                                likes: newLiked
+                                  ? item.likes + 1
+                                  : item.likes - 1,
                               };
-                             }),
-                           );
+                            }),
+                          );
                         } catch (error) {
-                         console.log('Erro ao curtir:', error);
-                       }
+                          console.log('Erro ao curtir:', error);
+                        }
                       }}
                       liked={item.likedByMe}
                       onPressComments={(id) => {
-  const selectedItem = apiItems.find(
-    (feedItem) => feedItem.id === id && feedItem.type === 'truth',
-  );
+                        const selectedItem = apiItems.find(
+                          (feedItem) => feedItem.id === id && feedItem.type === 'truth',
+                        );
 
-  if (!selectedItem || selectedItem.type !== 'truth') {
-    return;
-  }
+                        if (!selectedItem || selectedItem.type !== 'truth') {
+                          return;
+                        }
 
-  router.push({
-    pathname: '/feed-comments',
-    params: {
-      itemId: selectedItem.id,
-      itemType: selectedItem.type,
-      title: selectedItem.title,
-      commentsCount: String(selectedItem.comments),
-      likesCount: String(selectedItem.likesCount),
-    },
-  });
-}}
+                        router.push({
+                          pathname: '/feed-comments',
+                          params: {
+                            itemId: selectedItem.id,
+                            itemType: selectedItem.type,
+                            title: selectedItem.title,
+                            commentsCount: String(selectedItem.comments),
+                            likesCount: String(selectedItem.likesCount),
+                          },
+                        });
+                      }}
                       onPressDelete={
                         item.canDelete
                           ? () => {
@@ -461,13 +464,24 @@ export default function FeedScreen() {
           onSelect={(key) => {
             setActiveTab(key);
 
-            if (key === 'profile') {
-              router.push('/profile');
+            if (key === 'play') {
               return;
             }
 
-  console.log(`Abrir rota futura: ${key}`);
-}}
+            if (key === 'search') {
+              router.push('/search');
+              return;
+            }
+
+            if (key === 'clubs') {
+              router.push('/clubs');
+              return;
+            }
+
+            if (key === 'profile') {
+              router.push('/profile');
+            }
+          }}
           backgroundColor={COLORS.headerGreen}
           borderTopColor={
             isDark ? 'rgba(255,255,255,0.10)' : 'rgba(207,247,238,0.10)'

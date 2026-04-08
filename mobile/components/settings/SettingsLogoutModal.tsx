@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View, Pressable, StyleSheet } from 'react-native';
+import { Text, View, Pressable, StyleSheet, useColorScheme } from 'react-native';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -13,12 +13,22 @@ export default function SettingsLogoutModal({
   onConfirm,
   onCancel,
 }: Props) {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   return (
     <SettingsModalShell visible={visible} onClose={onCancel}>
       <View style={styles.center}>
-        <Text style={styles.title}>Deseja sair?</Text>
+        <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
+          Deseja sair?
+        </Text>
 
-        <Text style={styles.text}>
+        <Text
+          style={[
+            styles.text,
+            { color: isDark ? '#bccac2' : '#6d7a74' },
+          ]}
+        >
           Sua sessão será encerrada com segurança.
         </Text>
 
@@ -27,7 +37,14 @@ export default function SettingsLogoutModal({
         </Pressable>
 
         <Pressable onPress={onCancel}>
-          <Text style={styles.cancel}>CANCELAR</Text>
+          <Text
+            style={[
+              styles.cancel,
+              { color: isDark ? '#bccac2' : '#6d7a74' },
+            ]}
+          >
+            CANCELAR
+          </Text>
         </Pressable>
       </View>
     </SettingsModalShell>
@@ -42,7 +59,6 @@ const styles = StyleSheet.create({
   },
   text: {
     textAlign: 'center',
-    color: '#6d7a74',
   },
   danger: {
     width: '100%',
@@ -58,6 +74,5 @@ const styles = StyleSheet.create({
   cancel: {
     marginTop: 10,
     fontWeight: '700',
-    color: '#6d7a74',
   },
 });

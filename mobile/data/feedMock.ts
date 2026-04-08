@@ -2,9 +2,9 @@ import { BottomNavItem, FeedFilterOption, FeedItem } from '../types/feed';
 
 export const FEED_FILTERS: FeedFilterOption[] = [
   { key: 'popular', label: '🔥 Populares' },
-  { key: 'friends', label: '👥 Amigos' },
-  { key: 'party', label: '🎉 Festa' },
-  { key: 'spicy', label: '🌶️ Picante' },
+  { key: 'dares', label: '⚡ Desafios' },
+  { key: 'truths', label: '💬 Verdades' },
+  { key: 'clubs', label: '👥 Clubes' },
 ];
 
 export const FEED_ITEMS: FeedItem[] = [

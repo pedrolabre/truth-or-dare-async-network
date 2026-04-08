@@ -49,13 +49,13 @@ export default function ProfileScreen() {
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
     switch (key) {
       case 'play':
-        router.push('/feed');
+        router.replace('/feed');
         return;
       case 'search':
-        console.log('Tela de busca em breve');
+        router.replace('/search');
         return;
       case 'clubs':
-        console.log('Tela de clubes em breve');
+        router.replace('/clubs');
         return;
       case 'profile':
       default:

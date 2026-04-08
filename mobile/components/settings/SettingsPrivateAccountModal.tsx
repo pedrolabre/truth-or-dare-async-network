@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Text, View, Pressable, StyleSheet } from 'react-native';
+import { Text, View, Pressable, StyleSheet, useColorScheme } from 'react-native';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -14,16 +14,33 @@ export default function SettingsPrivateAccountModal({
   onConfirm,
   onCancel,
 }: Props) {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   return (
     <SettingsModalShell visible={visible} onClose={onCancel}>
       <View style={styles.center}>
-        <View style={styles.iconCircle}>
+        <View
+          style={[
+            styles.iconCircle,
+            {
+              backgroundColor: isDark ? '#1f3d2b' : '#e6efe8',
+            },
+          ]}
+        >
           <MaterialIcons name="lock" size={36} color="#5A8363" />
         </View>
 
-        <Text style={styles.title}>TORNAR CONTA PRIVADA?</Text>
+        <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
+          TORNAR CONTA PRIVADA?
+        </Text>
 
-        <Text style={styles.text}>
+        <Text
+          style={[
+            styles.text,
+            { color: isDark ? '#bccac2' : '#6d7a74' },
+          ]}
+        >
           Somente seguidores aprovados por você poderão ver seu perfil e atividade.
         </Text>
 
@@ -32,7 +49,14 @@ export default function SettingsPrivateAccountModal({
         </Pressable>
 
         <Pressable onPress={onCancel}>
-          <Text style={styles.cancel}>CANCELAR</Text>
+          <Text
+            style={[
+              styles.cancel,
+              { color: isDark ? '#bccac2' : '#6d7a74' },
+            ]}
+          >
+            CANCELAR
+          </Text>
         </Pressable>
       </View>
     </SettingsModalShell>
@@ -45,7 +69,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 999,
-    backgroundColor: '#e6efe8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -56,7 +79,6 @@ const styles = StyleSheet.create({
   },
   text: {
     textAlign: 'center',
-    color: '#6d7a74',
   },
   primary: {
     width: '100%',
@@ -73,6 +95,5 @@ const styles = StyleSheet.create({
   cancel: {
     marginTop: 10,
     fontWeight: '700',
-    color: '#6d7a74',
   },
 });

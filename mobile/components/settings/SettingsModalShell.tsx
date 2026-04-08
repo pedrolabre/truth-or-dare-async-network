@@ -1,9 +1,9 @@
 import React from 'react';
+import { useColorScheme } from 'react-native';
 import {
   Modal,
   Pressable,
   StyleSheet,
-  View,
 } from 'react-native';
 
 type Props = {
@@ -17,10 +17,32 @@ export default function SettingsModalShell({
   onClose,
   children,
 }: Props) {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <Pressable style={styles.card}>{children}</Pressable>
+      <Pressable
+        style={[
+          styles.overlay,
+          {
+            backgroundColor: isDark
+              ? 'rgba(0,0,0,0.8)'
+              : 'rgba(0,0,0,0.6)',
+          },
+        ]}
+        onPress={onClose}
+      >
+        <Pressable
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? '#1c1f1d' : '#ffffff',
+            },
+          ]}
+        >
+          {children}
+        </Pressable>
       </Pressable>
     </Modal>
   );
@@ -29,13 +51,11 @@ export default function SettingsModalShell({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     padding: 20,
   },
   card: {
     borderRadius: 28,
     padding: 24,
-    backgroundColor: '#fff',
   },
 });

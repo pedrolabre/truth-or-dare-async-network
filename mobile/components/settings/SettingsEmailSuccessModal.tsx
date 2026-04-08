@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -12,15 +12,33 @@ export default function SettingsEmailSuccessModal({
   visible,
   onClose,
 }: Props) {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   return (
     <SettingsModalShell visible={visible} onClose={onClose}>
       <View style={styles.center}>
-        <View style={styles.iconCircle}>
+        <View
+          style={[
+            styles.iconCircle,
+            {
+              backgroundColor: isDark ? '#1f3d2b' : '#d1fae5',
+            },
+          ]}
+        >
           <MaterialIcons name="check-circle" size={44} color="#059669" />
         </View>
 
-        <Text style={styles.title}>E-MAIL ATUALIZADO!</Text>
-        <Text style={styles.text}>
+        <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
+          E-MAIL ATUALIZADO!
+        </Text>
+
+        <Text
+          style={[
+            styles.text,
+            { color: isDark ? '#bccac2' : '#6d7a74' },
+          ]}
+        >
           Seu novo endereço de e-mail foi salvo com sucesso.
         </Text>
 
@@ -41,7 +59,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 999,
-    backgroundColor: '#d1fae5',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -55,7 +72,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
-    color: '#6d7a74',
   },
   primaryButton: {
     marginTop: 8,

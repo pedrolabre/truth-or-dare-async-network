@@ -46,24 +46,22 @@ export default function NotificationsScreen() {
   const c = isDark ? DARK : LIGHT;
   const router = useRouter();
 
-  // backend futuro:
-  // substituir por notificações reais vindas da API
   const notifications: unknown[] = [];
   const allRead = notifications.length === 0;
 
   function handleBottomNavSelect(key: BottomNavKey) {
     switch (key) {
       case 'play':
-        router.push('/feed');
-        return;
-      case 'profile':
-        router.push('/profile');
+        router.replace('/feed');
         return;
       case 'search':
-        console.log('Tela de busca em breve');
+        router.replace('/search');
         return;
       case 'clubs':
-        console.log('Tela de clubes em breve');
+        router.replace('/clubs');
+        return;
+      case 'profile':
+        router.replace('/profile');
         return;
       default:
         return;

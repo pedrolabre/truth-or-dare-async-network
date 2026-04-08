@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -15,14 +15,28 @@ export default function SettingsPrivacyModal({
   onClose,
   onPressChangeEmail,
 }: Props) {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   return (
     <SettingsModalShell visible={visible} onClose={onClose}>
       <View>
-        <Text style={styles.title}>PRIVACIDADE</Text>
+        <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
+          PRIVACIDADE
+        </Text>
 
-        <View style={styles.card}>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? '#232323' : '#eaefea',
+            },
+          ]}
+        >
           <Text style={styles.label}>E-MAIL ATUAL</Text>
-          <Text style={styles.email}>{currentEmail}</Text>
+          <Text style={[styles.email, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
+            {currentEmail || 'Nenhum e-mail carregado'}
+          </Text>
         </View>
 
         <Pressable style={styles.primaryButton} onPress={onPressChangeEmail}>
@@ -30,7 +44,14 @@ export default function SettingsPrivacyModal({
         </Pressable>
 
         <Pressable onPress={onClose} style={styles.secondaryButton}>
-          <Text style={styles.secondaryText}>FECHAR</Text>
+          <Text
+            style={[
+              styles.secondaryText,
+              { color: isDark ? '#bccac2' : '#6d7a74' },
+            ]}
+          >
+            FECHAR
+          </Text>
         </Pressable>
       </View>
     </SettingsModalShell>
@@ -45,7 +66,6 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 14,
-    backgroundColor: '#eaefea',
     padding: 14,
     gap: 6,
   },
@@ -58,7 +78,6 @@ const styles = StyleSheet.create({
   email: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#171d1a',
   },
   primaryButton: {
     marginTop: 18,
@@ -83,7 +102,6 @@ const styles = StyleSheet.create({
   secondaryText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#6d7a74',
     letterSpacing: 0.5,
   },
 });

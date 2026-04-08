@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -16,17 +16,36 @@ export default function SettingsHelpModal({
   onPressReportAbuse,
   onPressContactDevs,
 }: Props) {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
+
   return (
     <SettingsModalShell visible={visible} onClose={onClose}>
       <View>
-        <Text style={styles.title}>SUPORTE</Text>
+        <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
+          SUPORTE
+        </Text>
 
         <View style={styles.content}>
-          <Text style={styles.description}>
-            Como jogar: Selecione entre Verdade ou Desafio e siga as instruções na tela!
+          <Text
+            style={[
+              styles.description,
+              { color: isDark ? '#bccac2' : '#6d7a74' },
+            ]}
+          >
+            Esta área será usada para suporte ao usuário, dúvidas e comunicação com a equipe.
           </Text>
 
-          <View style={styles.separator} />
+          <View
+            style={[
+              styles.separator,
+              {
+                backgroundColor: isDark
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'rgba(0,0,0,0.08)',
+              },
+            ]}
+          />
 
           <Pressable style={styles.linkRow} onPress={onPressReportAbuse}>
             <Text style={styles.linkText}>Denunciar Abuso</Text>
@@ -39,8 +58,20 @@ export default function SettingsHelpModal({
           </Pressable>
         </View>
 
-        <Pressable style={styles.confirmButton} onPress={onClose}>
-          <Text style={styles.confirmText}>ENTENDI</Text>
+        <Pressable
+          style={[
+            styles.confirmButton,
+            {
+              backgroundColor: isDark
+                ? 'rgba(255,255,255,0.06)'
+                : 'rgba(0,0,0,0.05)',
+            },
+          ]}
+          onPress={onClose}
+        >
+          <Text style={[styles.confirmText, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
+            ENTENDI
+          </Text>
         </Pressable>
       </View>
     </SettingsModalShell>
@@ -59,12 +90,10 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     lineHeight: 20,
-    color: '#6d7a74',
     fontWeight: '500',
   },
   separator: {
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.08)',
   },
   linkRow: {
     minHeight: 40,
@@ -81,13 +110,11 @@ const styles = StyleSheet.create({
     marginTop: 24,
     minHeight: 48,
     borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   confirmText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#171d1a',
   },
 });

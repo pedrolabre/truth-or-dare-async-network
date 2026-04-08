@@ -7,10 +7,27 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="login" />
         <Stack.Screen name="signup-screen" />
-        <Stack.Screen name="feed" />
+
+        <Stack.Screen
+          name="feed"
+          options={{ animation: 'none' }}
+        />
+        <Stack.Screen
+          name="search"
+          options={{ animation: 'none' }}
+        />
+        <Stack.Screen
+          name="clubs"
+          options={{ animation: 'none' }}
+        />
+        <Stack.Screen
+          name="profile"
+          options={{ animation: 'none' }}
+        />
+
         <Stack.Screen name="feed-comments" />
         <Stack.Screen name="create-challenge" />
-        <Stack.Screen name="profile" />
+        <Stack.Screen name="create-group" />
         <Stack.Screen name="notifications" />
         <Stack.Screen name="settings" />
       </Stack>

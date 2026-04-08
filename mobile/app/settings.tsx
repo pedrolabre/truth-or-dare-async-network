@@ -157,7 +157,7 @@ export default function SettingsScreen() {
 
   function handleConfirmLogout() {
     closeModal();
-    console.log('logout real aqui');
+    // TODO: integrar logout com backend (remover token + redirect)
   }
 
   const privateAccountDescription = settings.privateAccountEnabled
@@ -326,10 +326,10 @@ export default function SettingsScreen() {
         visible={activeModal === 'help'}
         onClose={closeModal}
         onPressReportAbuse={() => {
-          console.log('Denunciar abuso em breve');
+          // TODO: integrar fluxo de suporte com backend
         }}
         onPressContactDevs={() => {
-          console.log('Falar com devs em breve');
+          // TODO: integrar fluxo de suporte com backend
         }}
       />
 
@@ -341,7 +341,7 @@ export default function SettingsScreen() {
 
       <SettingsPrivacyModal
         visible={activeModal === 'privacy'}
-        currentEmail="email@exemplo.com"
+        currentEmail=""
         onClose={closeModal}
         onPressChangeEmail={() => switchModal('change-email')}
       />

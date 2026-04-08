@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 type FeedHeaderProps = {
   title: string;
@@ -27,6 +28,7 @@ export default function FeedHeader({
   onPressNotifications,
 }: FeedHeaderProps) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   return (
     <View
@@ -39,27 +41,35 @@ export default function FeedHeader({
         },
       ]}
     >
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <View
-            style={[
-              styles.headerAvatarWrap,
-              {
-                backgroundColor: avatarBackgroundColor || surfaceContainer,
-                borderColor: avatarBorderColor,
-              },
-            ]}
-          >
-            <Text style={[styles.headerAvatarText, { color: white }]}>{initials}</Text>
-          </View>
+     <View style={styles.header}>
+  <View style={styles.headerLeft}>
+    <Pressable
+      hitSlop={10}
+      onPress={() => router.push('/profile')}
+      style={({ pressed }) => [pressed && styles.pressed]}
+    >
+      <View
+        style={[
+          styles.headerAvatarWrap,
+          {
+            backgroundColor: avatarBackgroundColor || surfaceContainer,
+            borderColor: avatarBorderColor,
+          },
+        ]}
+      >
+        <Text style={[styles.headerAvatarText, { color: white }]}>
+          {initials}
+        </Text>
+      </View>
+    </Pressable>
 
-          <Text
-            numberOfLines={1}
-            style={[styles.headerTitle, { color: white }]}
-          >
-            {title}
-          </Text>
-        </View>
+    <Text
+      numberOfLines={1}
+      style={[styles.headerTitle, { color: white }]}
+    >
+      {title}
+    </Text>
+  </View>
 
         <Pressable
           hitSlop={8}

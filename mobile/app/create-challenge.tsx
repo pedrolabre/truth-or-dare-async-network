@@ -10,15 +10,13 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import CreateChallengeCancelModal from '../components/create-challenge/CreateChallengeCancelModal';
 import CreateChallengeComposer from '../components/create-challenge/CreateChallengeComposer';
 import CreateChallengeTargetCard from '../components/create-challenge/CreateChallengeTargetCard';
 import CreateChallengeTypeCard from '../components/create-challenge/CreateChallengeTypeCard';
 import CreateChallengeUserPickerModal from '../components/create-challenge/CreateChallengeUserPickerModal';
 import CreateChallengeDareSettings from '../components/create-challenge/CreateChallengeDareSettings';
-import FeedBottomNav from '../components/feed/FeedBottomNav';
-import FeedHeader from '../components/feed/FeedHeader';
-import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
 import { useTheme } from '../context/ThemeContext';
 import {
   createDare,
@@ -116,8 +114,8 @@ export default function CreateChallengeScreen() {
   const { isDark } = useTheme();
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
-  const [activeTab, setActiveTab] = useState('play');
   const [selectedType, setSelectedType] = useState<ChallengeType>('dare');
   const [challengeText, setChallengeText] = useState('');
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -245,6 +243,45 @@ export default function CreateChallengeScreen() {
     }
   }
 
+function renderHeader() {
+  return (
+    <View
+      style={[
+        styles.headerWrapper,
+        {
+          backgroundColor: COLORS.headerGreen,
+          borderBottomColor: isDark
+            ? 'rgba(255,255,255,0.10)'
+            : 'rgba(207,247,238,0.20)',
+          paddingTop: insets.top,
+        },
+      ]}
+    >
+      <View style={styles.headerContent}>
+        <Pressable
+          hitSlop={8}
+          onPress={handleCancelCreation}
+          style={({ pressed }) => [
+            styles.headerButton,
+            pressed && styles.headerButtonPressed,
+          ]}
+        >
+          <MaterialIcons name="arrow-back" size={22} color={COLORS.white} />
+        </Pressable>
+
+        <Text
+          numberOfLines={1}
+          style={[styles.headerTitle, { color: COLORS.white }]}
+        >
+          Truth or Dare
+        </Text>
+
+        <View style={styles.headerSpacer} />
+      </View>
+    </View>
+  );
+}
+
   return (
     <View style={[styles.root, { backgroundColor: COLORS.headerGreen }]}>
       <StatusBar
@@ -280,23 +317,7 @@ export default function CreateChallengeScreen() {
           />
         </View>
 
-        <FeedHeader
-          title="Truth or Dare"
-          initials=""
-          headerGreen={COLORS.headerGreen}
-          white={COLORS.white}
-          surfaceContainer={COLORS.surfaceContainer}
-          borderBottomColor={
-            isDark ? 'rgba(255,255,255,0.10)' : 'rgba(207,247,238,0.20)'
-          }
-          avatarBorderColor={
-            isDark ? 'rgba(255,255,255,0.30)' : 'rgba(207,247,238,0.30)'
-          }
-          avatarBackgroundColor={isDark ? '#121212' : COLORS.surfaceContainer}
-          onPressNotifications={() => {
-            console.log('Notificações em breve');
-          }}
-        />
+        {renderHeader()}
 
         <View style={styles.content}>
           <ScrollView
@@ -491,33 +512,6 @@ export default function CreateChallengeScreen() {
           </ScrollView>
         </View>
 
-        <FeedBottomNav
-          items={FEED_BOTTOM_NAV_ITEMS}
-          activeKey={activeTab}
-          onSelect={(key) => {
-            if (submitting) {
-              return;
-            }
-
-            if (key === 'play') {
-              handleCancelCreation();
-              return;
-            }
-
-            setActiveTab(key);
-            console.log(`Abrir rota futura: ${key}`);
-          }}
-          backgroundColor={COLORS.headerGreen}
-          borderTopColor={
-            isDark ? 'rgba(255,255,255,0.10)' : 'rgba(207,247,238,0.10)'
-          }
-          activeBackgroundColor={COLORS.tertiary}
-          activeIconColor="#ffffff"
-          activeTextColor="#ffffff"
-          inactiveIconColor="rgba(249,249,249,0.72)"
-          inactiveTextColor="rgba(249,249,249,0.72)"
-        />
-
         <CreateChallengeCancelModal
           visible={showCancelModal}
           title="Cancelar criação?"
@@ -557,6 +551,38 @@ export default function CreateChallengeScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerWrapper: {
+  borderBottomWidth: 1,
+},
+headerContent: {
+  minHeight: 56,
+  paddingHorizontal: 16,
+  paddingVertical: 8,
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+headerButton: {
+  width: 36,
+  height: 36,
+  borderRadius: 999,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+headerButtonPressed: {
+  opacity: 0.82,
+  transform: [{ scale: 0.96 }],
+},
+headerTitle: {
+  flex: 1,
+  textAlign: 'center',
+  fontSize: 21,
+  fontWeight: '900',
+  letterSpacing: -0.5,
+},
+headerSpacer: {
+  width: 36,
+  height: 36,
+},
   root: {
     flex: 1,
   },
