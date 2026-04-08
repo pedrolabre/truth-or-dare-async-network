@@ -67,3 +67,8 @@ backend/dist/
 backend/src/generated/
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
+
+# local documentation artifacts
+docs/Documentação de Especificação.html
+TEMPLATE_LTP4_DOCUMENTAÇÃO.pdf
+TEMPLATE_LTP4_DOCUMENTAÇÃO.docx

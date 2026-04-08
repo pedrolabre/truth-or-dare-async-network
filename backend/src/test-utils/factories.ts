@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt';
-import { ClubPromptType } from '../generated/prisma/client';
+import { ClubPromptType } from '../generated/prisma';
 import { prisma } from '../lib/prisma';
 
 type BaseDateInput = {
