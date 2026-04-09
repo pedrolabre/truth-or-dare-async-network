@@ -190,12 +190,12 @@ router.replace('/feed');
             </View>
 
             <View style={styles.forgotRow}>
-              <Pressable>
-                <Text style={[styles.forgotText, { color: COLORS.secondary }]}>
-                  Esqueceu a senha?
-                </Text>
-              </Pressable>
-            </View>
+             <Pressable onPress={() => router.push('/forgot-password')}>
+               <Text style={[styles.forgotText, { color: COLORS.secondary }]}>
+                 Esqueceu a senha?
+               </Text>
+             </Pressable>
+           </View>
 
             <Pressable
               disabled={!canSubmit || loading}
