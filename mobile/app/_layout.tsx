@@ -8,6 +8,11 @@ export default function RootLayout() {
         <Stack.Screen name="login" />
         <Stack.Screen name="signup-screen" />
 
+        <Stack.Screen name="forgot-password" />
+        <Stack.Screen name="verify-code" />
+        <Stack.Screen name="reset-password" />
+        <Stack.Screen name="password-success" />
+
         <Stack.Screen
           name="feed"
           options={{ animation: 'none' }}

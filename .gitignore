@@ -11,6 +11,7 @@ mobile/web-build/
 
 # Expo env
 mobile/expo-env.d.ts
+eas.json
 
 # Editor
 mobile/.vscode/
@@ -37,6 +38,7 @@ yarn-error.*
 
 # local env files
 .env
+.env.production
 .env.local
 .env*.local
 mobile/.env
