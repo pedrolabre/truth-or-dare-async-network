@@ -1,10 +1,12 @@
-# mobile dependencies
+# ===============================
+# DEPENDENCIES
+# ===============================
 mobile/node_modules/
-
-# backend dependencies
 backend/node_modules/
 
-# Expo
+# ===============================
+# EXPO / BUILD
+# ===============================
 mobile/.expo/
 mobile/dist/
 mobile/web-build/
@@ -13,11 +15,15 @@ mobile/web-build/
 mobile/expo-env.d.ts
 eas.json
 
-# Editor
+# ===============================
+# EDITOR
+# ===============================
 mobile/.vscode/
 backend/.vscode/
 
-# Native / signing
+# ===============================
+# NATIVE / SIGNING
+# ===============================
 mobile/.kotlin/
 *.orig.*
 *.jks
@@ -27,50 +33,76 @@ mobile/.kotlin/
 *.mobileprovision
 *.pem
 
-# Metro
+# ===============================
+# METRO
+# ===============================
 mobile/.metro-health-check*
 
-# debug logs
+# ===============================
+# LOGS
+# ===============================
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 *.log
 
-# local env files
+# ===============================
+# ENV FILES (SENSITIVE)
+# ===============================
 .env
 .env.production
 .env.local
 .env*.local
+
 mobile/.env
 mobile/.env.local
 mobile/.env*.local
+
 backend/.env
 backend/.env.local
 backend/.env*.local
+backend/.env.localdb
 
-# TypeScript
+# ===============================
+# TYPESCRIPT
+# ===============================
 *.tsbuildinfo
 mobile/*.tsbuildinfo
 backend/*.tsbuildinfo
 
-# macOS / Windows
+# ===============================
+# OS FILES
+# ===============================
 .DS_Store
 Thumbs.db
 
-# generated native folders
+# ===============================
+# GENERATED NATIVE FOLDERS
+# ===============================
 mobile/ios/
 mobile/android/
 
-# examples
+# ===============================
+# EXAMPLES
+# ===============================
 mobile/app-example/
 
-# backend build/generated files
+# ===============================
+# BACKEND BUILD / GENERATED
+# ===============================
 backend/dist/
 backend/src/generated/
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
 
-# local documentation artifacts
+# ===============================
+# LOCAL SCRIPTS (ENV-SPECIFIC)
+# ===============================
+backend/run-local.ps1
+
+# ===============================
+# LOCAL DOCUMENTATION
+# ===============================
 docs/Documentação de Especificação.html
 TEMPLATE_LTP4_DOCUMENTAÇÃO.pdf
 TEMPLATE_LTP4_DOCUMENTAÇÃO.docx

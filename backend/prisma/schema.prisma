@@ -11,29 +11,27 @@ model User {
   id              String       @id @default(uuid())
   name            String
   email           String       @unique
-  username        String?      @unique
-  bio             String?
   passwordHash    String
   createdAt       DateTime     @default(now())
-
-  truths          Truth[]      @relation("TruthAuthor")
-  targetedTruths  Truth[]      @relation("TruthTarget")
-  dares           Dare[]       @relation("DareAuthor")
-  targetedDares   Dare[]       @relation("DareTarget")
+  bio             String?
+  username        String?      @unique
   clubsCreated    Club[]
   clubMemberships ClubMember[]
   clubPrompts     ClubPrompt[]
+  dares           Dare[]       @relation("DareAuthor")
+  targetedDares   Dare[]       @relation("DareTarget")
   likes           Like[]
+  truths          Truth[]      @relation("TruthAuthor")
+  targetedTruths  Truth[]      @relation("TruthTarget")
 }
 
 model Truth {
   id           String   @id @default(uuid())
   authorId     String
-  targetUserId String
   content      String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
+  targetUserId String
   author       User     @relation("TruthAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   targetUser   User     @relation("TruthTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
 
@@ -42,19 +40,18 @@ model Truth {
 }
 
 model Dare {
-  id           String   @id @default(uuid())
+  id           String    @id @default(uuid())
   authorId     String
-  targetUserId String
   content      String
-  maxAttempts  Int      @default(1)
-  attemptsUsed Int      @default(0)
+  maxAttempts  Int       @default(1)
   expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  targetUserId String
+  attemptsUsed Int       @default(0)
   completedAt  DateTime?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  author       User     @relation("DareAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  targetUser   User     @relation("DareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  author       User      @relation("DareAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  targetUser   User      @relation("DareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
 
   @@index([authorId])
   @@index([targetUserId])
@@ -67,7 +64,6 @@ model Club {
   createdById String
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-
   createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
   members     ClubMember[]
   prompts     ClubPrompt[]
@@ -78,7 +74,6 @@ model ClubMember {
   clubId    String
   userId    String
   createdAt DateTime @default(now())
-
   club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -95,27 +90,25 @@ model ClubPrompt {
   expiresAt   DateTime?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
-
-  club        Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
   author      User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  club        Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+}
+
+model Like {
+  id         String         @id @default(uuid())
+  userId     String
+  targetId   String
+  targetType LikeTargetType
+  createdAt  DateTime       @default(now())
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId, targetType])
+  @@index([targetId, targetType])
 }
 
 enum ClubPromptType {
   truth
   dare
-}
-
-model Like {
-  id         String          @id @default(uuid())
-  userId     String
-  targetId   String
-  targetType LikeTargetType
-  createdAt  DateTime        @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, targetId, targetType])
-  @@index([targetId, targetType])
 }
 
 enum LikeTargetType {
