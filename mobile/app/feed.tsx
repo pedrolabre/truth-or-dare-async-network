@@ -374,12 +374,25 @@ export default function FeedScreen() {
                       primaryButtonTextColor="#ffffff"
                       shareIconColor={COLORS.outline}
                       onPressAccept={
-                        item.interactionDisabled
-                          ? undefined
-                          : (id) => {
-                              console.log('Aceitar desafio:', id);
-                            }
-                      }
+  item.interactionDisabled
+    ? undefined
+    : () => {
+        router.push({
+          pathname: '/action-screen',
+          params: {
+            dareId: item.id,
+            title: item.title,
+            challenger: item.challenger,
+            status: item.status,
+            attemptsUsed: String(item.attemptsUsed),
+            maxAttempts:
+              item.maxAttempts === null ? '' : String(item.maxAttempts),
+            expiresAt: item.expiresAt ?? '',
+            expiresIn: item.expiresIn,
+          },
+        });
+      }
+}
                       onPressShare={(id) => {
                         console.log('Compartilhar desafio:', id);
                       }}
