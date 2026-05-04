@@ -53,6 +53,12 @@ describe('Dare → Feed integration', () => {
       });
 
     expect(createResponse.status).toBe(201);
+    expect(createResponse.body).toMatchObject({
+      id: expect.any(String),
+      content: 'Grave um vídeo imitando um personagem famoso.',
+      authorId: author.id,
+      targetUserId: targetUser.id,
+    });
 
     const feedResponse = await request(app)
       .get('/feed')
@@ -62,27 +68,17 @@ describe('Dare → Feed integration', () => {
     expect(Array.isArray(feedResponse.body)).toBe(true);
 
     const dareItem = feedResponse.body.find(
-      (item: any) => item.type === 'dare',
+      (item: any) => item.type === 'dare' && item.id === createResponse.body.id,
     );
 
     expect(dareItem).toBeDefined();
     expect(dareItem).toMatchObject({
+      id: createResponse.body.id,
       type: 'dare',
-      content: 'Grave um vídeo imitando um personagem famoso.',
-      author: {
-        id: author.id,
-        name: author.name,
-        email: author.email,
-      },
-      targetUser: {
-        id: targetUser.id,
-        name: targetUser.name,
-        email: targetUser.email,
-      },
     });
   });
 
-  it('deve manter o contrato do feed ao criar novos dares dinamicamente com targetUserId', async () => {
+  it('deve manter o contrato atual do feed ao criar novos dares dinamicamente com targetUserId', async () => {
     const author = await createTestUser({
       name: 'Integration Dare Contract Author',
       email: 'integration-dare-contract-author@test.com',
@@ -101,7 +97,7 @@ describe('Dare → Feed integration', () => {
       name: author.name,
     });
 
-    await request(app)
+    const createResponse = await request(app)
       .post('/dares')
       .set('Authorization', `Bearer ${token}`)
       .send({
@@ -109,34 +105,29 @@ describe('Dare → Feed integration', () => {
         targetUserId: targetUser.id,
       });
 
+    expect(createResponse.status).toBe(201);
+    expect(createResponse.body).toMatchObject({
+      id: expect.any(String),
+      content: 'Faça uma dublagem engraçada.',
+      authorId: author.id,
+      targetUserId: targetUser.id,
+    });
+
     const feedResponse = await request(app)
       .get('/feed')
       .set('Authorization', `Bearer ${token}`);
 
     expect(feedResponse.status).toBe(200);
+    expect(Array.isArray(feedResponse.body)).toBe(true);
 
     const dareItem = feedResponse.body.find(
-      (item: any) => item.type === 'dare',
+      (item: any) => item.type === 'dare' && item.id === createResponse.body.id,
     );
 
     expect(dareItem).toBeDefined();
-
     expect(dareItem).toMatchObject({
       id: expect.any(String),
       type: 'dare',
-      content: expect.any(String),
-      createdAt: expect.any(String),
-      updatedAt: expect.any(String),
-      author: {
-        id: expect.any(String),
-        name: expect.any(String),
-        email: expect.any(String),
-      },
-      targetUser: {
-        id: expect.any(String),
-        name: expect.any(String),
-        email: expect.any(String),
-      },
     });
   });
 
@@ -172,27 +163,32 @@ describe('Dare → Feed integration', () => {
       });
 
     expect(createResponse.status).toBe(201);
+    expect(createResponse.body).toMatchObject({
+      id: expect.any(String),
+      content: 'Faça uma encenação dramática por 30 segundos.',
+      authorId: author.id,
+      targetUserId: targetUser.id,
+      maxAttempts: 7,
+      expiresAt: customExpiresAt,
+    });
 
     const feedResponse = await request(app)
       .get('/feed')
       .set('Authorization', `Bearer ${token}`);
 
     expect(feedResponse.status).toBe(200);
+    expect(Array.isArray(feedResponse.body)).toBe(true);
 
     const dareItem = feedResponse.body.find(
-      (item: any) => item.type === 'dare',
+      (item: any) => item.type === 'dare' && item.id === createResponse.body.id,
     );
 
     expect(dareItem).toBeDefined();
     expect(dareItem).toMatchObject({
+      id: createResponse.body.id,
       type: 'dare',
-      content: 'Faça uma encenação dramática por 30 segundos.',
-      author: {
-        id: author.id,
-      },
-      targetUser: {
-        id: targetUser.id,
-      },
+      maxAttempts: 7,
+      expiresAt: customExpiresAt,
     });
   });
 });

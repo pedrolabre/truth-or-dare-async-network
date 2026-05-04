@@ -6,13 +6,14 @@ export default async function setup() {
 
   console.log('🔄 Resetando banco de testes...');
 
-  execSync('npx prisma migrate reset --force', {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      DATABASE_URL: process.env.TEST_DATABASE_URL,
-    },
-  });
+ execSync('npx prisma migrate reset --force', {
+  stdio: 'inherit',
+  env: {
+    ...process.env,
+    DATABASE_URL: process.env.TEST_DATABASE_URL,
+    DIRECT_URL: process.env.TEST_DATABASE_URL,
+  },
+});
 
   console.log('✅ Banco de testes pronto');
 }

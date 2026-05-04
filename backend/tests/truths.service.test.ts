@@ -7,14 +7,21 @@ describe('createTruth', () => {
   applyTestDatabaseHooks();
 
   it('deve criar uma truth real persistida no banco', async () => {
-    const user = await createTestUser({
+    const author = await createTestUser({
       name: 'Service Truth Author',
       email: 'service-truth-author@test.com',
       password: '123456',
     });
 
+    const targetUser = await createTestUser({
+      name: 'Service Truth Target',
+      email: 'service-truth-target@test.com',
+      password: '123456',
+    });
+
     const result = await createTruth({
-      authorId: user.id,
+      authorId: author.id,
+      targetUserId: targetUser.id,
       content: 'Qual foi a maior mentira que você já contou e ninguém descobriu?',
     });
 
@@ -25,9 +32,14 @@ describe('createTruth', () => {
       createdAt: expect.any(Date),
       updatedAt: expect.any(Date),
       author: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+        id: author.id,
+        name: author.name,
+        email: author.email,
+      },
+      targetUser: {
+        id: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
       },
     });
 
@@ -37,6 +49,7 @@ describe('createTruth', () => {
       },
       include: {
         author: true,
+        targetUser: true,
       },
     });
 
@@ -45,24 +58,37 @@ describe('createTruth', () => {
       id: result.id,
       content:
         'Qual foi a maior mentira que você já contou e ninguém descobriu?',
-      authorId: user.id,
+      authorId: author.id,
+      targetUserId: targetUser.id,
       author: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
+        id: author.id,
+        name: author.name,
+        email: author.email,
+      },
+      targetUser: {
+        id: targetUser.id,
+        name: targetUser.name,
+        email: targetUser.email,
       },
     });
   });
 
   it('deve remover espaços nas extremidades do conteúdo antes de persistir', async () => {
-    const user = await createTestUser({
+    const author = await createTestUser({
       name: 'Trim Truth Author',
       email: 'trim-truth-author@test.com',
       password: '123456',
     });
 
+    const targetUser = await createTestUser({
+      name: 'Trim Truth Target',
+      email: 'trim-truth-target@test.com',
+      password: '123456',
+    });
+
     const result = await createTruth({
-      authorId: user.id,
+      authorId: author.id,
+      targetUserId: targetUser.id,
       content: '   Qual segredo você nunca contou para ninguém?   ',
     });
 
@@ -80,12 +106,20 @@ describe('createTruth', () => {
     expect(persistedTruth?.content).toBe(
       'Qual segredo você nunca contou para ninguém?',
     );
+    expect(persistedTruth?.targetUserId).toBe(targetUser.id);
   });
 
   it('deve falhar quando o authorId não for informado', async () => {
+    const targetUser = await createTestUser({
+      name: 'Missing Author Truth Target',
+      email: 'missing-author-truth-target@test.com',
+      password: '123456',
+    });
+
     await expect(
       createTruth({
         authorId: '',
+        targetUserId: targetUser.id,
         content: 'Qual foi a sua maior vergonha em público?',
       }),
     ).rejects.toThrow('Usuário autenticado não encontrado');
@@ -95,16 +129,43 @@ describe('createTruth', () => {
     expect(truthsCount).toBe(0);
   });
 
-  it('deve falhar quando o conteúdo não for informado', async () => {
-    const user = await createTestUser({
-      name: 'Empty Truth Author',
-      email: 'empty-truth-author@test.com',
+  it('deve falhar quando o targetUserId não for informado', async () => {
+    const author = await createTestUser({
+      name: 'Missing Target Truth Author',
+      email: 'missing-target-truth-author@test.com',
       password: '123456',
     });
 
     await expect(
       createTruth({
-        authorId: user.id,
+        authorId: author.id,
+        targetUserId: '',
+        content: 'Qual pergunta você teria medo de responder?',
+      }),
+    ).rejects.toThrow('Usuário alvo é obrigatório');
+
+    const truthsCount = await prisma.truth.count();
+
+    expect(truthsCount).toBe(0);
+  });
+
+  it('deve falhar quando o conteúdo não for informado', async () => {
+    const author = await createTestUser({
+      name: 'Empty Truth Author',
+      email: 'empty-truth-author@test.com',
+      password: '123456',
+    });
+
+    const targetUser = await createTestUser({
+      name: 'Empty Truth Target',
+      email: 'empty-truth-target@test.com',
+      password: '123456',
+    });
+
+    await expect(
+      createTruth({
+        authorId: author.id,
+        targetUserId: targetUser.id,
         content: '   ',
       }),
     ).rejects.toThrow('Conteúdo é obrigatório');

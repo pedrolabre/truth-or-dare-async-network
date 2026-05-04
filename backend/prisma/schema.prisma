@@ -20,6 +20,7 @@ model User {
   clubPrompts     ClubPrompt[]
   dares           Dare[]       @relation("DareAuthor")
   targetedDares   Dare[]       @relation("DareTarget")
+  dareProofs      DareProof[]
   likes           Like[]
   truths          Truth[]      @relation("TruthAuthor")
   targetedTruths  Truth[]      @relation("TruthTarget")
@@ -40,21 +41,39 @@ model Truth {
 }
 
 model Dare {
-  id           String    @id @default(uuid())
+  id           String      @id @default(uuid())
   authorId     String
   content      String
-  maxAttempts  Int       @default(1)
+  maxAttempts  Int         @default(1)
   expiresAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
   targetUserId String
-  attemptsUsed Int       @default(0)
+  attemptsUsed Int         @default(0)
   completedAt  DateTime?
-  author       User      @relation("DareAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  targetUser   User      @relation("DareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  author       User        @relation("DareAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  targetUser   User        @relation("DareTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  proofs       DareProof[]
 
   @@index([authorId])
   @@index([targetUserId])
+}
+
+model DareProof {
+  id              String         @id @default(uuid())
+  dareId          String
+  userId          String
+  mediaType       ProofMediaType
+  fileUrl         String
+  durationSeconds Int?
+  text            String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  dare            Dare           @relation(fields: [dareId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([dareId])
+  @@index([userId])
 }
 
 model Club {
@@ -115,4 +134,10 @@ enum LikeTargetType {
   truth
   dare
   club
+}
+
+enum ProofMediaType {
+  video
+  audio
+  file
 }
