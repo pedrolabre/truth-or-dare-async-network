@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react';
 
 import { submitDareProof } from '../services/api';
+import { uploadAppFile } from '../services/uploads';
 import type {
   ActionChallenge,
   ActionChallengeStatus,
   ActionParamValue,
   ActionProofDraft,
+  ActionProofDraftInput,
   ActionProofMediaType,
   ActionScreenParams,
   ActionScreenState,
-  SubmitProofPayload,
+  SubmitDareProofPayload,
 } from '../types/action';
 
 function getParamValue(value: ActionParamValue): string | undefined {
@@ -113,19 +115,26 @@ function createDareActionFromParams(params?: ActionScreenParams): ActionChalleng
   };
 }
 
-function createEmptyProofDraft(
-  mediaType: Exclude<ActionProofMediaType, 'none'>,
+function createProofDraft(
+  proofInput: ActionProofDraftInput,
   previousText = '',
 ): ActionProofDraft {
   return {
     id: null,
-    mediaType,
-    localUri: null,
-    durationSeconds: null,
-    fileName: null,
+    mediaType: proofInput.mediaType,
+    localUri: proofInput.localUri ?? null,
+    durationSeconds: proofInput.durationSeconds ?? null,
+    fileName: proofInput.fileName ?? null,
     text: previousText,
     uploadedAt: null,
   };
+}
+
+function createEmptyProofDraft(
+  mediaType: Exclude<ActionProofMediaType, 'none'>,
+  previousText = '',
+): ActionProofDraft {
+  return createProofDraft({ mediaType }, previousText);
 }
 
 function getProgressValue(challenge: ActionChallenge) {
@@ -138,10 +147,63 @@ function getProgressValue(challenge: ActionChallenge) {
   return Math.min(used / challenge.maxAttempts, 1);
 }
 
+function getProofMimeType(draftProof: ActionProofDraft) {
+  const fileName = draftProof.fileName?.toLowerCase() ?? '';
+  const localUri = draftProof.localUri?.toLowerCase() ?? '';
+  const source = fileName || localUri;
+
+  if (draftProof.mediaType === 'video') {
+    if (source.endsWith('.mov')) {
+      return 'video/quicktime';
+    }
+
+    if (source.endsWith('.webm')) {
+      return 'video/webm';
+    }
+
+    return 'video/mp4';
+  }
+
+  if (draftProof.mediaType === 'audio') {
+    if (source.endsWith('.mp3')) {
+      return 'audio/mpeg';
+    }
+
+    if (source.endsWith('.wav')) {
+      return 'audio/wav';
+    }
+
+    if (source.endsWith('.m4a')) {
+      return 'audio/mp4';
+    }
+
+    return 'audio/mpeg';
+  }
+
+  if (source.endsWith('.png')) {
+    return 'image/png';
+  }
+
+  if (source.endsWith('.jpg') || source.endsWith('.jpeg')) {
+    return 'image/jpeg';
+  }
+
+  if (source.endsWith('.pdf')) {
+    return 'application/pdf';
+  }
+
+  return 'application/octet-stream';
+}
+
 export function useActionScreen(params?: ActionScreenParams) {
   const [challenge, setChallenge] = useState<ActionChallenge>(() =>
     createDareActionFromParams(params),
   );
+  const [isSubmittingProof, setIsSubmittingProof] = useState(false);
+  const [submitProofError, setSubmitProofError] = useState<string | null>(null);
+  const [submitProofSuccessMessage, setSubmitProofSuccessMessage] = useState<
+    string | null
+  >(null);
 
   const state = useMemo<ActionScreenState>(() => {
     const isExpired = challenge.status === 'expired';
@@ -174,16 +236,24 @@ export function useActionScreen(params?: ActionScreenParams) {
     };
   }, [challenge]);
 
-  function handleCaptureProof(
-    mediaType: Exclude<ActionProofMediaType, 'none'> = 'video',
+    function handleCaptureProof(
+    proofInput:
+      | Exclude<ActionProofMediaType, 'none'>
+      | ActionProofDraftInput = 'video',
   ) {
-    setChallenge((current) => ({
-      ...current,
-      draftProof: createEmptyProofDraft(
-        mediaType,
-        current.draftProof?.text ?? '',
-      ),
-    }));
+    setChallenge((current) => {
+      const previousText = current.draftProof?.text ?? '';
+
+      const draftProof =
+        typeof proofInput === 'string'
+          ? createEmptyProofDraft(proofInput, previousText)
+          : createProofDraft(proofInput, previousText);
+
+      return {
+        ...current,
+        draftProof,
+      };
+    });
   }
 
   function handleUpdateProofText(text: string) {
@@ -205,32 +275,85 @@ export function useActionScreen(params?: ActionScreenParams) {
     }));
   }
 
-  async function handleSubmitProof() {
+    async function handleSubmitProof() {
     const draftProof = challenge.draftProof;
 
+    setSubmitProofError(null);
+    setSubmitProofSuccessMessage(null);
+
     if (!draftProof || draftProof.mediaType === 'none') {
-      throw new Error('Selecione uma prova antes de enviar.');
+      const message = 'Selecione uma prova antes de enviar.';
+      setSubmitProofError(message);
+      throw new Error(message);
     }
 
-    const payload: SubmitProofPayload = {
-      challengeId: challenge.id,
-      mediaType: draftProof.mediaType,
-      localUri: draftProof.localUri ?? null,
-      fileName: draftProof.fileName ?? null,
-      durationSeconds: draftProof.durationSeconds ?? null,
-      text: draftProof.text ?? '',
-    };
+        const localUri = draftProof.localUri?.trim();
 
-    await submitDareProof(payload);
+    if (!localUri) {
+      const message =
+        'A prova ainda não possui um arquivo selecionado. Grave ou selecione uma mídia antes de enviar.';
+      setSubmitProofError(message);
+      throw new Error(message);
+    }
+
+    setIsSubmittingProof(true);
+
+    try {
+      const uploadedFile = await uploadAppFile({
+        localUri,
+        fileName: draftProof.fileName ?? 'proof-file',
+        mimeType: getProofMimeType(draftProof),
+        usage: 'dare-proof',
+        entityId: challenge.id,
+      });
+
+      const payload: SubmitDareProofPayload = {
+        mediaType: draftProof.mediaType,
+        fileUrl: uploadedFile.fileUrl,
+        durationSeconds: draftProof.durationSeconds ?? null,
+        text: draftProof.text?.trim() ?? '',
+      };
+
+      await submitDareProof(challenge.id, payload);
+
+      setChallenge((current) => ({
+        ...current,
+        status: 'concluded',
+        completedAt: new Date().toISOString(),
+        existingProofCount: Math.max(current.existingProofCount, 1),
+        primaryActionLabel: 'Prova enviada',
+        draftProof: current.draftProof
+          ? {
+              ...current.draftProof,
+              uploadedAt: new Date().toISOString(),
+            }
+          : current.draftProof,
+      }));
+
+      setSubmitProofSuccessMessage('Prova enviada com sucesso.');
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível enviar a prova.';
+
+      setSubmitProofError(message);
+      throw error;
+    } finally {
+      setIsSubmittingProof(false);
+    }
   }
 
   function handleResetLocalState() {
     setChallenge(createDareActionFromParams(params));
   }
 
-  return {
+    return {
     challenge,
     state,
+    isSubmittingProof,
+    submitProofError,
+    submitProofSuccessMessage,
     handleCaptureProof,
     handleUpdateProofText,
     handleRemoveDraftProof,

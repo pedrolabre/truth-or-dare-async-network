@@ -1,6 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { FeedItem } from '../types/feed';
-import type { SubmitProofPayload } from '../types/action';
+import type {
+  SubmitDareProofPayload,
+  SubmitDareProofResponse,
+} from '../types/action';
 
 type SignupInput = {
   name: string;
@@ -328,8 +331,25 @@ export async function updateMyProfile(
   return parseResponse(response);
 }
 
-export async function submitDareProof(payload: SubmitProofPayload) {
-  throw new Error(
-    `Endpoint de envio de prova ainda não implementado. Payload preparado para o backend: ${JSON.stringify(payload)}`
-  );
+export async function submitDareProof(
+  dareId: string,
+  payload: SubmitDareProofPayload,
+): Promise<SubmitDareProofResponse> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/dares/${dareId}/proof`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
 }

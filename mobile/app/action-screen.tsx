@@ -29,9 +29,12 @@ export default function ActionScreen() {
     ? DARK_ACTION_SCREEN_COLORS
     : LIGHT_ACTION_SCREEN_COLORS;
 
-  const {
+    const {
     challenge,
     state,
+    isSubmittingProof,
+    submitProofError,
+    submitProofSuccessMessage,
     handleCaptureProof,
     handleUpdateProofText,
     handleRemoveDraftProof,
@@ -57,9 +60,13 @@ export default function ActionScreen() {
     });
   }
 
-  function handleSubmitAndOpenProof() {
-    handleSubmitProof();
-    handleOpenProofDetail();
+    async function handleSubmitAndOpenProof() {
+    try {
+      await handleSubmitProof();
+      handleOpenProofDetail();
+    } catch {
+      // O erro já é tratado pelo hook e exibido na tela.
+    }
   }
 
   return (
@@ -185,9 +192,9 @@ export default function ActionScreen() {
               secondaryBackgroundColor={colors.surfaceSoft}
               secondaryTextColor={colors.text}
               dangerColor={colors.danger}
-              onPressRecordVideo={() => handleCaptureProof('video')}
-              onPressRecordAudio={() => handleCaptureProof('audio')}
-              onPressPickFile={() => handleCaptureProof('file')}
+              onPressRecordVideo={handleCaptureProof}
+              onPressRecordAudio={handleCaptureProof}
+              onPressPickFile={handleCaptureProof}
               onPressPreview={handleOpenProofDetail}
               onPressRemoveDraft={handleRemoveDraftProof}
             />
@@ -205,15 +212,29 @@ export default function ActionScreen() {
               accentColor={accentColor}
               onChangeText={handleUpdateProofText}
             />
+
+            {submitProofError ? (
+              <Text style={[styles.feedbackText, { color: colors.danger }]}>
+                {submitProofError}
+              </Text>
+            ) : null}
+
+            {submitProofSuccessMessage ? (
+              <Text style={[styles.feedbackText, { color: colors.success }]}>
+                {submitProofSuccessMessage}
+              </Text>
+            ) : null}
           </View>
         </ScrollView>
 
         <ActionFooter
-          primaryLabel={challenge.primaryActionLabel}
+          primaryLabel={
+            isSubmittingProof ? 'Enviando prova...' : challenge.primaryActionLabel
+          }
           secondaryLabel={
             state.canOpenProofPreview ? challenge.secondaryActionLabel : undefined
           }
-          primaryDisabled={!state.canSubmitProof}
+          primaryDisabled={!state.canSubmitProof || isSubmittingProof}
           secondaryDisabled={!state.canOpenProofPreview}
           backgroundColor={colors.background}
           borderTopColor={colors.border}
@@ -312,5 +333,10 @@ const styles = StyleSheet.create({
   },
   contentStack: {
     gap: 16,
+  },
+  feedbackText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
   },
 });
