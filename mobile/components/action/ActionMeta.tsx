@@ -20,8 +20,6 @@ type ActionMetaProps = {
 
 function getStatusSummary(status: ActionChallenge['status']) {
   switch (status) {
-    case 'pending':
-      return 'Aguardando início';
     case 'active':
       return 'Desafio em andamento';
     case 'submitted':
@@ -40,7 +38,7 @@ function getStatusSummary(status: ActionChallenge['status']) {
 function getStatusColor(
   status: ActionChallenge['status'],
   successColor: string,
-  warningColor: string,
+  _warningColor: string,
   dangerColor: string,
   accentColor: string,
 ) {
@@ -48,8 +46,6 @@ function getStatusColor(
     case 'submitted':
     case 'concluded':
       return successColor;
-    case 'pending':
-      return warningColor;
     case 'failed':
     case 'expired':
       return dangerColor;

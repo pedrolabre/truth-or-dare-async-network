@@ -1,4 +1,5 @@
-import { deleteDare, deleteTruth, type FeedItem } from '../services/api';
+import { deleteDare, deleteTruth } from '../services/api';
+import type { FeedItem } from '../types/feed';
 
 type SetApiItems = React.Dispatch<React.SetStateAction<FeedItem[]>>;
 

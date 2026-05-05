@@ -6,6 +6,24 @@ function normalize(value: string) {
   return value.trim().toLowerCase();
 }
 
+const CREATE_GROUP_FRIENDS_MOCK: CreateGroupFriend[] = [
+  {
+    id: 'friend-ana',
+    name: 'Ana Souza',
+    username: '@ana',
+  },
+  {
+    id: 'friend-bruno',
+    name: 'Bruno Lima',
+    username: '@bruno',
+  },
+  {
+    id: 'friend-carla',
+    name: 'Carla Mendes',
+    username: '@carla',
+  },
+];
+
 export function useCreateGroupScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');

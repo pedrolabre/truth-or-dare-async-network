@@ -31,6 +31,7 @@ export default function RootLayout() {
         />
 
         <Stack.Screen name="feed-comments" />
+        <Stack.Screen name="proof-detail" />
         <Stack.Screen name="create-challenge" />
         <Stack.Screen name="create-group" />
         <Stack.Screen name="notifications" />

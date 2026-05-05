@@ -8,13 +8,13 @@ import {
   View,
 } from 'react-native';
 import type { CreateGroupThemeColors } from '../../constants/createGroupTheme';
-import type { CreateGroupIconName } from '../../types/create-group';
+import type { GroupIconName } from '../../types/createGroup';
 
 type Props = {
   colors: CreateGroupThemeColors;
   name: string;
   description: string;
-  selectedIcon: CreateGroupIconName;
+  selectedIcon: GroupIconName;
   onChangeName: (value: string) => void;
   onChangeDescription: (value: string) => void;
   onPressIcon: () => void;

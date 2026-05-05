@@ -327,9 +327,7 @@ export default function ActionProofCaptureCard({
           <Text style={[styles.description, { color: descriptionColor }]}>
             {hasDraft
               ? 'Você já possui uma prova em rascunho pronta para revisar ou enviar.'
-              : challenge.type === 'truth'
-                ? 'Grave uma resposta em vídeo ou áudio, ou escolha um arquivo do celular.'
-                : 'Registre sua prova em vídeo, áudio ou envie um arquivo do celular.'}
+              : 'Registre sua prova em vídeo, áudio ou envie um arquivo do celular.'}
           </Text>
         </View>
 

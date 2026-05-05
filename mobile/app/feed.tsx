@@ -17,7 +17,8 @@ import FeedFilters from '../components/feed/FeedFilters';
 import FeedHeader from '../components/feed/FeedHeader';
 import DeleteChallengeConfirmModal from '../components/feed/DeleteChallengeConfirmModal';
 import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS, FEED_ITEMS } from '../data/feedMock';
-import { getFeed, toggleLike, type FeedItem } from '../services/api';
+import { getFeed, toggleLike } from '../services/api';
+import type { FeedItem } from '../types/feed';
 import { useFeedState } from '../hooks/useFeedState';
 import { useDeleteChallenge } from '../hooks/useDeleteChallenge';
 import { useRouter } from 'expo-router';
@@ -130,21 +131,21 @@ export default function FeedScreen() {
   }, [loadFeed]);
 
   const filteredItems = useMemo(() => {
-  switch (activeFilter) {
-    case 'dares':
-      return apiItems.filter((item) => item.type === 'dare');
+    switch (String(activeFilter)) {
+      case 'dares':
+        return apiItems.filter((item) => item.type === 'dare');
 
-    case 'truths':
-      return apiItems.filter((item) => item.type === 'truth');
+      case 'truths':
+        return apiItems.filter((item) => item.type === 'truth');
 
-    case 'clubs':
-      return apiItems.filter((item) => item.type === 'club');
+      case 'clubs':
+        return apiItems.filter((item) => item.type === 'club');
 
-    case 'popular':
-    default:
-      return apiItems;
-  }
-}, [activeFilter, apiItems]);
+      case 'popular':
+      default:
+        return apiItems;
+    }
+  }, [activeFilter, apiItems]);
 
   return (
     <View style={[styles.root, { backgroundColor: COLORS.headerGreen }]}>
@@ -300,9 +301,7 @@ export default function FeedScreen() {
                                 likesCount: newLiked
                                   ? item.likesCount + 1
                                   : item.likesCount - 1,
-                                likes: newLiked
-                                  ? item.likes + 1
-                                  : item.likes - 1,
+                                likes: newLiked ? item.likes + 1 : item.likes - 1,
                               };
                             }),
                           );
@@ -338,7 +337,6 @@ export default function FeedScreen() {
                             }
                           : undefined
                       }
-                      liked={item.likedByMe}
                     />
                   );
                 }

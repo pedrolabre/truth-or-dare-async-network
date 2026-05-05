@@ -22,8 +22,6 @@ type ActionChallengeCardProps = {
 
 function getStatusLabel(status: ActionChallenge['status']) {
   switch (status) {
-    case 'pending':
-      return 'Pendente';
     case 'active':
       return 'Ativo';
     case 'submitted':
@@ -39,8 +37,8 @@ function getStatusLabel(status: ActionChallenge['status']) {
   }
 }
 
-function getTypeLabel(type: ActionChallenge['type']) {
-  return type === 'truth' ? 'Verdade' : 'Desafio';
+function getTypeLabel() {
+  return 'Desafio';
 }
 
 export default function ActionChallengeCard({
@@ -81,7 +79,7 @@ export default function ActionChallengeCard({
           ]}
         >
           <Text style={[styles.badgeText, { color: badgeTextColor }]}>
-            {getTypeLabel(challenge.type)}
+            {getTypeLabel()}
           </Text>
         </View>
 

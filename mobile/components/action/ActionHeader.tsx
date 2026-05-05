@@ -26,9 +26,7 @@ export default function ActionHeader({
 }: ActionHeaderProps) {
   const insets = useSafeAreaInsets();
 
-  const resolvedTitle =
-    title ??
-    (challengeType === 'truth' ? 'Responder verdade' : 'Fazer prova');
+  const resolvedTitle = title ?? 'Fazer prova';
 
   return (
     <View

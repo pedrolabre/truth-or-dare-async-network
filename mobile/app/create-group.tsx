@@ -44,9 +44,10 @@ export default function CreateGroupScreen() {
     setName,
     setDescription,
     setFriendQuery,
-    setSelectedIcon,
-    setIconModalVisible,
     toggleMember,
+    openIconModal,
+    closeIconModal,
+    selectIcon,
   } = useCreateGroupScreen();
 
   function handleCreateGroup() {
@@ -125,7 +126,7 @@ export default function CreateGroupScreen() {
               selectedIcon={selectedIcon}
               onChangeName={setName}
               onChangeDescription={setDescription}
-              onPressIcon={() => setIconModalVisible(true)}
+              onPressIcon={openIconModal}
             />
 
             <CreateGroupMembersCard
@@ -183,12 +184,9 @@ export default function CreateGroupScreen() {
         visible={iconModalVisible}
         colors={colors}
         selectedIcon={selectedIcon}
-        iconOptions={CREATE_GROUP_ICON_OPTIONS}
-        onClose={() => setIconModalVisible(false)}
-        onSelectIcon={(icon) => {
-          setSelectedIcon(icon);
-          setIconModalVisible(false);
-        }}
+        icons={CREATE_GROUP_ICON_OPTIONS}
+        onClose={closeIconModal}
+        onSelectIcon={selectIcon}
       />
     </View>
   );

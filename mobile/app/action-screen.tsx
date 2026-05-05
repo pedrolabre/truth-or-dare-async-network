@@ -46,16 +46,30 @@ export default function ActionScreen() {
   const accentColor = colors.dareAccent;
   const accentSoftColor = colors.dareSoft;
 
-  function handleOpenProofDetail() {
+    function handleOpenProofDetail() {
+    const draftProof = challenge.draftProof;
+
+    if (!draftProof) {
+      return;
+    }
+
     router.push({
-      pathname: '/proof-detail-screen',
+      pathname: '/proof-detail',
       params: {
-        proofId: challenge.draftProof?.id ?? 'proof-draft-local',
+        proofId: draftProof.id ?? 'proof-draft-local',
         dareId: challenge.id,
         title: challenge.title,
         challenger: challenge.creatorName,
-        mediaType: challenge.draftProof?.mediaType ?? '',
-        text: challenge.draftProof?.text ?? '',
+        mediaType: draftProof.mediaType,
+        localUri: draftProof.localUri ?? '',
+        fileName: draftProof.fileName ?? '',
+        durationSeconds:
+          draftProof.durationSeconds !== null &&
+          draftProof.durationSeconds !== undefined
+            ? String(draftProof.durationSeconds)
+            : '',
+        text: draftProof.text ?? '',
+        source: 'local-draft',
       },
     });
   }
