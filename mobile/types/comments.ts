@@ -79,3 +79,40 @@ export type UseFeedCommentsScreenInput = {
   params: FeedCommentsRouteParams;
   colors: FeedCommentsColors;
 };
+
+export type TruthCommentApiAuthor = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export type TruthCommentApiReply = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+  likesCount: number;
+  likedByMe: boolean;
+  author: TruthCommentApiAuthor;
+};
+
+export type TruthCommentApiItem = {
+  id: string;
+  text: string;
+  createdAt: string;
+  updatedAt: string;
+  likesCount: number;
+  likedByMe: boolean;
+  author: TruthCommentApiAuthor;
+  replies: TruthCommentApiReply[];
+};
+
+export type CreateTruthCommentPayload = {
+  text: string;
+  parentId?: string;
+};
+
+export type ToggleTruthCommentLikeResponse = {
+  liked: boolean;
+  likesCount: number;
+};

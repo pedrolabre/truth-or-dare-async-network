@@ -1,10 +1,13 @@
 import React from 'react';
 import {
+  ActivityIndicator,
   FlatList,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   RefreshControl,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
@@ -44,6 +47,10 @@ export default function FeedCommentsScreen() {
     comments,
     refreshing,
     isLoadingMore,
+    isInitialLoading,
+    errorMessage,
+    isEmpty,
+    unavailableMessage,
     canLoadMore,
     message,
     canSend,
@@ -77,6 +84,101 @@ export default function FeedCommentsScreen() {
     params,
     colors: themeColors,
   });
+
+  function renderEmptyState() {
+    if (isInitialLoading) {
+      return (
+        <View
+          style={[
+            styles.stateCard,
+            {
+              backgroundColor: colors.surfaceContainer,
+              borderColor: colors.outlineVariant,
+            },
+          ]}
+        >
+          <ActivityIndicator color={colors.primary} />
+          <Text style={[styles.stateTitle, { color: colors.onSurface }]}>
+            Carregando comentários...
+          </Text>
+        </View>
+      );
+    }
+
+    if (unavailableMessage) {
+      return (
+        <View
+          style={[
+            styles.stateCard,
+            {
+              backgroundColor: colors.surfaceContainer,
+              borderColor: colors.outlineVariant,
+            },
+          ]}
+        >
+          <Text style={[styles.stateTitle, { color: colors.onSurface }]}>
+            Recurso ainda não disponível
+          </Text>
+          <Text style={[styles.stateText, { color: colors.onSurfaceVariant }]}>
+            {unavailableMessage}
+          </Text>
+        </View>
+      );
+    }
+
+    if (errorMessage) {
+      return (
+        <View
+          style={[
+            styles.stateCard,
+            {
+              backgroundColor: colors.surfaceContainer,
+              borderColor: colors.outlineVariant,
+            },
+          ]}
+        >
+          <Text style={[styles.stateTitle, { color: colors.onSurface }]}>
+            Não foi possível carregar os comentários
+          </Text>
+          <Text style={[styles.stateText, { color: colors.onSurfaceVariant }]}>
+            {errorMessage}
+          </Text>
+
+          <Pressable
+            style={[styles.retryButton, { backgroundColor: colors.primary }]}
+            onPress={handleRefresh}
+          >
+            <Text style={[styles.retryButtonText, { color: colors.white }]}>
+              Tentar novamente
+            </Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    if (isEmpty) {
+      return (
+        <View
+          style={[
+            styles.stateCard,
+            {
+              backgroundColor: colors.surfaceContainer,
+              borderColor: colors.outlineVariant,
+            },
+          ]}
+        >
+          <Text style={[styles.stateTitle, { color: colors.onSurface }]}>
+            Ainda não há comentários
+          </Text>
+          <Text style={[styles.stateText, { color: colors.onSurfaceVariant }]}>
+            Seja a primeira pessoa a comentar nessa truth.
+          </Text>
+        </View>
+      );
+    }
+
+    return null;
+  }
 
   return (
     <View
@@ -113,6 +215,7 @@ export default function FeedCommentsScreen() {
               colors={colors}
             />
           }
+          ListEmptyComponent={renderEmptyState}  
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -189,5 +292,36 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingBottom: 24,
     gap: 18,
+  },
+  stateCard: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 22,
+    alignItems: 'center',
+    gap: 10,
+  },
+  stateTitle: {
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  stateText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 6,
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    lineHeight: 16,
+    fontWeight: '800',
   },
 });

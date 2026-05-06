@@ -1,5 +1,10 @@
 import { Request, Response } from 'express';
-import { createTruth, deleteTruthService } from '../services/truths.service';
+import {
+  createTruth,
+  createTruthCommentService,
+  deleteTruthService,
+  getTruthCommentsService,
+} from '../services/truths.service';
 
 export async function createTruthController(req: Request, res: Response) {
   try {
@@ -55,6 +60,89 @@ export async function deleteTruthController(req: Request, res: Response) {
       message === 'Truth não encontrada' || message === 'Não autorizado'
         ? 400
         : 500;
+
+    return res.status(status).json({
+      error: message,
+    });
+  }
+}
+
+export async function getTruthCommentsController(req: Request, res: Response) {
+  try {
+    const userId = req.user?.sub;
+    const truthId = typeof req.params.id === 'string' ? req.params.id : '';
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Não autorizado',
+      });
+    }
+
+    const comments = await getTruthCommentsService({
+      truthId,
+      userId,
+    });
+
+    return res.status(200).json(comments);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao buscar comentários';
+
+    const status =
+      message === 'Não autorizado'
+        ? 401
+        : message === 'Truth não encontrada'
+          ? 404
+          : 500;
+
+    return res.status(status).json({
+      error: message,
+    });
+  }
+}
+
+export async function createTruthCommentController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = req.user?.sub;
+    const truthId = typeof req.params.id === 'string' ? req.params.id : '';
+    const { text, parentId } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Não autorizado',
+      });
+    }
+
+    const comment = await createTruthCommentService({
+      truthId,
+      userId,
+      text,
+      parentId: typeof parentId === 'string' ? parentId : undefined,
+    });
+
+    return res.status(201).json(comment);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao criar comentário';
+
+    const status =
+      message === 'Não autorizado'
+        ? 401
+        : message === 'Truth não encontrada' ||
+            message === 'Comentário pai não encontrado'
+          ? 404
+          : message === 'Comentário é obrigatório' ||
+              message.startsWith('Comentário deve ter no máximo') ||
+              message === 'Não é possível responder uma resposta'
+            ? 400
+            : 500;
 
     return res.status(status).json({
       error: message,

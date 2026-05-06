@@ -64,6 +64,7 @@ describe('POST /dares/:id/like', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       liked: true,
+      likesCount: 1,
     });
 
     const persistedLike = await prisma.like.findUnique({
@@ -127,6 +128,7 @@ describe('POST /dares/:id/like', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       liked: false,
+      likesCount: 0,
     });
 
     const persistedLike = await prisma.like.findUnique({

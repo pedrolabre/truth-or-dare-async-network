@@ -1,4 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type {
+  CreateTruthCommentPayload,
+  ToggleTruthCommentLikeResponse,
+  TruthCommentApiItem,
+} from '../types/comments';
 import type { FeedItem } from '../types/feed';
 import type {
   SubmitDareProofPayload,
@@ -349,6 +354,70 @@ export async function submitDareProof(
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function getTruthComments(
+  truthId: string,
+): Promise<TruthCommentApiItem[]> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths/${truthId}/comments`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}
+
+export async function createTruthComment(
+  truthId: string,
+  payload: CreateTruthCommentPayload,
+): Promise<TruthCommentApiItem> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths/${truthId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function toggleTruthCommentLike(
+  commentId: string,
+): Promise<ToggleTruthCommentLikeResponse> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths/comments/${commentId}/like`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
 
   return parseResponse(response);

@@ -35,7 +35,17 @@ export async function toggleLike({
       where: { id: existingLike.id },
     });
 
-    return { liked: false };
+    const likesCount = await prisma.like.count({
+      where: {
+        targetId,
+        targetType,
+      },
+    });
+
+    return {
+      liked: false,
+      likesCount,
+    };
   }
 
   await prisma.like.create({
@@ -46,7 +56,17 @@ export async function toggleLike({
     },
   });
 
-  return { liked: true };
+  const likesCount = await prisma.like.count({
+    where: {
+      targetId,
+      targetType,
+    },
+  });
+
+  return {
+    liked: true,
+    likesCount,
+  };
 }
 
 export async function getLikesCount(

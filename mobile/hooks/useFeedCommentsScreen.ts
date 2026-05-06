@@ -1,18 +1,91 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
+
+import {
+  createTruthComment,
+  getTruthComments,
+  toggleTruthCommentLike,
+} from '../services/api';
 import type {
   FeedComment,
+  FeedCommentReply,
   FeedCommentsContext,
   FeedCommentsItemType,
   FeedCommentsModalType,
   FeedCommentsReportReason,
   FeedCommentsReportStep,
   FeedCommentsReplyTarget,
+  TruthCommentApiItem,
+  TruthCommentApiReply,
   UseFeedCommentsScreenInput,
 } from '../types/comments';
 
 function isSupportedItemType(value: unknown): value is FeedCommentsItemType {
   return value === 'truth' || value === 'dare' || value === 'club';
+}
+
+function normalizeParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0] ?? '';
+  }
+
+  return value ?? '';
+}
+
+function formatCommentTime(value: string) {
+  const createdAt = new Date(value);
+
+  if (Number.isNaN(createdAt.getTime())) {
+    return 'Agora';
+  }
+
+  const diffMs = Date.now() - createdAt.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) {
+    return 'Agora';
+  }
+
+  if (diffMinutes < 60) {
+    return `${diffMinutes} min`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+
+  if (diffHours < 24) {
+    return `${diffHours} h`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffDays < 7) {
+    return `${diffDays} d`;
+  }
+
+  return createdAt.toLocaleDateString('pt-BR');
+}
+
+function mapApiReplyToFeedReply(reply: TruthCommentApiReply): FeedCommentReply {
+  return {
+    id: reply.id,
+    author: reply.author.name,
+    time: formatCommentTime(reply.createdAt),
+    content: reply.text,
+    likesCount: reply.likesCount,
+    likedByMe: reply.likedByMe,
+  };
+}
+
+function mapApiCommentToFeedComment(comment: TruthCommentApiItem): FeedComment {
+  return {
+    id: comment.id,
+    author: comment.author.name,
+    time: formatCommentTime(comment.createdAt),
+    content: comment.text,
+    likesCount: comment.likesCount,
+    likedByMe: comment.likedByMe,
+    replies: comment.replies.map(mapApiReplyToFeedReply),
+  };
 }
 
 export function useFeedCommentsScreen({
@@ -25,6 +98,9 @@ export function useFeedCommentsScreen({
   const [message, setMessage] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [replyTarget, setReplyTarget] = useState<FeedCommentsReplyTarget>(null);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -36,6 +112,9 @@ export function useFeedCommentsScreen({
   const itemType: FeedCommentsItemType = isSupportedItemType(params.itemType)
     ? params.itemType
     : 'truth';
+
+  const itemId = normalizeParam(params.itemId);
+  const isTruthCommentsAvailable = itemType === 'truth' && Boolean(itemId);
 
   const context: FeedCommentsContext = useMemo(() => {
     if (itemType === 'club') {
@@ -101,9 +180,58 @@ export function useFeedCommentsScreen({
     colors.tertiary,
   ]);
 
+  const loadComments = useCallback(
+    async ({
+      showInitialLoading = false,
+    }: { showInitialLoading?: boolean } = {}) => {
+      if (!isTruthCommentsAvailable) {
+        setComments([]);
+        setErrorMessage(
+          itemType === 'truth'
+            ? 'Não foi possível identificar a truth selecionada.'
+            : 'Comentários reais ainda não estão disponíveis para este tipo de publicação.',
+        );
+        return;
+      }
+
+      try {
+        if (showInitialLoading) {
+          setIsInitialLoading(true);
+        }
+
+        setErrorMessage(null);
+
+        const response = await getTruthComments(itemId);
+        setComments(response.map(mapApiCommentToFeedComment));
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível carregar os comentários.';
+
+        setErrorMessage(message);
+      } finally {
+        if (showInitialLoading) {
+          setIsInitialLoading(false);
+        }
+      }
+    },
+    [isTruthCommentsAvailable, itemId, itemType],
+  );
+
+  useEffect(() => {
+    loadComments({ showInitialLoading: true });
+  }, [loadComments]);
+
   const canLoadMore = false;
-  const canSend = message.trim().length > 0;
+  const canSend =
+    isTruthCommentsAvailable && !isSending && message.trim().length > 0;
   const title = itemType === 'club' ? 'Respostas' : 'Comentários';
+  const isEmpty = !isInitialLoading && !errorMessage && comments.length === 0;
+  const unavailableMessage =
+    itemType === 'truth'
+      ? null
+      : 'Comentários reais ainda não estão disponíveis para este tipo de publicação.';
 
   const shareVisible = activeModal === 'share';
   const muteVisible = activeModal === 'mute';
@@ -161,7 +289,11 @@ export function useFeedCommentsScreen({
     handleCloseActiveModal();
   }
 
-  function handleLikeComment(commentId: string) {
+    async function handleLikeComment(commentId: string) {
+    if (!isTruthCommentsAvailable) return;
+
+    const previousComments = comments;
+
     setComments((current) =>
       current.map((comment) => {
         if (comment.id !== commentId) return comment;
@@ -171,15 +303,43 @@ export function useFeedCommentsScreen({
         return {
           ...comment,
           likedByMe,
-          likesCount: likedByMe
-            ? comment.likesCount + 1
-            : comment.likesCount - 1,
+          likesCount: Math.max(
+            0,
+            likedByMe ? comment.likesCount + 1 : comment.likesCount - 1,
+          ),
         };
       }),
     );
+
+    try {
+      const result = await toggleTruthCommentLike(commentId);
+
+      setComments((current) =>
+        current.map((comment) =>
+          comment.id === commentId
+            ? {
+                ...comment,
+                likedByMe: result.liked,
+                likesCount: result.likesCount,
+              }
+            : comment,
+        ),
+      );
+    } catch (error) {
+      setComments(previousComments);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível atualizar a curtida.',
+      );
+    }
   }
 
-  function handleLikeReply(commentId: string, replyId: string) {
+    async function handleLikeReply(commentId: string, replyId: string) {
+    if (!isTruthCommentsAvailable) return;
+
+    const previousComments = comments;
+
     setComments((current) =>
       current.map((comment) => {
         if (comment.id !== commentId) return comment;
@@ -194,14 +354,45 @@ export function useFeedCommentsScreen({
             return {
               ...reply,
               likedByMe,
-              likesCount: likedByMe
-                ? reply.likesCount + 1
-                : reply.likesCount - 1,
+              likesCount: Math.max(
+                0,
+                likedByMe ? reply.likesCount + 1 : reply.likesCount - 1,
+              ),
             };
           }),
         };
       }),
     );
+
+    try {
+      const result = await toggleTruthCommentLike(replyId);
+
+      setComments((current) =>
+        current.map((comment) => {
+          if (comment.id !== commentId) return comment;
+
+          return {
+            ...comment,
+            replies: comment.replies.map((reply) =>
+              reply.id === replyId
+                ? {
+                    ...reply,
+                    likedByMe: result.liked,
+                    likesCount: result.likesCount,
+                  }
+                : reply,
+            ),
+          };
+        }),
+      );
+    } catch (error) {
+      setComments(previousComments);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível atualizar a curtida.',
+      );
+    }
   }
 
   function handleReplyComment(commentId: string) {
@@ -218,22 +409,68 @@ export function useFeedCommentsScreen({
     setReplyTarget(null);
   }
 
-  function handleSend() {
+    async function handleSend() {
     if (!canSend) return;
 
-    console.log('Enviar comentário (backend futuramente):', message);
+    const normalizedMessage = message.trim();
+    const parentId = replyTarget?.commentId;
 
-    setMessage('');
-    setReplyTarget(null);
+    try {
+      setIsSending(true);
+      setErrorMessage(null);
+
+      const createdComment = await createTruthComment(itemId, {
+        text: normalizedMessage,
+        parentId,
+      });
+
+      const mappedComment = mapApiCommentToFeedComment(createdComment);
+
+      if (parentId) {
+        const createdReply: FeedCommentReply = {
+          id: mappedComment.id,
+          author: mappedComment.author,
+          time: mappedComment.time,
+          content: mappedComment.content,
+          likesCount: mappedComment.likesCount,
+          likedByMe: mappedComment.likedByMe,
+        };
+
+        setComments((current) =>
+          current.map((comment) =>
+            comment.id === parentId
+              ? {
+                  ...comment,
+                  replies: [...comment.replies, createdReply],
+                }
+              : comment,
+          ),
+        );
+      } else {
+        setComments((current) => [...current, mappedComment]);
+      }
+
+      setMessage('');
+      setReplyTarget(null);
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível enviar o comentário.',
+      );
+    } finally {
+      setIsSending(false);
+    }
   }
 
   async function handleRefresh() {
     setRefreshing(true);
 
-    // futuro: chamar API
-    setTimeout(() => {
+    try {
+      await loadComments();
+    } finally {
       setRefreshing(false);
-    }, 500);
+    }
   }
 
   async function handleLoadMore() {
@@ -248,6 +485,11 @@ export function useFeedCommentsScreen({
     comments,
     refreshing,
     isLoadingMore,
+    isInitialLoading,
+    isSending,
+    errorMessage,
+    isEmpty,
+    unavailableMessage,
     canLoadMore,
 
     message,
