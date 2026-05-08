@@ -2,8 +2,10 @@ import { Request, Response } from 'express';
 import {
   createTruth,
   createTruthCommentService,
+  deleteTruthCommentService,
   deleteTruthService,
   getTruthCommentsService,
+  updateTruthCommentService,
 } from '../services/truths.service';
 
 export async function createTruthController(req: Request, res: Response) {
@@ -143,6 +145,91 @@ export async function createTruthCommentController(
               message === 'Não é possível responder uma resposta'
             ? 400
             : 500;
+
+    return res.status(status).json({
+      error: message,
+    });
+  }
+}
+
+export async function updateTruthCommentController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = req.user?.sub;
+    const commentId =
+      typeof req.params.id === 'string' ? req.params.id : '';
+    const { text } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Não autorizado',
+      });
+    }
+
+    const comment = await updateTruthCommentService({
+      commentId,
+      userId,
+      text,
+    });
+
+    return res.status(200).json(comment);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao editar comentário';
+
+    const status =
+      message === 'Não autorizado'
+        ? 403
+        : message === 'Comentário não encontrado'
+          ? 404
+          : message === 'Comentário é obrigatório' ||
+              message.startsWith('Comentário deve ter no máximo')
+            ? 400
+            : 500;
+
+    return res.status(status).json({
+      error: message,
+    });
+  }
+}
+
+export async function deleteTruthCommentController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = req.user?.sub;
+    const commentId =
+      typeof req.params.id === 'string' ? req.params.id : '';
+
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Não autorizado',
+      });
+    }
+
+    await deleteTruthCommentService({
+      commentId,
+      userId,
+    });
+
+    return res.status(204).send();
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao excluir comentário';
+
+    const status =
+      message === 'Não autorizado'
+        ? 403
+        : message === 'Comentário não encontrado'
+          ? 404
+          : 500;
 
     return res.status(status).json({
       error: message,

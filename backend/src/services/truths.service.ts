@@ -38,6 +38,8 @@ type TruthCommentReplyResponse = {
   updatedAt: Date;
   likesCount: number;
   likedByMe: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   author: TruthCommentAuthorResponse;
 };
 
@@ -48,6 +50,8 @@ export type TruthCommentResponse = {
   updatedAt: Date;
   likesCount: number;
   likedByMe: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   author: TruthCommentAuthorResponse;
   replies: TruthCommentReplyResponse[];
 };
@@ -296,6 +300,8 @@ export async function getTruthCommentsService({
     updatedAt: comment.updatedAt,
     likesCount: likesCountByCommentId.get(comment.id) ?? 0,
     likedByMe: likedCommentIds.has(comment.id),
+    canEdit: comment.user.id === userId,
+    canDelete: comment.user.id === userId,
     author: comment.user,
     replies: comment.replies.map((reply) => ({
       id: reply.id,
@@ -304,6 +310,8 @@ export async function getTruthCommentsService({
       updatedAt: reply.updatedAt,
       likesCount: likesCountByCommentId.get(reply.id) ?? 0,
       likedByMe: likedCommentIds.has(reply.id),
+      canEdit: reply.user.id === userId,
+      canDelete: reply.user.id === userId,
       author: reply.user,
     })),
   }));
@@ -377,14 +385,191 @@ export async function createTruthCommentService({
     },
   });
 
-  return {
+    return {
     id: comment.id,
     text: comment.text,
     createdAt: comment.createdAt,
     updatedAt: comment.updatedAt,
     likesCount: 0,
     likedByMe: false,
+    canEdit: true,
+    canDelete: true,
     author: comment.user,
     replies: [],
   };
+}
+
+type UpdateTruthCommentInput = {
+  commentId: string;
+  userId: string;
+  text: unknown;
+};
+
+export async function updateTruthCommentService({
+  commentId,
+  userId,
+  text,
+}: UpdateTruthCommentInput): Promise<TruthCommentResponse> {
+  if (!userId) {
+    throw new Error('Não autorizado');
+  }
+
+  if (!commentId) {
+    throw new Error('Comentário não encontrado');
+  }
+
+  const normalizedText = validateTruthCommentText(text);
+
+  const existingComment = await prisma.truthComment.findUnique({
+    where: {
+      id: commentId,
+    },
+    select: {
+      id: true,
+      userId: true,
+    },
+  });
+
+  if (!existingComment) {
+    throw new Error('Comentário não encontrado');
+  }
+
+  if (existingComment.userId !== userId) {
+    throw new Error('Não autorizado');
+  }
+
+  await prisma.truthComment.update({
+    where: {
+      id: commentId,
+    },
+    data: {
+      text: normalizedText,
+    },
+  });
+
+  const updatedComment = await prisma.truthComment.findUnique({
+    where: {
+      id: commentId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      replies: {
+        orderBy: {
+          createdAt: 'asc',
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!updatedComment) {
+    throw new Error('Comentário não encontrado');
+  }
+
+  const commentIds = [
+    updatedComment.id,
+    ...updatedComment.replies.map((reply) => reply.id),
+  ];
+
+  const { likesCountByCommentId, likedCommentIds } =
+    await getTruthCommentLikesData(commentIds, userId);
+
+  return {
+    id: updatedComment.id,
+    text: updatedComment.text,
+    createdAt: updatedComment.createdAt,
+    updatedAt: updatedComment.updatedAt,
+    likesCount: likesCountByCommentId.get(updatedComment.id) ?? 0,
+    likedByMe: likedCommentIds.has(updatedComment.id),
+    canEdit: updatedComment.user.id === userId,
+    canDelete: updatedComment.user.id === userId,
+    author: updatedComment.user,
+    replies: updatedComment.replies.map((reply) => ({
+      id: reply.id,
+      text: reply.text,
+      createdAt: reply.createdAt,
+      updatedAt: reply.updatedAt,
+      likesCount: likesCountByCommentId.get(reply.id) ?? 0,
+      likedByMe: likedCommentIds.has(reply.id),
+      canEdit: reply.user.id === userId,
+      canDelete: reply.user.id === userId,
+      author: reply.user,
+    })),
+  };
+}
+
+type DeleteTruthCommentInput = {
+  commentId: string;
+  userId: string;
+};
+
+export async function deleteTruthCommentService({
+  commentId,
+  userId,
+}: DeleteTruthCommentInput) {
+  if (!userId) {
+    throw new Error('Não autorizado');
+  }
+
+  if (!commentId) {
+    throw new Error('Comentário não encontrado');
+  }
+
+  const comment = await prisma.truthComment.findUnique({
+    where: {
+      id: commentId,
+    },
+    select: {
+      id: true,
+      userId: true,
+      replies: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  if (!comment) {
+    throw new Error('Comentário não encontrado');
+  }
+
+  if (comment.userId !== userId) {
+    throw new Error('Não autorizado');
+  }
+
+  const commentIdsToDelete = [
+    comment.id,
+    ...comment.replies.map((reply) => reply.id),
+  ];
+
+  await prisma.$transaction([
+    prisma.like.deleteMany({
+      where: {
+        targetType: 'truth_comment',
+        targetId: {
+          in: commentIdsToDelete,
+        },
+      },
+    }),
+    prisma.truthComment.delete({
+      where: {
+        id: comment.id,
+      },
+    }),
+  ]);
 }
