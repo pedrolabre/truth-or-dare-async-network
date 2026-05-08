@@ -3,6 +3,7 @@ import React from 'react';
 import {
   Modal,
   Pressable,
+  Share,
   StyleSheet,
   Text,
   View,
@@ -12,24 +13,36 @@ import type { FeedCommentsColors } from '../../types/comments';
 type FeedCommentsShareModalProps = {
   visible: boolean;
   colors: FeedCommentsColors;
+  title: string;
+  text: string;
+  meta: string;
   onClose: () => void;
 };
 
 export default function FeedCommentsShareModal({
   visible,
   colors,
+  title,
+  text,
+  meta,
   onClose,
 }: FeedCommentsShareModalProps) {
-  function handleCopyLink() {
-    console.log('Link copiado');
-    onClose();
+  async function handleCopyLink() {
+    await handleShareExternally();
   }
 
-  function handleShareExternally() {
-    console.log('Compartilhar externamente');
-    onClose();
-  }
+  async function handleShareExternally() {
+    try {
+      await Share.share({
+        title,
+        message: `${title}\n\n${text}\n\n${meta}`,
+      });
 
+      onClose();
+    } catch (error) {
+      console.warn('Não foi possível compartilhar a truth.', error);
+    }
+  }
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable style={styles.overlay} onPress={onClose}>

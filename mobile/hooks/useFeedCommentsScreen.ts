@@ -3,12 +3,17 @@ import { useRouter } from 'expo-router';
 
 import {
   createTruthComment,
+  deleteTruthComment,
   getTruthComments,
   reportTruth,
+  reportTruthComment,
   toggleTruthCommentLike,
+  updateTruthComment,
 } from '../services/api';
 import type {
   FeedComment,
+  FeedCommentActionModalType,
+  FeedCommentActionTarget,
   FeedCommentReply,
   FeedCommentsContext,
   FeedCommentsItemType,
@@ -97,6 +102,8 @@ function mapApiReplyToFeedReply(reply: TruthCommentApiReply): FeedCommentReply {
     content: reply.text,
     likesCount: reply.likesCount,
     likedByMe: reply.likedByMe,
+    canEdit: reply.canEdit,
+    canDelete: reply.canDelete,
   };
 }
 
@@ -108,6 +115,8 @@ function mapApiCommentToFeedComment(comment: TruthCommentApiItem): FeedComment {
     content: comment.text,
     likesCount: comment.likesCount,
     likedByMe: comment.likedByMe,
+    canEdit: comment.canEdit,
+    canDelete: comment.canDelete,
     replies: comment.replies.map(mapApiReplyToFeedReply),
   };
 }
@@ -136,6 +145,31 @@ export function useFeedCommentsScreen({
   const [reportErrorMessage, setReportErrorMessage] = useState<string | null>(
     null,
   );
+
+  const [selectedCommentActionTarget, setSelectedCommentActionTarget] =
+    useState<FeedCommentActionTarget | null>(null);
+  const [commentActionModal, setCommentActionModal] =
+    useState<FeedCommentActionModalType>(null);
+
+  const [isSubmittingCommentEdit, setIsSubmittingCommentEdit] = useState(false);
+  const [commentEditErrorMessage, setCommentEditErrorMessage] = useState<
+    string | null
+  >(null);
+
+  const [isSubmittingCommentDelete, setIsSubmittingCommentDelete] =
+    useState(false);
+  const [commentDeleteErrorMessage, setCommentDeleteErrorMessage] = useState<
+    string | null
+  >(null);
+
+  const [selectedCommentReportReason, setSelectedCommentReportReason] =
+    useState<FeedCommentsReportReason | null>(null);
+  const [isSubmittingCommentReport, setIsSubmittingCommentReport] =
+    useState(false);
+  const [commentReportErrorMessage, setCommentReportErrorMessage] = useState<
+    string | null
+  >(null);
+  const [isCommentReportSuccess, setIsCommentReportSuccess] = useState(false);
 
   const itemType: FeedCommentsItemType = isSupportedItemType(params.itemType)
     ? params.itemType
@@ -265,6 +299,11 @@ export function useFeedCommentsScreen({
   const muteVisible = activeModal === 'mute';
   const reportVisible = activeModal === 'report';
 
+  const commentActionsMenuVisible = commentActionModal === 'actions';
+  const commentEditModalVisible = commentActionModal === 'edit';
+  const commentDeleteModalVisible = commentActionModal === 'delete';
+  const commentReportModalVisible = commentActionModal === 'report';
+
   function handleGoBack() {
     router.back();
   }
@@ -344,6 +383,183 @@ export function useFeedCommentsScreen({
 
   function handleFinishReport() {
     handleCloseActiveModal();
+  }
+
+  function handleOpenCommentActions(target: FeedCommentActionTarget) {
+    setSelectedCommentActionTarget(target);
+    setCommentEditErrorMessage(null);
+    setCommentDeleteErrorMessage(null);
+    setCommentReportErrorMessage(null);
+    setSelectedCommentReportReason(null);
+    setIsCommentReportSuccess(false);
+    setCommentActionModal('actions');
+  }
+
+  function resetCommentActionState() {
+    setCommentActionModal(null);
+    setSelectedCommentActionTarget(null);
+    setCommentEditErrorMessage(null);
+    setCommentDeleteErrorMessage(null);
+    setCommentReportErrorMessage(null);
+    setSelectedCommentReportReason(null);
+    setIsCommentReportSuccess(false);
+  }
+
+  function handleCloseCommentActionModal() {
+    if (
+      isSubmittingCommentEdit ||
+      isSubmittingCommentDelete ||
+      isSubmittingCommentReport
+    ) {
+      return;
+    }
+
+    resetCommentActionState();
+  }
+
+  function handleOpenCommentEditModal() {
+    if (!selectedCommentActionTarget?.canEdit) return;
+
+    setCommentEditErrorMessage(null);
+    setCommentActionModal('edit');
+  }
+
+  function handleOpenCommentDeleteModal() {
+    if (!selectedCommentActionTarget?.canDelete) return;
+
+    setCommentDeleteErrorMessage(null);
+    setCommentActionModal('delete');
+  }
+
+  function handleOpenCommentReportModal() {
+    if (!selectedCommentActionTarget) return;
+
+    setSelectedCommentReportReason(null);
+    setCommentReportErrorMessage(null);
+    setIsCommentReportSuccess(false);
+    setCommentActionModal('report');
+  }
+
+  function handleSelectCommentReportReason(reason: FeedCommentsReportReason) {
+    setSelectedCommentReportReason(reason);
+    setCommentReportErrorMessage(null);
+  }
+
+  async function handleSubmitCommentEdit(text: string) {
+    if (!selectedCommentActionTarget) return;
+
+    try {
+      setIsSubmittingCommentEdit(true);
+      setCommentEditErrorMessage(null);
+
+      await updateTruthComment(selectedCommentActionTarget.id, { text });
+
+      setComments((current) =>
+        current.map((comment) => {
+          if (selectedCommentActionTarget.type === 'comment') {
+            return comment.id === selectedCommentActionTarget.id
+              ? {
+                  ...comment,
+                  content: text,
+                }
+              : comment;
+          }
+
+          if (comment.id !== selectedCommentActionTarget.parentId) {
+            return comment;
+          }
+
+          return {
+            ...comment,
+            replies: comment.replies.map((reply) =>
+              reply.id === selectedCommentActionTarget.id
+                ? {
+                    ...reply,
+                    content: text,
+                  }
+                : reply,
+            ),
+          };
+        }),
+      );
+
+      resetCommentActionState();
+    } catch (error) {
+      setCommentEditErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível editar o comentário.',
+      );
+    } finally {
+      setIsSubmittingCommentEdit(false);
+    }
+  }
+
+  async function handleSubmitCommentDelete() {
+    if (!selectedCommentActionTarget) return;
+
+    try {
+      setIsSubmittingCommentDelete(true);
+      setCommentDeleteErrorMessage(null);
+
+      await deleteTruthComment(selectedCommentActionTarget.id);
+
+      setComments((current) => {
+        if (selectedCommentActionTarget.type === 'comment') {
+          return current.filter(
+            (comment) => comment.id !== selectedCommentActionTarget.id,
+          );
+        }
+
+        return current.map((comment) => {
+          if (comment.id !== selectedCommentActionTarget.parentId) {
+            return comment;
+          }
+
+          return {
+            ...comment,
+            replies: comment.replies.filter(
+              (reply) => reply.id !== selectedCommentActionTarget.id,
+            ),
+          };
+        });
+      });
+
+      resetCommentActionState();
+    } catch (error) {
+      setCommentDeleteErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível excluir o comentário.',
+      );
+    } finally {
+      setIsSubmittingCommentDelete(false);
+    }
+  }
+
+  async function handleSubmitCommentReport() {
+    if (!selectedCommentActionTarget || !selectedCommentReportReason) {
+      return;
+    }
+
+    try {
+      setIsSubmittingCommentReport(true);
+      setCommentReportErrorMessage(null);
+
+      await reportTruthComment(selectedCommentActionTarget.id, {
+        reason: mapReportReasonToApiReason(selectedCommentReportReason),
+      });
+
+      setIsCommentReportSuccess(true);
+    } catch (error) {
+      setCommentReportErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível enviar a denúncia.',
+      );
+    } finally {
+      setIsSubmittingCommentReport(false);
+    }
   }
 
     async function handleLikeComment(commentId: string) {
@@ -491,6 +707,8 @@ export function useFeedCommentsScreen({
           content: mappedComment.content,
           likesCount: mappedComment.likesCount,
           likedByMe: mappedComment.likedByMe,
+          canEdit: mappedComment.canEdit,
+          canDelete: mappedComment.canDelete,
         };
 
         setComments((current) =>
@@ -564,6 +782,23 @@ export function useFeedCommentsScreen({
     isSubmittingReport,
     reportErrorMessage,
 
+    selectedCommentActionTarget,
+    commentActionsMenuVisible,
+    commentEditModalVisible,
+    commentDeleteModalVisible,
+    commentReportModalVisible,
+
+    isSubmittingCommentEdit,
+    commentEditErrorMessage,
+
+    isSubmittingCommentDelete,
+    commentDeleteErrorMessage,
+
+    selectedCommentReportReason,
+    isSubmittingCommentReport,
+    commentReportErrorMessage,
+    isCommentReportSuccess,
+
     setMessage,
 
     handleSend,
@@ -587,6 +822,15 @@ export function useFeedCommentsScreen({
     handleBackReportStep,
     handleSubmitReport,
     handleFinishReport,
+    handleOpenCommentActions,
+    handleCloseCommentActionModal,
+    handleOpenCommentEditModal,
+    handleOpenCommentDeleteModal,
+    handleOpenCommentReportModal,
+    handleSubmitCommentEdit,
+    handleSubmitCommentDelete,
+    handleSelectCommentReportReason,
+    handleSubmitCommentReport,
     handleGoBack,
   };
 }

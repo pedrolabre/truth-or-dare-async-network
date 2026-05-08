@@ -23,6 +23,10 @@ import FeedCommentsMoreMenu from '../components/feed-comments/FeedCommentsMoreMe
 import FeedCommentsShareModal from '../components/feed-comments/FeedCommentsShareModal';
 import FeedCommentsMuteModal from '../components/feed-comments/FeedCommentsMuteModal';
 import FeedCommentsReportModal from '../components/feed-comments/FeedCommentsReportModal';
+import FeedCommentActionsMenu from '../components/feed-comments/FeedCommentActionsMenu';
+import FeedCommentEditModal from '../components/feed-comments/FeedCommentEditModal';
+import FeedCommentDeleteConfirmModal from '../components/feed-comments/FeedCommentDeleteConfirmModal';
+import FeedCommentReportModal from '../components/feed-comments/FeedCommentReportModal';
 
 import { useFeedCommentsScreen } from '../hooks/useFeedCommentsScreen';
 import {
@@ -63,6 +67,24 @@ export default function FeedCommentsScreen() {
     selectedReportReason,
     isSubmittingReport,
     reportErrorMessage,
+
+    selectedCommentActionTarget,
+    commentActionsMenuVisible,
+    commentEditModalVisible,
+    commentDeleteModalVisible,
+    commentReportModalVisible,
+
+    isSubmittingCommentEdit,
+    commentEditErrorMessage,
+
+    isSubmittingCommentDelete,
+    commentDeleteErrorMessage,
+
+    selectedCommentReportReason,
+    isSubmittingCommentReport,
+    commentReportErrorMessage,
+    isCommentReportSuccess,
+
     setMessage,
     handleSend,
     handleRefresh,
@@ -81,6 +103,17 @@ export default function FeedCommentsScreen() {
     handleBackReportStep,
     handleSubmitReport,
     handleFinishReport,
+
+    handleOpenCommentActions,
+    handleCloseCommentActionModal,
+    handleOpenCommentEditModal,
+    handleOpenCommentDeleteModal,
+    handleOpenCommentReportModal,
+    handleSubmitCommentEdit,
+    handleSubmitCommentDelete,
+    handleSelectCommentReportReason,
+    handleSubmitCommentReport,
+
     handleGoBack,
   } = useFeedCommentsScreen({
     params,
@@ -209,6 +242,7 @@ export default function FeedCommentsScreen() {
               onPressLike={handleLikeComment}
               onPressReply={handleReplyComment}
               onPressLikeReply={handleLikeReply}
+              onPressActions={handleOpenCommentActions}
             />
           )}
           ListHeaderComponent={
@@ -258,6 +292,9 @@ export default function FeedCommentsScreen() {
       <FeedCommentsShareModal
         visible={shareVisible}
         colors={colors}
+        title={title}
+        text={context.text}
+        meta={context.meta}
         onClose={handleCloseActiveModal}
       />
 
@@ -279,6 +316,49 @@ export default function FeedCommentsScreen() {
         onBack={handleBackReportStep}
         onSubmit={handleSubmitReport}
         onFinish={handleFinishReport}
+      />
+
+      <FeedCommentActionsMenu
+        visible={commentActionsMenuVisible}
+        colors={colors}
+        target={selectedCommentActionTarget}
+        onClose={handleCloseCommentActionModal}
+        onPressEdit={handleOpenCommentEditModal}
+        onPressDelete={handleOpenCommentDeleteModal}
+        onPressReport={handleOpenCommentReportModal}
+      />
+
+      <FeedCommentEditModal
+        visible={commentEditModalVisible}
+        colors={colors}
+        target={selectedCommentActionTarget}
+        isSubmitting={isSubmittingCommentEdit}
+        errorMessage={commentEditErrorMessage}
+        onClose={handleCloseCommentActionModal}
+        onSubmit={handleSubmitCommentEdit}
+      />
+
+      <FeedCommentDeleteConfirmModal
+        visible={commentDeleteModalVisible}
+        colors={colors}
+        target={selectedCommentActionTarget}
+        isSubmitting={isSubmittingCommentDelete}
+        errorMessage={commentDeleteErrorMessage}
+        onClose={handleCloseCommentActionModal}
+        onConfirm={handleSubmitCommentDelete}
+      />
+
+      <FeedCommentReportModal
+        visible={commentReportModalVisible}
+        colors={colors}
+        target={selectedCommentActionTarget}
+        selectedReason={selectedCommentReportReason}
+        isSubmitting={isSubmittingCommentReport}
+        errorMessage={commentReportErrorMessage}
+        isSuccess={isCommentReportSuccess}
+        onClose={handleCloseCommentActionModal}
+        onSelectReason={handleSelectCommentReportReason}
+        onSubmit={handleSubmitCommentReport}
       />
     </View>
   );

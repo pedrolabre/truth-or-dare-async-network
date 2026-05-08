@@ -1,10 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   CreateTruthCommentPayload,
+  CreateTruthCommentReportPayload,
   CreateTruthReportPayload,
+  DeleteTruthCommentResponse,
   ToggleTruthCommentLikeResponse,
   TruthCommentApiItem,
+  TruthCommentApiReply,
+  TruthCommentReportApiResponse,
   TruthReportApiResponse,
+  UpdateTruthCommentPayload,
 } from '../types/comments';
 import type { FeedItem } from '../types/feed';
 import type {
@@ -420,6 +425,72 @@ export async function toggleTruthCommentLike(
     headers: {
       Authorization: `Bearer ${token}`,
     },
+  });
+
+  return parseResponse(response);
+}
+
+export async function updateTruthComment(
+  commentId: string,
+  payload: UpdateTruthCommentPayload,
+): Promise<TruthCommentApiItem | TruthCommentApiReply> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths/comments/${commentId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function deleteTruthComment(
+  commentId: string,
+): Promise<DeleteTruthCommentResponse> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}
+
+export async function reportTruthComment(
+  commentId: string,
+  payload: CreateTruthCommentReportPayload,
+): Promise<TruthCommentReportApiResponse> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths/comments/${commentId}/report`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
   });
 
   return parseResponse(response);

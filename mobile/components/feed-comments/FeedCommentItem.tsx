@@ -1,7 +1,11 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { FeedComment, FeedCommentsColors } from '../../types/comments';
+import type {
+  FeedComment,
+  FeedCommentActionTarget,
+  FeedCommentsColors,
+} from '../../types/comments';
 
 type FeedCommentItemProps = {
   comment: FeedComment;
@@ -9,6 +13,7 @@ type FeedCommentItemProps = {
   onPressLike: (commentId: string) => void;
   onPressReply: (commentId: string) => void;
   onPressLikeReply?: (commentId: string, replyId: string) => void;
+  onPressActions?: (target: FeedCommentActionTarget) => void;
 };
 
 function getInitials(name: string) {
@@ -26,6 +31,7 @@ export default function FeedCommentItem({
   onPressLike,
   onPressReply,
   onPressLikeReply,
+  onPressActions,
 }: FeedCommentItemProps) {
   const likedColor = comment.likedByMe ? colors.tertiary : colors.outline;
   const hasReplies = comment.replies.length > 0;
@@ -62,9 +68,37 @@ export default function FeedCommentItem({
                 {comment.author}
               </Text>
 
-              <Text style={[styles.time, { color: colors.outline }]}>
-                {comment.time}
-              </Text>
+              <View style={styles.headerActions}>
+                <Text style={[styles.time, { color: colors.outline }]}>
+                  {comment.time}
+                </Text>
+
+                <Pressable
+                  disabled={!onPressActions}
+                  hitSlop={8}
+                  onPress={() =>
+                    onPressActions?.({
+                      id: comment.id,
+                      type: 'comment',
+                      author: comment.author,
+                      content: comment.content,
+                      canEdit: comment.canEdit,
+                      canDelete: comment.canDelete,
+                    })
+                  }
+                  style={({ pressed }) => [
+                    styles.moreButton,
+                    pressed && styles.pressed,
+                    !onPressActions && styles.disabledAction,
+                  ]}
+                >
+                  <MaterialIcons
+                    name="more-horiz"
+                    size={18}
+                    color={colors.outline}
+                  />
+                </Pressable>
+              </View>
             </View>
 
             <Text style={[styles.text, { color: colors.onSurfaceVariant }]}>
@@ -148,6 +182,7 @@ export default function FeedCommentItem({
                             },
                           ]}
                         >
+
                           <View style={styles.replyHeader}>
                             <Text
                               style={[styles.replyAuthor, { color: colors.onSurface }]}
@@ -155,11 +190,40 @@ export default function FeedCommentItem({
                               {reply.author}
                             </Text>
 
-                            <Text
-                              style={[styles.replyTime, { color: colors.outline }]}
-                            >
-                              {reply.time}
-                            </Text>
+                            <View style={styles.headerActions}>
+                              <Text
+                                style={[styles.replyTime, { color: colors.outline }]}
+                              >
+                                {reply.time}
+                              </Text>
+
+                              <Pressable
+                                disabled={!onPressActions}
+                                hitSlop={8}
+                                onPress={() =>
+                                  onPressActions?.({
+                                    id: reply.id,
+                                    parentId: comment.id,
+                                    type: 'reply',
+                                    author: reply.author,
+                                    content: reply.content,
+                                    canEdit: reply.canEdit,
+                                    canDelete: reply.canDelete,
+                                  })
+                                }
+                                style={({ pressed }) => [
+                                  styles.replyMoreButton,
+                                  pressed && styles.pressed,
+                                  !onPressActions && styles.disabledAction,
+                                ]}
+                              >
+                                <MaterialIcons
+                                  name="more-horiz"
+                                  size={16}
+                                  color={colors.outline}
+                                />
+                              </Pressable>
+                            </View>
                           </View>
 
                           <Text
@@ -276,6 +340,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  moreButton: {
+    width: 24,
+    height: 22,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   text: {
     fontSize: 14,
     lineHeight: 21,
@@ -358,6 +434,13 @@ const styles = StyleSheet.create({
   replyTime: {
     fontSize: 10,
     fontWeight: '600',
+  },
+  replyMoreButton: {
+    width: 22,
+    height: 20,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   replyBody: {
     fontSize: 13,

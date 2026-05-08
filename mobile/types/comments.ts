@@ -37,6 +37,8 @@ export type FeedCommentReply = {
   content: string;
   likesCount: number;
   likedByMe: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
 };
 
 export type FeedComment = {
@@ -46,8 +48,27 @@ export type FeedComment = {
   content: string;
   likesCount: number;
   likedByMe: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   replies: FeedCommentReply[];
 };
+
+export type FeedCommentActionTarget = {
+  id: string;
+  parentId?: string;
+  type: 'comment' | 'reply';
+  author: string;
+  content: string;
+  canEdit: boolean;
+  canDelete: boolean;
+};
+
+export type FeedCommentActionModalType =
+  | 'actions'
+  | 'edit'
+  | 'delete'
+  | 'report'
+  | null;
 
 export type FeedCommentsContext = {
   eyebrow: string;
@@ -93,6 +114,8 @@ export type TruthCommentApiReply = {
   updatedAt: string;
   likesCount: number;
   likedByMe: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   author: TruthCommentApiAuthor;
 };
 
@@ -103,6 +126,8 @@ export type TruthCommentApiItem = {
   updatedAt: string;
   likesCount: number;
   likedByMe: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
   author: TruthCommentApiAuthor;
   replies: TruthCommentApiReply[];
 };
@@ -115,6 +140,35 @@ export type CreateTruthCommentPayload = {
 export type ToggleTruthCommentLikeResponse = {
   liked: boolean;
   likesCount: number;
+};
+
+export type UpdateTruthCommentPayload = {
+  text: string;
+};
+
+export type DeleteTruthCommentResponse = {
+  deleted: boolean;
+};
+
+export type TruthCommentReportReason =
+  | 'spam'
+  | 'harassment'
+  | 'hate'
+  | 'sexual'
+  | 'violence'
+  | 'other';
+
+export type CreateTruthCommentReportPayload = {
+  reason: TruthCommentReportReason;
+  details?: string;
+};
+
+export type TruthCommentReportApiResponse = {
+  id: string;
+  commentId: string;
+  reason: string;
+  details: string | null;
+  createdAt: string;
 };
 
 export type TruthReportReason =
