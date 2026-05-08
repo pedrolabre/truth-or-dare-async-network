@@ -116,3 +116,24 @@ export type ToggleTruthCommentLikeResponse = {
   liked: boolean;
   likesCount: number;
 };
+
+export type TruthReportReason =
+  | 'spam'
+  | 'harassment'
+  | 'hate'
+  | 'sexual'
+  | 'violence'
+  | 'other';
+
+export type CreateTruthReportPayload = {
+  reason: TruthReportReason;
+  details?: string;
+};
+
+export type TruthReportApiResponse = {
+  id: string;
+  truthId: string;
+  reason: string;
+  details: string | null;
+  createdAt: string;
+};

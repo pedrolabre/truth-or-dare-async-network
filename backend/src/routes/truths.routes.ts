@@ -7,6 +7,10 @@ import {
   getTruthCommentsController,
   updateTruthCommentController,
 } from '../controllers/truths.controller';
+import {
+  createTruthCommentReportController,
+  createTruthReportController,
+} from '../controllers/truth-reports.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
@@ -24,6 +28,14 @@ router.delete(
   authMiddleware,
   deleteTruthCommentController,
 );
+
+router.post(
+  '/comments/:id/report',
+  authMiddleware,
+  createTruthCommentReportController,
+);
+
+router.post('/:id/report', authMiddleware, createTruthReportController);
 
 router.get('/:id/comments', authMiddleware, getTruthCommentsController);
 router.post('/:id/comments', authMiddleware, createTruthCommentController);

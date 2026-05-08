@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
   CreateTruthCommentPayload,
+  CreateTruthReportPayload,
   ToggleTruthCommentLikeResponse,
   TruthCommentApiItem,
+  TruthReportApiResponse,
 } from '../types/comments';
 import type { FeedItem } from '../types/feed';
 import type {
@@ -418,6 +420,29 @@ export async function toggleTruthCommentLike(
     headers: {
       Authorization: `Bearer ${token}`,
     },
+  });
+
+  return parseResponse(response);
+}
+
+export async function reportTruth(
+  truthId: string,
+  payload: CreateTruthReportPayload,
+): Promise<TruthReportApiResponse> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token não encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/truths/${truthId}/report`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
   });
 
   return parseResponse(response);

@@ -61,6 +61,8 @@ export default function FeedCommentsScreen() {
     reportVisible,
     reportStep,
     selectedReportReason,
+    isSubmittingReport,
+    reportErrorMessage,
     setMessage,
     handleSend,
     handleRefresh,
@@ -270,6 +272,8 @@ export default function FeedCommentsScreen() {
         colors={colors}
         step={reportStep}
         selectedReason={selectedReportReason}
+        isSubmitting={isSubmittingReport}
+        errorMessage={reportErrorMessage}
         onClose={handleCloseActiveModal}
         onSelectReason={handleSelectReportReason}
         onBack={handleBackReportStep}

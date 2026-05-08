@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import {
   createTruthComment,
   getTruthComments,
+  reportTruth,
   toggleTruthCommentLike,
 } from '../services/api';
 import type {
@@ -17,6 +18,7 @@ import type {
   FeedCommentsReplyTarget,
   TruthCommentApiItem,
   TruthCommentApiReply,
+  TruthReportReason,
   UseFeedCommentsScreenInput,
 } from '../types/comments';
 
@@ -30,6 +32,28 @@ function normalizeParam(value: string | string[] | undefined) {
   }
 
   return value ?? '';
+}
+
+function mapReportReasonToApiReason(
+  reason: FeedCommentsReportReason,
+): TruthReportReason {
+  if (reason === 'Spam ou fraude') {
+    return 'spam';
+  }
+
+  if (reason === 'Discurso de ódio ou ofensa') {
+    return 'hate';
+  }
+
+  if (reason === 'Conteúdo sexual ou nudez') {
+    return 'sexual';
+  }
+
+  if (reason === 'Assédio ou bullying') {
+    return 'harassment';
+  }
+
+  return 'other';
 }
 
 function formatCommentTime(value: string) {
@@ -108,6 +132,10 @@ export function useFeedCommentsScreen({
   const [reportStep, setReportStep] = useState<FeedCommentsReportStep>(1);
   const [selectedReportReason, setSelectedReportReason] =
     useState<FeedCommentsReportReason | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
+  const [reportErrorMessage, setReportErrorMessage] = useState<string | null>(
+    null,
+  );
 
   const itemType: FeedCommentsItemType = isSupportedItemType(params.itemType)
     ? params.itemType
@@ -262,27 +290,56 @@ export function useFeedCommentsScreen({
   function handleOpenReportModal() {
     setIsMenuOpen(false);
     setSelectedReportReason(null);
+    setReportErrorMessage(null);
     setReportStep(1);
     setActiveModal('report');
   }
 
   function handleCloseActiveModal() {
+    if (isSubmittingReport) return;
+
     setActiveModal(null);
     setSelectedReportReason(null);
+    setReportErrorMessage(null);
     setReportStep(1);
   }
 
   function handleSelectReportReason(reason: FeedCommentsReportReason) {
     setSelectedReportReason(reason);
+    setReportErrorMessage(null);
     setReportStep(2);
   }
 
   function handleBackReportStep() {
+    if (isSubmittingReport) return;
+
+    setReportErrorMessage(null);
     setReportStep(1);
   }
 
-  function handleSubmitReport() {
-    setReportStep(3);
+  async function handleSubmitReport() {
+    if (!isTruthCommentsAvailable || !selectedReportReason) {
+      return;
+    }
+
+    try {
+      setIsSubmittingReport(true);
+      setReportErrorMessage(null);
+
+      await reportTruth(itemId, {
+        reason: mapReportReasonToApiReason(selectedReportReason),
+      });
+
+      setReportStep(3);
+    } catch (error) {
+      setReportErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível enviar a denúncia.',
+      );
+    } finally {
+      setIsSubmittingReport(false);
+    }
   }
 
   function handleFinishReport() {
@@ -504,6 +561,8 @@ export function useFeedCommentsScreen({
 
     reportStep,
     selectedReportReason,
+    isSubmittingReport,
+    reportErrorMessage,
 
     setMessage,
 

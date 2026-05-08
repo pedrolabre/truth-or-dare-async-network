@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
+  ActivityIndicator,
   Modal,
   Pressable,
   StyleSheet,
@@ -18,6 +19,8 @@ type FeedCommentsReportModalProps = {
   colors: FeedCommentsColors;
   step: FeedCommentsReportStep;
   selectedReason: FeedCommentsReportReason | null;
+  isSubmitting: boolean;
+  errorMessage: string | null;
   onClose: () => void;
   onSelectReason: (reason: FeedCommentsReportReason) => void;
   onBack: () => void;
@@ -37,6 +40,8 @@ export default function FeedCommentsReportModal({
   colors,
   step,
   selectedReason,
+  isSubmitting,
+  errorMessage,
   onClose,
   onSelectReason,
   onBack,
@@ -45,7 +50,10 @@ export default function FeedCommentsReportModal({
 }: FeedCommentsReportModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <Pressable style={styles.overlay} onPress={onClose}>
+      <Pressable
+        style={styles.overlay}
+        onPress={isSubmitting ? undefined : onClose}
+      >
         <Pressable
           onPress={() => {}}
           style={[
@@ -60,10 +68,12 @@ export default function FeedCommentsReportModal({
             <>
               <Pressable
                 hitSlop={8}
+                disabled={isSubmitting}
                 onPress={onClose}
                 style={({ pressed }) => [
                   styles.closeButton,
                   pressed && styles.pressed,
+                  isSubmitting && styles.disabled,
                 ]}
               >
                 <MaterialIcons name="close" size={20} color={colors.outline} />
@@ -119,6 +129,12 @@ export default function FeedCommentsReportModal({
                 Você está denunciando este conteúdo por
               </Text>
 
+              {errorMessage ? (
+                <Text style={styles.errorText}>
+                  {errorMessage}
+                </Text>
+              ) : null}
+
               <Text style={[styles.reason, { color: colors.onSurface }]}>
                 {selectedReason}
               </Text>
@@ -129,6 +145,7 @@ export default function FeedCommentsReportModal({
 
               <View style={styles.actions}>
                 <Pressable
+                  disabled={isSubmitting}
                   onPress={onBack}
                   style={({ pressed }) => [
                     styles.secondaryButton,
@@ -137,6 +154,7 @@ export default function FeedCommentsReportModal({
                       borderColor: colors.outlineVariant,
                     },
                     pressed && styles.pressed,
+                    isSubmitting && styles.disabled,
                   ]}
                 >
                   <Text style={[styles.secondaryButtonText, { color: colors.onSurface }]}>
@@ -145,13 +163,21 @@ export default function FeedCommentsReportModal({
                 </Pressable>
 
                 <Pressable
+                  disabled={isSubmitting}
                   onPress={onSubmit}
                   style={({ pressed }) => [
                     styles.primaryDangerButton,
                     pressed && styles.pressed,
+                    isSubmitting && styles.disabled,
                   ]}
                 >
-                  <Text style={styles.primaryDangerButtonText}>Denunciar</Text>
+                  {isSubmitting ? (
+                    <ActivityIndicator color="#ffffff" />
+                  ) : (
+                    <Text style={styles.primaryDangerButtonText}>
+                      Denunciar
+                    </Text>
+                  )}
                 </Pressable>
               </View>
             </>
@@ -283,6 +309,14 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textAlign: 'center',
   },
+  errorText: {
+    marginTop: 12,
+    color: '#D70015',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
   actions: {
     marginTop: 20,
     flexDirection: 'row',
@@ -327,6 +361,9 @@ const styles = StyleSheet.create({
   finishButtonText: {
     fontSize: 14,
     fontWeight: '800',
+  },
+  disabled: {
+    opacity: 0.6,
   },
   pressed: {
     opacity: 0.9,

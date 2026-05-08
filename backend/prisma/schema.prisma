@@ -21,10 +21,12 @@ model User {
   dares           Dare[]         @relation("DareAuthor")
   targetedDares   Dare[]         @relation("DareTarget")
   dareProofs      DareProof[]
-  likes           Like[]
-  truthComments   TruthComment[]
-  truths          Truth[]        @relation("TruthAuthor")
-  targetedTruths  Truth[]        @relation("TruthTarget")
+  likes               Like[]
+  truthComments       TruthComment[]
+  truthReports        TruthReport[]
+  truthCommentReports TruthCommentReport[]
+  truths              Truth[]              @relation("TruthAuthor")
+  targetedTruths      Truth[]              @relation("TruthTarget")
 }
 
 model Truth {
@@ -37,6 +39,7 @@ model Truth {
   author       User           @relation("TruthAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   targetUser   User           @relation("TruthTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
   comments     TruthComment[]
+  reports      TruthReport[]
 
   @@index([authorId])
   @@index([targetUserId])
@@ -53,12 +56,45 @@ model TruthComment {
 
   truth   Truth          @relation(fields: [truthId], references: [id], onDelete: Cascade)
   user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent  TruthComment?  @relation("TruthCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies TruthComment[] @relation("TruthCommentReplies")
+  parent  TruthComment?        @relation("TruthCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies TruthComment[]       @relation("TruthCommentReplies")
+  reports TruthCommentReport[]
 
   @@index([truthId])
   @@index([userId])
   @@index([parentId])
+}
+
+model TruthReport {
+  id        String   @id @default(uuid())
+  truthId   String
+  userId    String
+  reason    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  truth Truth @relation(fields: [truthId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([truthId, userId])
+  @@index([truthId])
+  @@index([userId])
+}
+
+model TruthCommentReport {
+  id        String   @id @default(uuid())
+  commentId String
+  userId    String
+  reason    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  comment TruthComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
 }
 
 model Dare {
