@@ -10,6 +10,11 @@ import {
   searchClubs,
   updateClub,
 } from '../services/clubs.service';
+import { listClubMembers } from '../services/clubs.members.service';
+import {
+  createClubInvite,
+  listMyClubInvites,
+} from '../services/clubs.invites.service';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';
@@ -108,6 +113,61 @@ export async function getClubDetailsController(req: Request, res: Response) {
     return res.status(200).json(club);
   } catch (error) {
     return handleClubControllerError(res, error, 'Erro interno ao buscar clube');
+  }
+}
+
+export async function listClubMembersController(req: Request, res: Response) {
+  try {
+    const members = await listClubMembers({
+      clubId: getParamId(req),
+      userId: getAuthenticatedUserId(req),
+      page: req.query.page,
+      limit: req.query.limit,
+      role: req.query.role,
+      status: req.query.status,
+      search: req.query.search,
+    });
+
+    return res.status(200).json(members);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao listar membros do clube',
+    );
+  }
+}
+
+export async function createClubInviteController(req: Request, res: Response) {
+  try {
+    const invite = await createClubInvite({
+      clubId: getParamId(req),
+      inviterId: getAuthenticatedUserId(req),
+      inviteeId: req.body.userId,
+      message: req.body.message,
+    });
+
+    return res.status(201).json(invite);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao convidar usuario para clube',
+    );
+  }
+}
+
+export async function listMyClubInvitesController(req: Request, res: Response) {
+  try {
+    const invites = await listMyClubInvites(getAuthenticatedUserId(req));
+
+    return res.status(200).json(invites);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao listar convites recebidos',
+    );
   }
 }
 

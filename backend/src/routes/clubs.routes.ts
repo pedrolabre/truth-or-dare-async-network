@@ -2,8 +2,11 @@ import { Router } from 'express';
 import {
   archiveClubController,
   createClubController,
+  createClubInviteController,
   discoverClubsController,
   getClubDetailsController,
+  listClubMembersController,
+  listMyClubInvitesController,
   listMyClubsController,
   restoreClubController,
   searchClubsController,
@@ -15,8 +18,11 @@ const router = Router();
 
 router.post('/', authMiddleware, createClubController);
 router.get('/my', authMiddleware, listMyClubsController);
+router.get('/invites/my', authMiddleware, listMyClubInvitesController);
 router.get('/discover', authMiddleware, discoverClubsController);
 router.get('/search', authMiddleware, searchClubsController);
+router.get('/:id/members', authMiddleware, listClubMembersController);
+router.post('/:id/invites', authMiddleware, createClubInviteController);
 router.get('/:id', authMiddleware, getClubDetailsController);
 router.patch('/:id', authMiddleware, updateClubController);
 router.delete('/:id', authMiddleware, archiveClubController);

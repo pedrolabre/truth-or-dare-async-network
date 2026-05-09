@@ -7,11 +7,20 @@ import {
 import { ClubPermissionsDto } from '../dtos/clubs.dto';
 import { forbiddenError } from './clubs.errors';
 import { ClubWithViewerMembers } from './clubs.types';
+import { getClubWithMembers } from './clubs.repository';
 
-export function getPermissions(
+export type ClubPermissionFlags = {
+  podeEditar: boolean;
+  podeConvidar: boolean;
+  podeModerar: boolean;
+  podePostar: boolean;
+  podeResponder: boolean;
+};
+
+function calculateClubPermissions(
   club: ClubWithViewerMembers,
   viewerId: string,
-): ClubPermissionsDto {
+): ClubPermissionFlags {
   const membership = club.members.find((member) => member.userId === viewerId);
   const isActive = club.status === ClubStatus.active;
   const isActiveMember = membership?.status === ClubMemberStatus.active;
@@ -19,16 +28,46 @@ export function getPermissions(
   const isAdmin = membership?.role === ClubMemberRole.admin && isActiveMember;
   const isModerator =
     membership?.role === ClubMemberRole.moderator && isActiveMember;
-  const canManage = isOwner || isAdmin || isModerator;
+  const canPostOrRespond =
+    isActive && (isOwner || isAdmin || isModerator || Boolean(isActiveMember));
+
+  return {
+    podeEditar: isActive && (isOwner || isAdmin),
+    podeConvidar: isActive && (isOwner || isAdmin),
+    podeModerar: isActive && (isOwner || isAdmin || isModerator),
+    podePostar: canPostOrRespond,
+    podeResponder: canPostOrRespond,
+  };
+}
+
+export async function getClubPermissions(
+  userId: string,
+  clubId: string,
+): Promise<ClubPermissionFlags> {
+  const club = await getClubWithMembers(clubId);
+
+  return calculateClubPermissions(club, userId);
+}
+
+export function getPermissions(
+  club: ClubWithViewerMembers,
+  viewerId: string,
+): ClubPermissionsDto {
+  const flags = calculateClubPermissions(club, viewerId);
+  const isActive = club.status === ClubStatus.active;
+  const membership = club.members.find((member) => member.userId === viewerId);
+  const isActiveMember = membership?.status === ClubMemberStatus.active;
+  const isOwner =
+    isActiveMember && membership?.role === ClubMemberRole.owner;
 
   return {
     canViewFeed:
       isActive &&
       (club.visibility === ClubVisibility.public || Boolean(isActiveMember)),
-    canPostPrompt: isActive && Boolean(isActiveMember),
-    canInviteMembers: isActive && (isOwner || isAdmin),
-    canManageMembers: isActive && canManage,
-    canEditClub: isActive && (isOwner || isAdmin),
+    canPostPrompt: flags.podePostar,
+    canInviteMembers: flags.podeConvidar,
+    canManageMembers: flags.podeModerar,
+    canEditClub: flags.podeEditar,
     canArchiveClub: isOwner,
     canTransferOwnership: isOwner,
   };
