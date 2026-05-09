@@ -6,6 +6,7 @@ import {
 import { prisma } from '../lib/prisma';
 import {
   forbiddenError,
+  notFoundError,
   requireAuthenticatedUser,
   validationError,
 } from './clubs.errors';
@@ -18,6 +19,16 @@ export type CreateClubInviteInput = {
   inviterId: string;
   inviteeId?: unknown;
   message?: unknown;
+};
+
+export type AcceptClubInviteInput = {
+  inviteId: string;
+  userId: string;
+};
+
+export type DeclineClubInviteInput = {
+  inviteId: string;
+  userId: string;
 };
 
 export type ClubInviteDto = {
@@ -316,4 +327,205 @@ export async function createClubInvite(
   });
 
   return mapInvite(createdInvite);
+}
+
+export async function acceptClubInvite(
+  input: AcceptClubInviteInput,
+): Promise<ClubInviteDto> {
+  requireAuthenticatedUser(input.userId);
+
+  if (!input.inviteId) {
+    notFoundError();
+  }
+
+  const invite = await prisma.clubInvite.findUnique({
+    where: {
+      id: input.inviteId,
+    },
+    include: {
+      club: true,
+    },
+  });
+
+  if (!invite) {
+    notFoundError();
+  }
+
+  if (invite.inviteeId !== input.userId) {
+    forbiddenError();
+  }
+
+  if (invite.status !== ClubMemberStatus.invited) {
+    validationError('Apenas convites pendentes podem ser aceitos');
+  }
+
+  if (invite.club.status === ClubStatus.deleted || invite.club.deletedAt) {
+    notFoundError();
+  }
+
+  if (invite.club.status !== ClubStatus.active) {
+    validationError('Apenas convites de clubes ativos podem ser aceitos');
+  }
+
+  const now = new Date();
+
+  const acceptedInvite = await prisma.$transaction(async (tx) => {
+    const existingMembership = await tx.clubMember.findUnique({
+      where: {
+        clubId_userId: {
+          clubId: invite.clubId,
+          userId: input.userId,
+        },
+      },
+    });
+    const shouldIncrementMemberCount =
+      existingMembership?.status !== ClubMemberStatus.active;
+
+    const updatedInvite = await tx.clubInvite.update({
+      where: {
+        id: invite.id,
+      },
+      data: {
+        status: ClubMemberStatus.active,
+        acceptedAt: now,
+      },
+    });
+
+    await tx.clubMember.upsert({
+      where: {
+        clubId_userId: {
+          clubId: invite.clubId,
+          userId: input.userId,
+        },
+      },
+      update: {
+        role:
+          existingMembership?.role === ClubMemberRole.owner
+            ? ClubMemberRole.owner
+            : ClubMemberRole.member,
+        status: ClubMemberStatus.active,
+        invitedById: invite.inviterId,
+        joinedAt: existingMembership?.joinedAt ?? now,
+      },
+      create: {
+        clubId: invite.clubId,
+        userId: input.userId,
+        role: ClubMemberRole.member,
+        status: ClubMemberStatus.active,
+        invitedById: invite.inviterId,
+        joinedAt: now,
+      },
+    });
+
+    await tx.club.update({
+      where: {
+        id: invite.clubId,
+      },
+      data: {
+        memberCount: shouldIncrementMemberCount
+          ? {
+              increment: 1,
+            }
+          : undefined,
+        lastActivityAt: now,
+      },
+    });
+
+    await tx.clubAuditLog.create({
+      data: {
+        clubId: invite.clubId,
+        actorId: input.userId,
+        targetUserId: input.userId,
+        action: 'club_invite_accepted',
+        entityType: 'club_invite',
+        entityId: invite.id,
+        metadata: {
+          inviterId: invite.inviterId,
+          incrementedMemberCount: shouldIncrementMemberCount,
+        },
+      },
+    });
+
+    return updatedInvite;
+  });
+
+  return mapInvite(acceptedInvite);
+}
+
+export async function declineClubInvite(
+  input: DeclineClubInviteInput,
+): Promise<ClubInviteDto> {
+  requireAuthenticatedUser(input.userId);
+
+  if (!input.inviteId) {
+    notFoundError();
+  }
+
+  const invite = await prisma.clubInvite.findUnique({
+    where: {
+      id: input.inviteId,
+    },
+    include: {
+      club: true,
+    },
+  });
+
+  if (!invite) {
+    notFoundError();
+  }
+
+  if (invite.inviteeId !== input.userId) {
+    forbiddenError();
+  }
+
+  if (invite.status !== ClubMemberStatus.invited) {
+    validationError('Apenas convites pendentes podem ser recusados');
+  }
+
+  if (invite.club.status === ClubStatus.deleted || invite.club.deletedAt) {
+    notFoundError();
+  }
+
+  const now = new Date();
+
+  const declinedInvite = await prisma.$transaction(async (tx) => {
+    const updatedInvite = await tx.clubInvite.update({
+      where: {
+        id: invite.id,
+      },
+      data: {
+        status: ClubMemberStatus.removed,
+        declinedAt: now,
+      },
+    });
+
+    await tx.clubMember.updateMany({
+      where: {
+        clubId: invite.clubId,
+        userId: input.userId,
+        status: ClubMemberStatus.invited,
+      },
+      data: {
+        status: ClubMemberStatus.removed,
+      },
+    });
+
+    await tx.clubAuditLog.create({
+      data: {
+        clubId: invite.clubId,
+        actorId: input.userId,
+        targetUserId: input.userId,
+        action: 'club_invite_declined',
+        entityType: 'club_invite',
+        entityId: invite.id,
+        metadata: {
+          inviterId: invite.inviterId,
+        },
+      },
+    });
+
+    return updatedInvite;
+  });
+
+  return mapInvite(declinedInvite);
 }

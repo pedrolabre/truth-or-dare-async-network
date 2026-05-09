@@ -356,4 +356,374 @@ describe('clubs.invites.routes', () => {
 
     expect(response.status).toBe(401);
   });
+
+  it('POST /clubs/invites/:id/accept permite convidado aceitar convite pendente', async () => {
+    const owner = await createTestUser();
+    const invitee = await createTestUser();
+    const club = await createTestClub({
+      createdById: owner.id,
+      memberCount: 1,
+    });
+
+    await addUserToClub(club.id, owner.id, {
+      role: ClubMemberRole.owner,
+      status: ClubMemberStatus.active,
+    });
+
+    const inviteResponse = await request(app)
+      .post(`/clubs/${club.id}/invites`)
+      .set('Authorization', `Bearer ${authTokenFor(owner)}`)
+      .send({
+        userId: invitee.id,
+      });
+    const acceptResponse = await request(app)
+      .post(`/clubs/invites/${inviteResponse.body.id}/accept`)
+      .set('Authorization', `Bearer ${authTokenFor(invitee)}`);
+
+    expect(acceptResponse.status).toBe(200);
+    expect(acceptResponse.body).toMatchObject({
+      id: inviteResponse.body.id,
+      clubId: club.id,
+      inviteeId: invitee.id,
+      status: ClubMemberStatus.active,
+      acceptedAt: expect.any(String),
+    });
+
+    await expect(
+      prisma.clubMember.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: club.id,
+            userId: invitee.id,
+          },
+        },
+      }),
+    ).resolves.toMatchObject({
+      role: ClubMemberRole.member,
+      status: ClubMemberStatus.active,
+      invitedById: owner.id,
+    });
+
+    await expect(
+      prisma.club.findUniqueOrThrow({
+        where: {
+          id: club.id,
+        },
+      }),
+    ).resolves.toMatchObject({
+      memberCount: 2,
+      lastActivityAt: expect.any(Date),
+    });
+
+    await expect(
+      prisma.clubAuditLog.count({
+        where: {
+          clubId: club.id,
+          actorId: invitee.id,
+          targetUserId: invitee.id,
+          action: 'club_invite_accepted',
+        },
+      }),
+    ).resolves.toBe(1);
+  });
+
+  it('POST /clubs/invites/:id/accept bloqueia usuario diferente do convidado', async () => {
+    const owner = await createTestUser();
+    const invitee = await createTestUser();
+    const outsider = await createTestUser();
+    const club = await createTestClub({
+      createdById: owner.id,
+      memberCount: 1,
+    });
+
+    await addUserToClub(club.id, owner.id, {
+      role: ClubMemberRole.owner,
+      status: ClubMemberStatus.active,
+    });
+
+    const inviteResponse = await request(app)
+      .post(`/clubs/${club.id}/invites`)
+      .set('Authorization', `Bearer ${authTokenFor(owner)}`)
+      .send({
+        userId: invitee.id,
+      });
+    const acceptResponse = await request(app)
+      .post(`/clubs/invites/${inviteResponse.body.id}/accept`)
+      .set('Authorization', `Bearer ${authTokenFor(outsider)}`);
+
+    expect(acceptResponse.status).toBe(403);
+    expect(acceptResponse.body).toMatchObject({
+      code: 'CLUB_FORBIDDEN',
+    });
+  });
+
+  it('POST /clubs/invites/:id/accept rejeita convite inexistente, nao pendente e clube arquivado', async () => {
+    const owner = await createTestUser();
+    const invitee = await createTestUser();
+    const secondInvitee = await createTestUser();
+    const archivedInvitee = await createTestUser();
+    const club = await createTestClub({
+      createdById: owner.id,
+      memberCount: 1,
+    });
+    const archivedClub = await createTestClub({
+      createdById: owner.id,
+      status: ClubStatus.archived,
+      memberCount: 1,
+    });
+
+    await addUserToClub(club.id, owner.id, {
+      role: ClubMemberRole.owner,
+      status: ClubMemberStatus.active,
+    });
+    await addUserToClub(archivedClub.id, owner.id, {
+      role: ClubMemberRole.owner,
+      status: ClubMemberStatus.active,
+    });
+
+    const acceptedInvite = await prisma.clubInvite.create({
+      data: {
+        clubId: club.id,
+        inviterId: owner.id,
+        inviteeId: invitee.id,
+        status: ClubMemberStatus.active,
+        acceptedAt: new Date(),
+      },
+    });
+    const archivedInvite = await prisma.clubInvite.create({
+      data: {
+        clubId: archivedClub.id,
+        inviterId: owner.id,
+        inviteeId: archivedInvitee.id,
+        status: ClubMemberStatus.invited,
+      },
+    });
+
+    const notFoundResponse = await request(app)
+      .post('/clubs/invites/convite-inexistente/accept')
+      .set('Authorization', `Bearer ${authTokenFor(secondInvitee)}`);
+    const notPendingResponse = await request(app)
+      .post(`/clubs/invites/${acceptedInvite.id}/accept`)
+      .set('Authorization', `Bearer ${authTokenFor(invitee)}`);
+    const archivedResponse = await request(app)
+      .post(`/clubs/invites/${archivedInvite.id}/accept`)
+      .set('Authorization', `Bearer ${authTokenFor(archivedInvitee)}`);
+
+    expect(notFoundResponse.status).toBe(404);
+    expect(notFoundResponse.body).toMatchObject({
+      code: 'CLUB_NOT_FOUND',
+    });
+    expect(notPendingResponse.status).toBe(400);
+    expect(notPendingResponse.body).toMatchObject({
+      code: 'CLUB_VALIDATION_ERROR',
+    });
+    expect(archivedResponse.status).toBe(400);
+    expect(archivedResponse.body).toMatchObject({
+      code: 'CLUB_VALIDATION_ERROR',
+    });
+  });
+
+  it('POST /clubs/invites/:id/accept retorna 401 sem token', async () => {
+    const response = await request(app).post('/clubs/invites/qualquer/accept');
+
+    expect(response.status).toBe(401);
+  });
+
+  it('POST /clubs/invites/:id/decline permite convidado recusar convite pendente', async () => {
+    const owner = await createTestUser();
+    const invitee = await createTestUser();
+    const club = await createTestClub({
+      createdById: owner.id,
+      memberCount: 1,
+    });
+
+    await addUserToClub(club.id, owner.id, {
+      role: ClubMemberRole.owner,
+      status: ClubMemberStatus.active,
+    });
+
+    const inviteResponse = await request(app)
+      .post(`/clubs/${club.id}/invites`)
+      .set('Authorization', `Bearer ${authTokenFor(owner)}`)
+      .send({
+        userId: invitee.id,
+      });
+    const declineResponse = await request(app)
+      .post(`/clubs/invites/${inviteResponse.body.id}/decline`)
+      .set('Authorization', `Bearer ${authTokenFor(invitee)}`);
+
+    expect(declineResponse.status).toBe(200);
+    expect(declineResponse.body).toMatchObject({
+      id: inviteResponse.body.id,
+      clubId: club.id,
+      inviteeId: invitee.id,
+      status: ClubMemberStatus.removed,
+      declinedAt: expect.any(String),
+    });
+
+    await expect(
+      prisma.clubMember.findUnique({
+        where: {
+          clubId_userId: {
+            clubId: club.id,
+            userId: invitee.id,
+          },
+        },
+      }),
+    ).resolves.toMatchObject({
+      role: ClubMemberRole.member,
+      status: ClubMemberStatus.removed,
+      invitedById: owner.id,
+      joinedAt: null,
+    });
+
+    await expect(
+      prisma.club.findUniqueOrThrow({
+        where: {
+          id: club.id,
+        },
+      }),
+    ).resolves.toMatchObject({
+      memberCount: 1,
+    });
+
+    await expect(
+      prisma.clubAuditLog.count({
+        where: {
+          clubId: club.id,
+          actorId: invitee.id,
+          targetUserId: invitee.id,
+          action: 'club_invite_declined',
+        },
+      }),
+    ).resolves.toBe(1);
+  });
+
+  it('POST /clubs/invites/:id/decline bloqueia usuario diferente do convidado', async () => {
+    const owner = await createTestUser();
+    const invitee = await createTestUser();
+    const outsider = await createTestUser();
+    const club = await createTestClub({
+      createdById: owner.id,
+      memberCount: 1,
+    });
+
+    await addUserToClub(club.id, owner.id, {
+      role: ClubMemberRole.owner,
+      status: ClubMemberStatus.active,
+    });
+
+    const inviteResponse = await request(app)
+      .post(`/clubs/${club.id}/invites`)
+      .set('Authorization', `Bearer ${authTokenFor(owner)}`)
+      .send({
+        userId: invitee.id,
+      });
+    const declineResponse = await request(app)
+      .post(`/clubs/invites/${inviteResponse.body.id}/decline`)
+      .set('Authorization', `Bearer ${authTokenFor(outsider)}`);
+
+    expect(declineResponse.status).toBe(403);
+    expect(declineResponse.body).toMatchObject({
+      code: 'CLUB_FORBIDDEN',
+    });
+  });
+
+  it('POST /clubs/invites/:id/decline rejeita convite inexistente, nao pendente e clube deletado', async () => {
+    const owner = await createTestUser();
+    const invitee = await createTestUser();
+    const secondInvitee = await createTestUser();
+    const deletedInvitee = await createTestUser();
+    const club = await createTestClub({
+      createdById: owner.id,
+      memberCount: 1,
+    });
+    const deletedClub = await createTestClub({
+      createdById: owner.id,
+      status: ClubStatus.deleted,
+      memberCount: 1,
+    });
+
+    const acceptedInvite = await prisma.clubInvite.create({
+      data: {
+        clubId: club.id,
+        inviterId: owner.id,
+        inviteeId: invitee.id,
+        status: ClubMemberStatus.active,
+        acceptedAt: new Date(),
+      },
+    });
+    const deletedInvite = await prisma.clubInvite.create({
+      data: {
+        clubId: deletedClub.id,
+        inviterId: owner.id,
+        inviteeId: deletedInvitee.id,
+        status: ClubMemberStatus.invited,
+      },
+    });
+
+    const notFoundResponse = await request(app)
+      .post('/clubs/invites/convite-inexistente/decline')
+      .set('Authorization', `Bearer ${authTokenFor(secondInvitee)}`);
+    const notPendingResponse = await request(app)
+      .post(`/clubs/invites/${acceptedInvite.id}/decline`)
+      .set('Authorization', `Bearer ${authTokenFor(invitee)}`);
+    const deletedResponse = await request(app)
+      .post(`/clubs/invites/${deletedInvite.id}/decline`)
+      .set('Authorization', `Bearer ${authTokenFor(deletedInvitee)}`);
+
+    expect(notFoundResponse.status).toBe(404);
+    expect(notFoundResponse.body).toMatchObject({
+      code: 'CLUB_NOT_FOUND',
+    });
+    expect(notPendingResponse.status).toBe(400);
+    expect(notPendingResponse.body).toMatchObject({
+      code: 'CLUB_VALIDATION_ERROR',
+    });
+    expect(deletedResponse.status).toBe(404);
+    expect(deletedResponse.body).toMatchObject({
+      code: 'CLUB_NOT_FOUND',
+    });
+  });
+
+  it('POST /clubs/invites/:id/decline permite recusar convite de clube arquivado', async () => {
+    const owner = await createTestUser();
+    const invitee = await createTestUser();
+    const archivedClub = await createTestClub({
+      createdById: owner.id,
+      status: ClubStatus.archived,
+      memberCount: 1,
+    });
+    const invite = await prisma.clubInvite.create({
+      data: {
+        clubId: archivedClub.id,
+        inviterId: owner.id,
+        inviteeId: invitee.id,
+        status: ClubMemberStatus.invited,
+      },
+    });
+
+    await addUserToClub(archivedClub.id, invitee.id, {
+      role: ClubMemberRole.member,
+      status: ClubMemberStatus.invited,
+      joinedAt: null,
+    });
+
+    const response = await request(app)
+      .post(`/clubs/invites/${invite.id}/decline`)
+      .set('Authorization', `Bearer ${authTokenFor(invitee)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: invite.id,
+      status: ClubMemberStatus.removed,
+      declinedAt: expect.any(String),
+    });
+  });
+
+  it('POST /clubs/invites/:id/decline retorna 401 sem token', async () => {
+    const response = await request(app).post('/clubs/invites/qualquer/decline');
+
+    expect(response.status).toBe(401);
+  });
 });

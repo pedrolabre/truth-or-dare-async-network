@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import {
+  acceptClubInviteController,
   archiveClubController,
   createClubController,
   createClubInviteController,
+  declineClubInviteController,
   discoverClubsController,
   getClubDetailsController,
   listClubMembersController,
@@ -19,6 +21,8 @@ const router = Router();
 router.post('/', authMiddleware, createClubController);
 router.get('/my', authMiddleware, listMyClubsController);
 router.get('/invites/my', authMiddleware, listMyClubInvitesController);
+router.post('/invites/:id/accept', authMiddleware, acceptClubInviteController);
+router.post('/invites/:id/decline', authMiddleware, declineClubInviteController);
 router.get('/discover', authMiddleware, discoverClubsController);
 router.get('/search', authMiddleware, searchClubsController);
 router.get('/:id/members', authMiddleware, listClubMembersController);

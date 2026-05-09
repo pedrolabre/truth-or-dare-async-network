@@ -12,7 +12,9 @@ import {
 } from '../services/clubs.service';
 import { listClubMembers } from '../services/clubs.members.service';
 import {
+  acceptClubInvite,
   createClubInvite,
+  declineClubInvite,
   listMyClubInvites,
 } from '../services/clubs.invites.service';
 
@@ -167,6 +169,40 @@ export async function listMyClubInvitesController(req: Request, res: Response) {
       res,
       error,
       'Erro interno ao listar convites recebidos',
+    );
+  }
+}
+
+export async function acceptClubInviteController(req: Request, res: Response) {
+  try {
+    const invite = await acceptClubInvite({
+      inviteId: getParamId(req),
+      userId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(invite);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao aceitar convite de clube',
+    );
+  }
+}
+
+export async function declineClubInviteController(req: Request, res: Response) {
+  try {
+    const invite = await declineClubInvite({
+      inviteId: getParamId(req),
+      userId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(invite);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao recusar convite de clube',
     );
   }
 }
