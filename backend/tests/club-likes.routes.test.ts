@@ -40,6 +40,7 @@ describe('POST /clubs/:id/like', () => {
     const club = await prisma.club.create({
       data: {
         name: 'Clube Teste',
+        slug: 'clube-teste',
         createdById: user.id,
       },
     });
@@ -98,6 +99,7 @@ describe('POST /clubs/:id/like', () => {
     const club = await prisma.club.create({
       data: {
         name: 'Clube Teste 2',
+        slug: 'clube-teste-2',
         createdById: user.id,
       },
     });

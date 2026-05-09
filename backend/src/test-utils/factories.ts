@@ -29,6 +29,7 @@ type CreateTestDareInput = BaseDateInput & {
 type CreateTestClubInput = BaseDateInput & {
   createdById: string;
   name?: string;
+  slug?: string;
   description?: string;
 };
 
@@ -80,6 +81,16 @@ const DEFAULT_TEST_PASSWORD = '123456';
 
 function uniqueSuffix() {
   return `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function slugifyTestValue(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 function withOptionalCreatedAt<T extends Record<string, unknown>>(
@@ -202,11 +213,14 @@ export async function createTestDare(input: CreateTestDareInput) {
 }
 
 export async function createTestClub(input: CreateTestClubInput) {
+  const name = input.name ?? `Clube ${uniqueSuffix()}`;
+
   return prisma.club.create({
     data: withOptionalCreatedAt(
       {
         createdById: input.createdById,
-        name: input.name ?? `Clube ${uniqueSuffix()}`,
+        name,
+        slug: input.slug ?? `${slugifyTestValue(name)}-${uniqueSuffix()}`,
         description:
           input.description ?? 'Clube criado para testes automatizados',
       },

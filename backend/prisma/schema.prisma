@@ -16,8 +16,13 @@ model User {
   bio             String?
   username        String?        @unique
   clubsCreated    Club[]
+  clubInvitesReceived ClubInvite[] @relation("ClubInviteInvitee")
+  clubInvitesSent     ClubInvite[] @relation("ClubInviteInviter")
+  clubJoinRequests    ClubJoinRequest[]
   clubMemberships ClubMember[]
+  clubPromptComments ClubPromptComment[]
   clubPrompts     ClubPrompt[]
+  clubPromptResponses ClubPromptResponse[]
   dares           Dare[]         @relation("DareAuthor")
   targetedDares   Dare[]         @relation("DareTarget")
   dareProofs      DareProof[]
@@ -128,46 +133,236 @@ model DareProof {
   updatedAt       DateTime       @updatedAt
   dare            Dare           @relation(fields: [dareId], references: [id], onDelete: Cascade)
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clubPromptResponses ClubPromptResponse[]
 
   @@index([dareId])
   @@index([userId])
 }
 
 model Club {
-  id          String       @id @default(uuid())
-  name        String
-  description String?
-  createdById String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  members     ClubMember[]
-  prompts     ClubPrompt[]
+  id             String         @id @default(uuid())
+  name           String
+  slug           String         @unique
+  description    String?
+  iconName       String         @default("groups")
+  avatarUrl      String?
+  coverUrl       String?
+  visibility     ClubVisibility @default(public)
+  status         ClubStatus     @default(active)
+  rules          String?
+  tags           String[]       @default([])
+  memberCount    Int            @default(0)
+  promptCount    Int            @default(0)
+  lastActivityAt DateTime?
+  archivedAt     DateTime?
+  deletedAt      DateTime?
+  createdById    String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  auditLogs      ClubAuditLog[]
+  createdBy      User           @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  invites        ClubInvite[]
+  joinRequests   ClubJoinRequest[]
+  members        ClubMember[]
+  prompts        ClubPrompt[]
+  promptComments ClubPromptComment[]
+  promptResponses ClubPromptResponse[]
+
+  @@index([visibility, status])
+  @@index([visibility, status, lastActivityAt])
+  @@index([name])
+  @@index([lastActivityAt])
+  @@index([memberCount])
+  @@index([createdById])
 }
 
 model ClubMember {
-  id        String   @id @default(uuid())
-  clubId    String
-  userId    String
-  createdAt DateTime @default(now())
-  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String           @id @default(uuid())
+  clubId      String
+  userId      String
+  role        ClubMemberRole   @default(member)
+  status      ClubMemberStatus @default(active)
+  invitedById String?
+  joinedAt    DateTime?
+  lastSeenAt  DateTime?
+  mutedUntil  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  club        Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([clubId, userId])
+  @@index([userId])
+  @@index([userId, status])
+  @@index([clubId, status])
+  @@index([clubId, role])
+  @@index([clubId, role, status])
+  @@index([role])
+}
+
+model ClubInvite {
+  id          String           @id @default(uuid())
+  clubId      String
+  inviteeId   String
+  inviterId   String
+  status      ClubMemberStatus @default(invited)
+  code        String?
+  message     String?
+  expiresAt   DateTime?
+  acceptedAt  DateTime?
+  declinedAt  DateTime?
+  cancelledAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  club        Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  invitee     User             @relation("ClubInviteInvitee", fields: [inviteeId], references: [id], onDelete: Cascade)
+  inviter     User             @relation("ClubInviteInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, inviteeId, status])
+  @@unique([code])
+  @@index([inviteeId, status])
+  @@index([clubId, status])
+  @@index([inviterId])
+}
+
+model ClubJoinRequest {
+  id           String           @id @default(uuid())
+  clubId       String
+  userId       String
+  status       ClubMemberStatus @default(requested)
+  message      String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  approvedAt   DateTime?
+  rejectedAt   DateTime?
+  cancelledAt  DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  club         Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId, status])
+  @@index([userId, status])
+  @@index([clubId, status])
+  @@index([reviewedById])
 }
 
 model ClubPrompt {
-  id          String         @id @default(uuid())
-  clubId      String
-  authorId    String
-  type        ClubPromptType
-  content     String
-  maxAttempts Int?
-  expiresAt   DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  author      User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  club        Club           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  id            String           @id @default(uuid())
+  clubId        String
+  authorId      String
+  type          ClubPromptType
+  status        ClubPromptStatus @default(published)
+  content       String
+  difficulty    String?
+  attachments   Json?
+  maxAttempts   Int?
+  expiresAt     DateTime?
+  publishedAt   DateTime?
+  archivedAt    DateTime?
+  removedAt     DateTime?
+  removedById   String?
+  removalReason String?
+  answersCount  Int              @default(0)
+  commentsCount Int              @default(0)
+  likesCount    Int              @default(0)
+  isPinned      Boolean          @default(false)
+  isMembersOnly Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  author        User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  club          Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  comments      ClubPromptComment[]
+  responses     ClubPromptResponse[]
+
+  @@index([clubId, status])
+  @@index([authorId])
+  @@index([expiresAt])
+  @@index([publishedAt])
+  @@index([isPinned])
+}
+
+model ClubPromptResponse {
+  id            String          @id @default(uuid())
+  clubId        String
+  promptId      String
+  userId        String
+  text          String?
+  mediaUrl      String?
+  mediaType     ProofMediaType?
+  dareProofId   String?
+  attemptsUsed  Int             @default(0)
+  completedAt   DateTime?
+  archivedAt    DateTime?
+  removedAt     DateTime?
+  removedById   String?
+  removalReason String?
+  likesCount    Int             @default(0)
+  commentsCount Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  club          Club            @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  comments      ClubPromptComment[]
+  prompt        ClubPrompt      @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dareProof     DareProof?      @relation(fields: [dareProofId], references: [id], onDelete: SetNull)
+
+  @@index([clubId])
+  @@index([promptId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([removedAt])
+}
+
+model ClubPromptComment {
+  id            String               @id @default(uuid())
+  clubId        String
+  promptId      String
+  responseId    String?
+  userId        String
+  parentId      String?
+  text          String
+  likesCount    Int                  @default(0)
+  repliesCount  Int                  @default(0)
+  editedAt      DateTime?
+  removedAt     DateTime?
+  removedById   String?
+  removalReason String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  club          Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  prompt        ClubPrompt           @relation(fields: [promptId], references: [id], onDelete: Cascade)
+  response      ClubPromptResponse?  @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  user          User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent        ClubPromptComment?   @relation("ClubPromptCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       ClubPromptComment[]  @relation("ClubPromptCommentReplies")
+
+  @@index([clubId])
+  @@index([promptId])
+  @@index([responseId])
+  @@index([userId])
+  @@index([parentId])
+  @@index([createdAt])
+  @@index([removedAt])
+}
+
+model ClubAuditLog {
+  id           String   @id @default(uuid())
+  clubId       String
+  actorId      String?
+  targetUserId String?
+  action       String
+  entityType   String?
+  entityId     String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  club         Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+  @@index([actorId])
+  @@index([targetUserId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Like {
@@ -185,6 +380,46 @@ model Like {
 enum ClubPromptType {
   truth
   dare
+}
+
+enum ClubVisibility {
+  public
+  private
+  invite_only
+}
+
+enum ClubStatus {
+  active
+  archived
+  suspended
+  deleted
+}
+
+enum ClubMemberRole {
+  owner
+  admin
+  moderator
+  member
+}
+
+enum ClubMemberStatus {
+  active
+  invited
+  requested
+  removed
+}
+
+enum ClubPromptStatus {
+  draft
+  published
+  archived
+  removed
+}
+
+enum ClubJoinPolicy {
+  open
+  approval_required
+  invite_only
 }
 
 enum LikeTargetType {
