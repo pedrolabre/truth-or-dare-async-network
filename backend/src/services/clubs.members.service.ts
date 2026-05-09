@@ -6,6 +6,7 @@ import {
 import { ClubMemberSummaryDto } from '../dtos/clubs.dto';
 import { prisma } from '../lib/prisma';
 import { requireAuthenticatedUser, validationError } from './clubs.errors';
+import { mapClubMember } from './clubs.members.mappers';
 import { ensureCanViewClub } from './clubs.permissions';
 import { getClubWithMembers } from './clubs.repository';
 
@@ -116,27 +117,6 @@ function normalizeSearch(value: unknown) {
   const normalizedSearch = search.trim();
 
   return normalizedSearch || undefined;
-}
-
-function mapClubMember(member: Prisma.ClubMemberGetPayload<{
-  include: {
-    user: true;
-  };
-}>): ClubMemberSummaryDto {
-  return {
-    id: member.id,
-    clubId: member.clubId,
-    userId: member.userId,
-    name: member.user.name,
-    username: member.user.username,
-    role: member.role,
-    status: member.status,
-    joinedAt: member.joinedAt?.toISOString() ?? null,
-    lastSeenAt: member.lastSeenAt?.toISOString() ?? null,
-    mutedUntil: member.mutedUntil?.toISOString() ?? null,
-    createdAt: member.createdAt.toISOString(),
-    updatedAt: member.updatedAt.toISOString(),
-  };
 }
 
 export async function listClubMembers(

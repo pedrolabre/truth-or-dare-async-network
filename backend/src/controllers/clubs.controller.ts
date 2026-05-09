@@ -11,6 +11,12 @@ import {
   updateClub,
 } from '../services/clubs.service';
 import { listClubMembers } from '../services/clubs.members.service';
+import { joinPublicClub } from '../services/clubs.join.service';
+import {
+  approveClubJoinRequest,
+  rejectClubJoinRequest,
+  requestToJoinClub,
+} from '../services/clubs.join-requests.service';
 import {
   acceptClubInvite,
   createClubInvite,
@@ -136,6 +142,84 @@ export async function listClubMembersController(req: Request, res: Response) {
       res,
       error,
       'Erro interno ao listar membros do clube',
+    );
+  }
+}
+
+export async function joinClubController(req: Request, res: Response) {
+  try {
+    const membership = await joinPublicClub({
+      clubId: getParamId(req),
+      userId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(membership);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao entrar no clube',
+    );
+  }
+}
+
+export async function createClubJoinRequestController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const joinRequest = await requestToJoinClub({
+      clubId: getParamId(req),
+      userId: getAuthenticatedUserId(req),
+      message: req.body?.message,
+    });
+
+    return res.status(201).json(joinRequest);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao solicitar entrada no clube',
+    );
+  }
+}
+
+export async function approveClubJoinRequestController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const joinRequest = await approveClubJoinRequest({
+      requestId: getParamId(req),
+      reviewerId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(joinRequest);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao aprovar solicitacao de entrada',
+    );
+  }
+}
+
+export async function rejectClubJoinRequestController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const joinRequest = await rejectClubJoinRequest({
+      requestId: getParamId(req),
+      reviewerId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(joinRequest);
+  } catch (error) {
+    return handleClubControllerError(
+      res,
+      error,
+      'Erro interno ao rejeitar solicitacao de entrada',
     );
   }
 }
