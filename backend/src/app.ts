@@ -10,6 +10,7 @@ import truthLikesRoutes from './routes/truth-likes.routes';
 import truthCommentsLikesRoutes from './routes/truth-comments-likes.routes';
 import dareLikesRoutes from './routes/dare-likes.routes';
 import clubLikesRoutes from './routes/club-likes.routes';
+import clubsRoutes from './routes/clubs.routes';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/truths', truthsRoutes);
 app.use('/dares', daresRoutes);
 app.use('/users', usersRoutes);
 app.use('/uploads', uploadsRoutes);
+app.use('/clubs', clubsRoutes);
 app.use(truthLikesRoutes);
 app.use(truthCommentsLikesRoutes);
 app.use(dareLikesRoutes);

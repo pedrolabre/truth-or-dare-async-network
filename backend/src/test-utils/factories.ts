@@ -1,5 +1,11 @@
 import bcrypt from 'bcrypt';
-import { ClubPromptType } from '../generated/prisma/client';
+import {
+  ClubMemberRole,
+  ClubMemberStatus,
+  ClubPromptType,
+  ClubStatus,
+  ClubVisibility,
+} from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 
 type BaseDateInput = {
@@ -31,6 +37,17 @@ type CreateTestClubInput = BaseDateInput & {
   name?: string;
   slug?: string;
   description?: string;
+  iconName?: string;
+  visibility?: ClubVisibility;
+  status?: ClubStatus;
+  memberCount?: number;
+  tags?: string[];
+};
+
+type AddUserToClubInput = {
+  role?: ClubMemberRole;
+  status?: ClubMemberStatus;
+  joinedAt?: Date | null;
 };
 
 type CreateTestClubPromptInput = BaseDateInput & {
@@ -223,13 +240,22 @@ export async function createTestClub(input: CreateTestClubInput) {
         slug: input.slug ?? `${slugifyTestValue(name)}-${uniqueSuffix()}`,
         description:
           input.description ?? 'Clube criado para testes automatizados',
+        iconName: input.iconName ?? 'groups',
+        visibility: input.visibility ?? ClubVisibility.public,
+        status: input.status ?? ClubStatus.active,
+        memberCount: input.memberCount ?? 0,
+        tags: input.tags ?? [],
       },
       input.createdAt,
     ),
   });
 }
 
-export async function addUserToClub(clubId: string, userId: string) {
+export async function addUserToClub(
+  clubId: string,
+  userId: string,
+  input: AddUserToClubInput = {},
+) {
   return prisma.clubMember.upsert({
     where: {
       clubId_userId: {
@@ -237,10 +263,17 @@ export async function addUserToClub(clubId: string, userId: string) {
         userId,
       },
     },
-    update: {},
+    update: {
+      role: input.role,
+      status: input.status,
+      joinedAt: input.joinedAt,
+    },
     create: {
       clubId,
       userId,
+      role: input.role ?? ClubMemberRole.member,
+      status: input.status ?? ClubMemberStatus.active,
+      joinedAt: input.joinedAt === undefined ? new Date() : input.joinedAt,
     },
   });
 }
