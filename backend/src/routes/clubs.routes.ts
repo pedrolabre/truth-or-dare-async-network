@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import {
   leaveClubController,
+  muteClubController,
   removeClubMemberController,
   transferClubOwnershipController,
+  unmuteClubController,
   updateClubMemberRoleController,
 } from '../controllers/clubs.members-actions.controller';
 import {
@@ -69,6 +71,8 @@ router.post(
   createClubJoinRequestController,
 );
 router.post('/:id/leave', authMiddleware, leaveClubController);
+router.post('/:id/mute', authMiddleware, muteClubController);
+router.post('/:id/unmute', authMiddleware, unmuteClubController);
 router.get('/:id', authMiddleware, getClubDetailsController);
 router.patch('/:id', authMiddleware, updateClubController);
 router.delete('/:id', authMiddleware, archiveClubController);

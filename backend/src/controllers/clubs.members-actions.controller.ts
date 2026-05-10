@@ -1,6 +1,10 @@
 import { Request, Response } from 'express';
 import { ClubServiceError } from '../services/clubs.service';
 import { leaveClub } from '../services/clubs.members-leave.service';
+import {
+  muteClub,
+  unmuteClub,
+} from '../services/clubs.members-mute.service';
 import { removeClubMember } from '../services/clubs.members-remove.service';
 import { updateClubMemberRole } from '../services/clubs.members-role.service';
 import { transferClubOwnership } from '../services/clubs.ownership-transfer.service';
@@ -45,6 +49,40 @@ export async function leaveClubController(req: Request, res: Response) {
       res,
       error,
       'Erro interno ao sair do clube',
+    );
+  }
+}
+
+export async function muteClubController(req: Request, res: Response) {
+  try {
+    const membership = await muteClub({
+      clubId: getParamId(req),
+      userId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(membership);
+  } catch (error) {
+    return handleClubMembersActionError(
+      res,
+      error,
+      'Erro interno ao silenciar clube',
+    );
+  }
+}
+
+export async function unmuteClubController(req: Request, res: Response) {
+  try {
+    const membership = await unmuteClub({
+      clubId: getParamId(req),
+      userId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(membership);
+  } catch (error) {
+    return handleClubMembersActionError(
+      res,
+      error,
+      'Erro interno ao remover silencio do clube',
     );
   }
 }
