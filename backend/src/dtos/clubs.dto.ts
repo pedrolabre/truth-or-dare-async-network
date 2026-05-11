@@ -167,3 +167,17 @@ export type ClubPromptDetailDto = ClubPromptSummaryDto & {
     canRemove: boolean;
   };
 };
+
+export type ClubFeedPromptItemDto = ClubPromptSummaryDto & {
+  viewerState: {
+    likedByMe: boolean;
+    answeredByMe: boolean;
+    canAnswer: boolean;
+  };
+  recentResponses: ClubPromptResponseSummaryDto[];
+};
+
+export type ClubFeedDto = {
+  club: ClubSummaryDto;
+  items: ClubFeedPromptItemDto[];
+};

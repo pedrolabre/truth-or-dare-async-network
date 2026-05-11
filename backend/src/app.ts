@@ -10,6 +10,7 @@ import truthLikesRoutes from './routes/truth-likes.routes';
 import truthCommentsLikesRoutes from './routes/truth-comments-likes.routes';
 import dareLikesRoutes from './routes/dare-likes.routes';
 import clubLikesRoutes from './routes/club-likes.routes';
+import clubFeedRoutes from './routes/club-feed.routes';
 import clubPromptsRoutes from './routes/club-prompts.routes';
 import clubsRoutes from './routes/clubs.routes';
 
@@ -24,6 +25,7 @@ app.use('/truths', truthsRoutes);
 app.use('/dares', daresRoutes);
 app.use('/users', usersRoutes);
 app.use('/uploads', uploadsRoutes);
+app.use('/clubs', clubFeedRoutes);
 app.use('/clubs', clubPromptsRoutes);
 app.use('/clubs', clubsRoutes);
 app.use(truthLikesRoutes);
