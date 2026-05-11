@@ -7,6 +7,10 @@ import {
 } from '../services/club-prompts.service';
 import { updateClubPrompt } from '../services/club-prompts-edit.service';
 import { moderateClubPrompt } from '../services/club-prompts-moderation.service';
+import {
+  toggleClubPromptLike,
+  toggleClubPromptResponseLike,
+} from '../services/club-prompt-likes.service';
 import { listClubPromptResponses } from '../services/club-prompt-responses-list.service';
 import { createClubPromptResponse } from '../services/club-prompt-responses.service';
 
@@ -20,6 +24,10 @@ function getClubId(req: Request) {
 
 function getPromptId(req: Request) {
   return typeof req.params.promptId === 'string' ? req.params.promptId : '';
+}
+
+function getResponseId(req: Request) {
+  return typeof req.params.responseId === 'string' ? req.params.responseId : '';
 }
 
 function handleClubPromptControllerError(
@@ -195,6 +203,49 @@ export async function createClubPromptCommentController(
       res,
       error,
       'Erro interno ao comentar prompt do clube',
+    );
+  }
+}
+
+export async function toggleClubPromptLikeController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const result = await toggleClubPromptLike({
+      clubId: getClubId(req),
+      promptId: getPromptId(req),
+      userId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleClubPromptControllerError(
+      res,
+      error,
+      'Erro interno ao curtir prompt do clube',
+    );
+  }
+}
+
+export async function toggleClubPromptResponseLikeController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const result = await toggleClubPromptResponseLike({
+      clubId: getClubId(req),
+      promptId: getPromptId(req),
+      responseId: getResponseId(req),
+      userId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleClubPromptControllerError(
+      res,
+      error,
+      'Erro interno ao curtir resposta do prompt do clube',
     );
   }
 }

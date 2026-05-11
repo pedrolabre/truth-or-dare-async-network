@@ -6,6 +6,8 @@ import {
   getClubPromptDetailController,
   listClubPromptResponsesController,
   moderateClubPromptController,
+  toggleClubPromptLikeController,
+  toggleClubPromptResponseLikeController,
   updateClubPromptController,
 } from '../controllers/club-prompts.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
@@ -13,6 +15,16 @@ import { authMiddleware } from '../middlewares/auth.middleware';
 const router = Router();
 
 router.post('/:id/prompts', authMiddleware, createClubPromptController);
+router.post(
+  '/:id/prompts/:promptId/like',
+  authMiddleware,
+  toggleClubPromptLikeController,
+);
+router.post(
+  '/:id/prompts/:promptId/responses/:responseId/like',
+  authMiddleware,
+  toggleClubPromptResponseLikeController,
+);
 router.post(
   '/:id/prompts/:promptId/responses',
   authMiddleware,

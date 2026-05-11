@@ -426,6 +426,8 @@ enum LikeTargetType {
   truth
   dare
   club
+  club_prompt
+  club_response
   truth_comment
 }
 

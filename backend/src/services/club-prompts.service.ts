@@ -248,7 +248,7 @@ export async function getClubPromptDetail({
         userId_targetId_targetType: {
           userId: viewerId,
           targetId: prompt.id,
-          targetType: 'club',
+          targetType: 'club_prompt',
         },
       },
     }),

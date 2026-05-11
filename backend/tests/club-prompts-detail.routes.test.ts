@@ -5,6 +5,7 @@ import {
   ClubMemberStatus,
   ClubPromptType,
   ClubVisibility,
+  LikeTargetType,
 } from '../src/generated/prisma/client';
 import { prisma } from '../src/lib/prisma';
 import clubPromptsRoutes from '../src/routes/club-prompts.routes';
@@ -176,7 +177,7 @@ describe('GET /clubs/:id/prompts/:promptId detail', () => {
       data: {
         userId: member.id,
         targetId: prompt.id,
-        targetType: 'club',
+        targetType: LikeTargetType.club_prompt,
       },
     });
 

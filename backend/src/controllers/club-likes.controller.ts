@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
-import { toggleLike } from '../services/likes.service';
+import { toggleClubLike as toggleClubLikeService } from '../services/club-likes.service';
+import { ClubServiceError } from '../services/clubs.service';
 
 export async function toggleClubLike(req: Request, res: Response) {
   try {
@@ -18,14 +19,20 @@ export async function toggleClubLike(req: Request, res: Response) {
       });
     }
 
-    const result = await toggleLike({
+    const result = await toggleClubLikeService({
       userId,
-      targetId,
-      targetType: 'club',
+      clubId: targetId,
     });
 
     return res.status(200).json(result);
   } catch (error) {
+    if (error instanceof ClubServiceError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+
     return res.status(400).json({
       error: error instanceof Error ? error.message : 'Erro ao curtir club',
     });
