@@ -1,11 +1,14 @@
 import { Request, Response } from 'express';
 import { ClubServiceError } from '../services/clubs.service';
+import { createClubPromptComment } from '../services/club-prompt-comments.service';
 import {
   createClubPrompt,
   getClubPromptDetail,
 } from '../services/club-prompts.service';
 import { updateClubPrompt } from '../services/club-prompts-edit.service';
 import { moderateClubPrompt } from '../services/club-prompts-moderation.service';
+import { listClubPromptResponses } from '../services/club-prompt-responses-list.service';
+import { createClubPromptResponse } from '../services/club-prompt-responses.service';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';
@@ -121,6 +124,77 @@ export async function moderateClubPromptController(
       res,
       error,
       'Erro interno ao moderar prompt do clube',
+    );
+  }
+}
+
+export async function createClubPromptResponseController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const response = await createClubPromptResponse({
+      clubId: getClubId(req),
+      promptId: getPromptId(req),
+      userId: getAuthenticatedUserId(req),
+      text: req.body.text,
+      mediaUrl: req.body.mediaUrl,
+      mediaType: req.body.mediaType,
+      dareProofId: req.body.dareProofId,
+    });
+
+    return res.status(201).json(response);
+  } catch (error) {
+    return handleClubPromptControllerError(
+      res,
+      error,
+      'Erro interno ao responder prompt do clube',
+    );
+  }
+}
+
+export async function listClubPromptResponsesController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const responses = await listClubPromptResponses({
+      clubId: getClubId(req),
+      promptId: getPromptId(req),
+      viewerId: getAuthenticatedUserId(req),
+      page: req.query.page,
+      limit: req.query.limit,
+      sort: req.query.sort,
+    });
+
+    return res.status(200).json(responses);
+  } catch (error) {
+    return handleClubPromptControllerError(
+      res,
+      error,
+      'Erro interno ao listar respostas do prompt do clube',
+    );
+  }
+}
+
+export async function createClubPromptCommentController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const comment = await createClubPromptComment({
+      clubId: getClubId(req),
+      promptId: getPromptId(req),
+      userId: getAuthenticatedUserId(req),
+      text: req.body.text,
+    });
+
+    return res.status(201).json(comment);
+  } catch (error) {
+    return handleClubPromptControllerError(
+      res,
+      error,
+      'Erro interno ao comentar prompt do clube',
     );
   }
 }

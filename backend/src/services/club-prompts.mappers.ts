@@ -89,7 +89,7 @@ export function mapPromptSummary(
   };
 }
 
-function mapPromptResponseSummary(
+export function mapPromptResponseSummary(
   response: ClubPromptResponseSummarySource,
 ): ClubPromptResponseSummaryDto {
   return {

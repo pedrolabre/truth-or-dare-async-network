@@ -128,6 +128,31 @@ export type ClubPromptResponseSummaryDto = {
   updatedAt: string;
 };
 
+export type ClubPromptResponsesPageDto = {
+  items: ClubPromptResponseSummaryDto[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
+export type ClubPromptCommentSummaryDto = {
+  id: string;
+  clubId: string;
+  promptId: string;
+  responseId: string | null;
+  userId: string;
+  userName: string;
+  parentId: string | null;
+  text: string;
+  likesCount: number;
+  repliesCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ClubPromptDetailDto = ClubPromptSummaryDto & {
   archivedAt: string | null;
   removedAt: string | null;
