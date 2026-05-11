@@ -1,6 +1,11 @@
 import { Request, Response } from 'express';
 import { ClubServiceError } from '../services/clubs.service';
-import { createClubPrompt } from '../services/club-prompts.service';
+import {
+  createClubPrompt,
+  getClubPromptDetail,
+} from '../services/club-prompts.service';
+import { updateClubPrompt } from '../services/club-prompts-edit.service';
+import { moderateClubPrompt } from '../services/club-prompts-moderation.service';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';
@@ -8,6 +13,10 @@ function getAuthenticatedUserId(req: Request) {
 
 function getClubId(req: Request) {
   return typeof req.params.id === 'string' ? req.params.id : '';
+}
+
+function getPromptId(req: Request) {
+  return typeof req.params.promptId === 'string' ? req.params.promptId : '';
 }
 
 function handleClubPromptControllerError(
@@ -50,6 +59,68 @@ export async function createClubPromptController(req: Request, res: Response) {
       res,
       error,
       'Erro interno ao criar prompt do clube',
+    );
+  }
+}
+
+export async function getClubPromptDetailController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const prompt = await getClubPromptDetail({
+      clubId: getClubId(req),
+      promptId: getPromptId(req),
+      viewerId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(prompt);
+  } catch (error) {
+    return handleClubPromptControllerError(
+      res,
+      error,
+      'Erro interno ao buscar prompt do clube',
+    );
+  }
+}
+
+export async function updateClubPromptController(req: Request, res: Response) {
+  try {
+    const prompt = await updateClubPrompt({
+      ...req.body,
+      clubId: getClubId(req),
+      promptId: getPromptId(req),
+      actorId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(prompt);
+  } catch (error) {
+    return handleClubPromptControllerError(
+      res,
+      error,
+      'Erro interno ao editar prompt do clube',
+    );
+  }
+}
+
+export async function moderateClubPromptController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const prompt = await moderateClubPrompt({
+      clubId: getClubId(req),
+      promptId: getPromptId(req),
+      actorId: getAuthenticatedUserId(req),
+      removalReason: req.body?.removalReason,
+    });
+
+    return res.status(200).json(prompt);
+  } catch (error) {
+    return handleClubPromptControllerError(
+      res,
+      error,
+      'Erro interno ao moderar prompt do clube',
     );
   }
 }

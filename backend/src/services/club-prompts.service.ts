@@ -2,12 +2,11 @@ import {
   ClubMemberRole,
   ClubMemberStatus,
   ClubPromptStatus,
-  ClubPromptType,
   ClubStatus,
   Prisma,
 } from '../generated/prisma/client';
 import {
-  ClubPromptAttachmentDto,
+  ClubPromptDetailDto,
   ClubPromptSummaryDto,
 } from '../dtos/clubs.dto';
 import { prisma } from '../lib/prisma';
@@ -15,13 +14,23 @@ import {
   forbiddenError,
   notFoundError,
   requireAuthenticatedUser,
-  validationError,
 } from './clubs.errors';
-
-const CLUB_PROMPT_CONTENT_MIN_LENGTH = 3;
-const CLUB_PROMPT_CONTENT_MAX_LENGTH = 500;
-const CLUB_PROMPT_MAX_ATTACHMENTS = 5;
-const CLUB_PROMPT_DIFFICULTY_MAX_LENGTH = 32;
+import { mapPromptDetail, mapPromptSummary } from './club-prompts.mappers';
+import {
+  buildPromptViewerState,
+  canViewPromptClub,
+  getActivePromptMembership,
+  isPromptManagerRole,
+} from './club-prompts.permissions';
+import {
+  normalizeAttachments,
+  normalizeBoolean,
+  normalizeContent,
+  normalizeDifficulty,
+  normalizeMaxAttempts,
+  normalizeOptionalDate,
+  normalizePromptType,
+} from './club-prompts.validators';
 
 type CreateClubPromptInput = {
   clubId: string;
@@ -36,174 +45,11 @@ type CreateClubPromptInput = {
   isMembersOnly?: unknown;
 };
 
-function normalizePromptType(value: unknown) {
-  if (value !== ClubPromptType.truth && value !== ClubPromptType.dare) {
-    validationError('Tipo de prompt invalido');
-  }
-
-  return value;
-}
-
-function normalizeContent(value: unknown) {
-  if (typeof value !== 'string') {
-    validationError('Conteudo do prompt e obrigatorio');
-  }
-
-  const content = value.trim();
-
-  if (
-    content.length < CLUB_PROMPT_CONTENT_MIN_LENGTH ||
-    content.length > CLUB_PROMPT_CONTENT_MAX_LENGTH
-  ) {
-    validationError(
-      `Conteudo do prompt deve ter entre ${CLUB_PROMPT_CONTENT_MIN_LENGTH} e ${CLUB_PROMPT_CONTENT_MAX_LENGTH} caracteres`,
-    );
-  }
-
-  return content;
-}
-
-function normalizeMaxAttempts(value: unknown, type: ClubPromptType) {
-  if (type === ClubPromptType.truth) {
-    return null;
-  }
-
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0 || value > 50) {
-    validationError('Maximo de tentativas deve ser um inteiro entre 1 e 50');
-  }
-
-  return value;
-}
-
-function normalizeOptionalDate(value: unknown) {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  if (typeof value !== 'string' && !(value instanceof Date)) {
-    validationError('Prazo do prompt invalido');
-  }
-
-  const date = value instanceof Date ? value : new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    validationError('Prazo do prompt invalido');
-  }
-
-  if (date.getTime() <= Date.now()) {
-    validationError('Prazo do prompt deve ser futuro');
-  }
-
-  return date;
-}
-
-function normalizeDifficulty(value: unknown) {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  if (typeof value !== 'string') {
-    validationError('Dificuldade do prompt deve ser texto');
-  }
-
-  const difficulty = value.trim();
-
-  if (!difficulty) {
-    return null;
-  }
-
-  if (difficulty.length > CLUB_PROMPT_DIFFICULTY_MAX_LENGTH) {
-    validationError(
-      `Dificuldade do prompt deve ter no maximo ${CLUB_PROMPT_DIFFICULTY_MAX_LENGTH} caracteres`,
-    );
-  }
-
-  return difficulty;
-}
-
-function normalizeAttachments(value: unknown): Prisma.InputJsonValue | null {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  if (!Array.isArray(value)) {
-    validationError('Anexos do prompt devem ser uma lista');
-  }
-
-  if (value.length > CLUB_PROMPT_MAX_ATTACHMENTS) {
-    validationError(
-      `Prompt deve ter no maximo ${CLUB_PROMPT_MAX_ATTACHMENTS} anexos`,
-    );
-  }
-
-  value.forEach((attachment) => {
-    if (!attachment || typeof attachment !== 'object' || Array.isArray(attachment)) {
-      validationError('Anexo do prompt invalido');
-    }
-
-    const candidate = attachment as Record<string, unknown>;
-
-    if (typeof candidate.type !== 'string' || typeof candidate.url !== 'string') {
-      validationError('Anexo do prompt deve ter tipo e url');
-    }
-
-    if (!candidate.type.trim() || !candidate.url.trim()) {
-      validationError('Anexo do prompt deve ter tipo e url');
-    }
-  });
-
-  return value as Prisma.InputJsonValue;
-}
-
-function normalizeBoolean(value: unknown, defaultValue: boolean) {
-  if (value === undefined || value === null) {
-    return defaultValue;
-  }
-
-  if (typeof value !== 'boolean') {
-    validationError('Campo booleano invalido');
-  }
-
-  return value;
-}
-
-function mapPromptSummary(
-  prompt: NonNullable<
-    Awaited<ReturnType<typeof prisma.clubPrompt.findUnique>>
-  > & {
-    author: { name: string };
-  },
-): ClubPromptSummaryDto {
-  const attachments = Array.isArray(prompt.attachments)
-    ? (prompt.attachments as ClubPromptAttachmentDto[])
-    : [];
-
-  return {
-    id: prompt.id,
-    clubId: prompt.clubId,
-    authorId: prompt.authorId,
-    authorName: prompt.author.name,
-    type: prompt.type,
-    status: prompt.status,
-    content: prompt.content,
-    difficulty: prompt.difficulty,
-    attachments,
-    maxAttempts: prompt.maxAttempts,
-    expiresAt: prompt.expiresAt?.toISOString() ?? null,
-    publishedAt: prompt.publishedAt?.toISOString() ?? null,
-    answersCount: prompt.answersCount,
-    commentsCount: prompt.commentsCount,
-    likesCount: prompt.likesCount,
-    isPinned: prompt.isPinned,
-    isMembersOnly: prompt.isMembersOnly,
-    createdAt: prompt.createdAt.toISOString(),
-    updatedAt: prompt.updatedAt.toISOString(),
-  };
-}
+type GetClubPromptDetailInput = {
+  clubId: string;
+  promptId: string;
+  viewerId: string;
+};
 
 export async function createClubPrompt(
   input: CreateClubPromptInput,
@@ -247,9 +93,7 @@ export async function createClubPrompt(
   const isPinned = normalizeBoolean(input.isPinned, false);
   const isMembersOnly = normalizeBoolean(input.isMembersOnly, true);
   const canPin =
-    membership.role === ClubMemberRole.owner ||
-    membership.role === ClubMemberRole.admin ||
-    membership.role === ClubMemberRole.moderator;
+    isPromptManagerRole(membership.role);
 
   if (isPinned && !canPin) {
     forbiddenError();
@@ -325,4 +169,109 @@ export async function createClubPrompt(
   });
 
   return mapPromptSummary(prompt);
+}
+
+export async function getClubPromptDetail({
+  clubId,
+  promptId,
+  viewerId,
+}: GetClubPromptDetailInput): Promise<ClubPromptDetailDto> {
+  requireAuthenticatedUser(viewerId);
+
+  if (!clubId || !promptId) {
+    notFoundError();
+  }
+
+  const club = await prisma.club.findUnique({
+    where: {
+      id: clubId,
+    },
+    include: {
+      members: {
+        where: {
+          OR: [
+            {
+              userId: viewerId,
+            },
+          ],
+        },
+      },
+    },
+  });
+
+  if (!club || club.status === ClubStatus.deleted || club.deletedAt) {
+    notFoundError();
+  }
+
+  const membership = getActivePromptMembership(club.members, viewerId);
+
+  if (!canViewPromptClub(club, membership)) {
+    forbiddenError();
+  }
+
+  const prompt = await prisma.clubPrompt.findFirst({
+    where: {
+      id: promptId,
+      clubId,
+    },
+    include: {
+      author: {
+        select: {
+          name: true,
+        },
+      },
+      responses: {
+        where: {
+          removedAt: null,
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          user: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!prompt) {
+    notFoundError();
+  }
+
+  const [likedByMe, answeredByMe] = await Promise.all([
+    prisma.like.findUnique({
+      where: {
+        userId_targetId_targetType: {
+          userId: viewerId,
+          targetId: prompt.id,
+          targetType: 'club',
+        },
+      },
+    }),
+    prisma.clubPromptResponse.findFirst({
+      where: {
+        promptId: prompt.id,
+        userId: viewerId,
+        removedAt: null,
+      },
+      select: {
+        id: true,
+      },
+    }),
+  ]);
+
+  const viewerState = buildPromptViewerState({
+    club,
+    prompt,
+    membership,
+    viewerId,
+    likedByMe: Boolean(likedByMe),
+    answeredByMe: Boolean(answeredByMe),
+  });
+
+  return mapPromptDetail(prompt, viewerState);
 }
