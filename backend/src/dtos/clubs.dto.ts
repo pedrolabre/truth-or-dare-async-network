@@ -181,3 +181,28 @@ export type ClubFeedDto = {
   club: ClubSummaryDto;
   items: ClubFeedPromptItemDto[];
 };
+
+export type ClubsAggregatedFeedPromptActivityDto = {
+  id: string;
+  activityType: 'prompt';
+  activityAt: string;
+  club: ClubSummaryDto;
+  prompt: ClubFeedPromptItemDto;
+};
+
+export type ClubsAggregatedFeedResponseActivityDto = {
+  id: string;
+  activityType: 'response';
+  activityAt: string;
+  club: ClubSummaryDto;
+  prompt: ClubPromptSummaryDto;
+  response: ClubPromptResponseSummaryDto;
+};
+
+export type ClubsAggregatedFeedItemDto =
+  | ClubsAggregatedFeedPromptActivityDto
+  | ClubsAggregatedFeedResponseActivityDto;
+
+export type ClubsAggregatedFeedDto = {
+  items: ClubsAggregatedFeedItemDto[];
+};
