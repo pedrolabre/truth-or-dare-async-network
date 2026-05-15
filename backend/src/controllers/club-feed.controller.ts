@@ -35,6 +35,7 @@ export async function getClubFeedController(req: Request, res: Response) {
     const feed = await getClubFeed({
       clubId: getClubId(req),
       viewerId: getAuthenticatedUserId(req),
+      order: req.query.order,
     });
 
     return res.status(200).json(feed);

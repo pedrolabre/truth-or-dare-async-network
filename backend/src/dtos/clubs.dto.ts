@@ -177,6 +177,12 @@ export type ClubFeedPromptItemDto = ClubPromptSummaryDto & {
   recentResponses: ClubPromptResponseSummaryDto[];
 };
 
+export type ClubFeedOrderDto =
+  | 'activity'
+  | 'relevance'
+  | 'deadline'
+  | 'pinned';
+
 export type ClubFeedDto = {
   club: ClubSummaryDto;
   items: ClubFeedPromptItemDto[];

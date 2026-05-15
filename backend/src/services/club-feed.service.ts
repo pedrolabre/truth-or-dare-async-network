@@ -20,6 +20,10 @@ import {
   getActivePromptMembership,
 } from './club-prompts.permissions';
 import {
+  buildClubFeedPromptOrderBy,
+  normalizeClubFeedOrder,
+} from './club-feed-ordering';
+import {
   mapPromptResponseSummary,
   mapPromptSummary,
 } from './club-prompts.mappers';
@@ -30,6 +34,7 @@ const CLUB_FEED_RECENT_RESPONSES_LIMIT = 3;
 type GetClubFeedInput = {
   clubId: string;
   viewerId: string;
+  order?: unknown;
 };
 
 type ClubFeedPromptPermissionTarget = Parameters<
@@ -79,12 +84,15 @@ function canInteractWithPrompt({
 export async function getClubFeed({
   clubId,
   viewerId,
+  order,
 }: GetClubFeedInput): Promise<ClubFeedDto> {
   requireAuthenticatedUser(viewerId);
 
   if (!clubId) {
     notFoundError();
   }
+
+  const normalizedOrder = normalizeClubFeedOrder(order);
 
   const club = await prisma.club.findUnique({
     where: {
@@ -124,17 +132,7 @@ export async function getClubFeed({
       archivedAt: null,
       removedAt: null,
     },
-    orderBy: [
-      {
-        isPinned: 'desc',
-      },
-      {
-        publishedAt: 'desc',
-      },
-      {
-        createdAt: 'desc',
-      },
-    ],
+    orderBy: buildClubFeedPromptOrderBy(normalizedOrder),
     take: CLUB_FEED_PROMPTS_LIMIT,
     include: {
       author: {
