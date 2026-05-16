@@ -1,4 +1,4 @@
-import { createTruth } from '../src/services/truths.service';
+import { createTruth } from '../src/services/truths/truths.service';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { prisma } from '../src/lib/prisma';

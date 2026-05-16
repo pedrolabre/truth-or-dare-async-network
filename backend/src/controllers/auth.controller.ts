@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { login, signup } from '../services/auth.service';
+import { login, signup } from '../services/auth/auth.service';
 
 export async function signupController(req: Request, res: Response) {
   try {

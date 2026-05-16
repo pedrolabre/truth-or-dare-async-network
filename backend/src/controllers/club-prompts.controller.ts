@@ -1,18 +1,18 @@
 import { Request, Response } from 'express';
-import { ClubServiceError } from '../services/clubs.service';
-import { createClubPromptComment } from '../services/club-prompt-comments.service';
+import { ClubServiceError } from '../services/clubs/core/clubs.service';
+import { createClubPromptComment } from '../services/clubs/prompts/comments.service';
 import {
   createClubPrompt,
   getClubPromptDetail,
-} from '../services/club-prompts.service';
-import { updateClubPrompt } from '../services/club-prompts-edit.service';
-import { moderateClubPrompt } from '../services/club-prompts-moderation.service';
+} from '../services/clubs/prompts/prompts.service';
+import { updateClubPrompt } from '../services/clubs/prompts/edit.service';
+import { moderateClubPrompt } from '../services/clubs/prompts/moderation.service';
 import {
   toggleClubPromptLike,
   toggleClubPromptResponseLike,
-} from '../services/club-prompt-likes.service';
-import { listClubPromptResponses } from '../services/club-prompt-responses-list.service';
-import { createClubPromptResponse } from '../services/club-prompt-responses.service';
+} from '../services/clubs/prompts/likes.service';
+import { listClubPromptResponses } from '../services/clubs/prompts/responses-list.service';
+import { createClubPromptResponse } from '../services/clubs/prompts/responses.service';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';

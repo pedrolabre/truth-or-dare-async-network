@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
-import { ClubServiceError } from '../services/clubs.service';
-import { leaveClub } from '../services/clubs.members-leave.service';
+import { ClubServiceError } from '../services/clubs/core/clubs.service';
+import { leaveClub } from '../services/clubs/members/leave.service';
 import {
   muteClub,
   unmuteClub,
-} from '../services/clubs.members-mute.service';
-import { removeClubMember } from '../services/clubs.members-remove.service';
-import { updateClubMemberRole } from '../services/clubs.members-role.service';
-import { transferClubOwnership } from '../services/clubs.ownership-transfer.service';
+} from '../services/clubs/members/mute.service';
+import { removeClubMember } from '../services/clubs/members/remove.service';
+import { updateClubMemberRole } from '../services/clubs/members/role.service';
+import { transferClubOwnership } from '../services/clubs/members/ownership-transfer.service';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';

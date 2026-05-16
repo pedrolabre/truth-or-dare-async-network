@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import { ClubServiceError } from '../services/clubs.service';
-import { getClubFeed } from '../services/club-feed.service';
-import { getClubsAggregatedFeed } from '../services/clubs-aggregated-feed.service';
+import { ClubServiceError } from '../services/clubs/core/clubs.service';
+import { getClubFeed } from '../services/clubs/feed/feed.service';
+import { getClubsAggregatedFeed } from '../services/clubs/feed/aggregated-feed.service';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';

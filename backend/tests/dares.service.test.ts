@@ -1,4 +1,4 @@
-import { createDare } from '../src/services/dares.service';
+import { createDare } from '../src/services/dares/dares.service';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { prisma } from '../src/lib/prisma';

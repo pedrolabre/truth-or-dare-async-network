@@ -1,4 +1,4 @@
-import { getFeed } from '../src/services/feed.service';
+import { getFeed } from '../src/services/feed/feed.service';
 import {
   buildFeedScenario,
 } from '../src/test-utils/factories';

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { signUploadUrlService } from '../services/uploads.service';
+import { signUploadUrlService } from '../services/uploads/uploads.service';
 
 type AuthenticatedRequest = Request & {
   user?: {

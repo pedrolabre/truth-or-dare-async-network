@@ -8,7 +8,7 @@ import {
   LikeTargetType,
 } from '../src/generated/prisma/client';
 import { prisma } from '../src/lib/prisma';
-import { getFeedClubItems } from '../src/services/feed-club-items.service';
+import { getFeedClubItems } from '../src/services/feed/feed-club-items.service';
 import {
   addUserToClub,
   createTestClub,

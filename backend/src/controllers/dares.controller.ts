@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createDare, deleteDareService } from '../services/dares.service';
+import { createDare, deleteDareService } from '../services/dares/dares.service';
 
 export async function createDareController(req: Request, res: Response) {
   try {

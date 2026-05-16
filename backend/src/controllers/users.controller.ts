@@ -3,7 +3,7 @@ import {
   getMyProfile,
   listUsersForChallenge,
   updateMyProfile,
-} from '../services/users.service';
+} from '../services/users/users.service';
 
 export async function listUsersController(req: Request, res: Response) {
   try {

@@ -1,4 +1,4 @@
-import { listUsersForChallenge } from '../src/services/users.service';
+import { listUsersForChallenge } from '../src/services/users/users.service';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser, resetFeedData } from '../src/test-utils/factories';
 

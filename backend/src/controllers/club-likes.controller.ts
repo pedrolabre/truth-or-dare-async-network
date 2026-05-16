@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
-import { toggleClubLike as toggleClubLikeService } from '../services/club-likes.service';
-import { ClubServiceError } from '../services/clubs.service';
+import { toggleClubLike as toggleClubLikeService } from '../services/clubs/likes/likes.service';
+import { ClubServiceError } from '../services/clubs/core/clubs.service';
 
 export async function toggleClubLike(req: Request, res: Response) {
   try {

@@ -6,7 +6,7 @@ import {
   deleteTruthService,
   getTruthCommentsService,
   updateTruthCommentService,
-} from '../services/truths.service';
+} from '../services/truths/truths.service';
 
 export async function createTruthController(req: Request, res: Response) {
   try {

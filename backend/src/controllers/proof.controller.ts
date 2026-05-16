@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { submitDareProofService } from '../services/proof.service';
+import { submitDareProofService } from '../services/dares/proof.service';
 
 export async function submitDareProofController(req: Request, res: Response) {
   try {

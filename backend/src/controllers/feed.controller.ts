@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getFeed } from '../services/feed.service';
+import { getFeed } from '../services/feed/feed.service';
 
 export async function getFeedController(req: Request, res: Response) {
   try {

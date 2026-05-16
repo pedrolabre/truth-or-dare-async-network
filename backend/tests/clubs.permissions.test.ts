@@ -3,7 +3,7 @@ import {
   ClubMemberStatus,
   ClubStatus,
 } from '../src/generated/prisma/client';
-import { getClubPermissions } from '../src/services/clubs.permissions';
+import { getClubPermissions } from '../src/services/clubs/core/permissions';
 import {
   addUserToClub,
   createTestClub,

@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { toggleLike } from '../services/likes.service';
+import { toggleLike } from '../services/likes/likes.service';
 
 export async function toggleDareLike(req: Request, res: Response) {
   try {

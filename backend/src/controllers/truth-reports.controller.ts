@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import {
   createTruthCommentReportService,
   createTruthReportService,
-} from '../services/truth-reports.service';
+} from '../services/truths/truth-reports.service';
 
 function getReportStatusFromMessage(message: string) {
   if (message === 'Não autorizado') {

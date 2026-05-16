@@ -9,20 +9,20 @@ import {
   restoreClub,
   searchClubs,
   updateClub,
-} from '../services/clubs.service';
-import { listClubMembers } from '../services/clubs.members.service';
-import { joinPublicClub } from '../services/clubs.join.service';
+} from '../services/clubs/core/clubs.service';
+import { listClubMembers } from '../services/clubs/members/members.service';
+import { joinPublicClub } from '../services/clubs/access/join.service';
 import {
   approveClubJoinRequest,
   rejectClubJoinRequest,
   requestToJoinClub,
-} from '../services/clubs.join-requests.service';
+} from '../services/clubs/access/join-requests.service';
 import {
   acceptClubInvite,
   createClubInvite,
   declineClubInvite,
   listMyClubInvites,
-} from '../services/clubs.invites.service';
+} from '../services/clubs/access/invites.service';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';

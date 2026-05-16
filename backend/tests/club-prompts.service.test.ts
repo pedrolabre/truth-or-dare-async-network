@@ -5,8 +5,8 @@ import {
   ClubStatus,
 } from '../src/generated/prisma/client';
 import { prisma } from '../src/lib/prisma';
-import { ClubServiceError } from '../src/services/clubs.service';
-import { createClubPrompt } from '../src/services/club-prompts.service';
+import { ClubServiceError } from '../src/services/clubs/core/clubs.service';
+import { createClubPrompt } from '../src/services/clubs/prompts/prompts.service';
 import {
   addUserToClub,
   createTestClub,

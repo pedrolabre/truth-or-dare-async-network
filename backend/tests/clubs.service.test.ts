@@ -13,7 +13,7 @@ import {
   listMyClubs,
   searchClubs,
   updateClub,
-} from '../src/services/clubs.service';
+} from '../src/services/clubs/core/clubs.service';
 import {
   addUserToClub,
   createTestClub,
