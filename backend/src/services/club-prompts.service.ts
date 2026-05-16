@@ -222,6 +222,7 @@ export async function getClubPromptDetail({
       },
       responses: {
         where: {
+          archivedAt: null,
           removedAt: null,
         },
         orderBy: {
@@ -256,6 +257,7 @@ export async function getClubPromptDetail({
       where: {
         promptId: prompt.id,
         userId: viewerId,
+        archivedAt: null,
         removedAt: null,
       },
       select: {

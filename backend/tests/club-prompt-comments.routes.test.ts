@@ -35,14 +35,20 @@ function authTokenFor(user: { id: string; email: string; name: string }) {
   });
 }
 
+function pastDate(minutes = 60) {
+  return new Date(Date.now() - minutes * 60 * 1000);
+}
+
 async function createCommentScenario({
   clubStatus = ClubStatus.active,
   promptStatus = ClubPromptStatus.published,
   memberStatus = ClubMemberStatus.active,
+  expiresAt = null,
 }: {
   clubStatus?: ClubStatus;
   promptStatus?: ClubPromptStatus;
   memberStatus?: ClubMemberStatus;
+  expiresAt?: Date | null;
 } = {}) {
   const owner = await createTestUser();
   const author = await createTestUser();
@@ -74,6 +80,7 @@ async function createCommentScenario({
       type: ClubPromptType.truth,
       status: promptStatus,
       content: 'Prompt que recebera comentario.',
+      expiresAt,
       archivedAt:
         promptStatus === ClubPromptStatus.archived ? new Date() : undefined,
       removedAt:
@@ -206,6 +213,9 @@ describe('POST /clubs/:id/prompts/:promptId/comments', () => {
     const removedPromptScenario = await createCommentScenario({
       promptStatus: ClubPromptStatus.removed,
     });
+    const expiredPromptScenario = await createCommentScenario({
+      expiresAt: pastDate(5),
+    });
 
     const outsiderResponse = await request(app)
       .post(
@@ -250,12 +260,21 @@ describe('POST /clubs/:id/prompts/:promptId/comments', () => {
       .send({
         text: 'Prompt removido tentando receber comentario.',
       });
+    const expiredPromptResponse = await request(app)
+      .post(
+        `/clubs/${expiredPromptScenario.club.id}/prompts/${expiredPromptScenario.prompt.id}/comments`,
+      )
+      .set('Authorization', `Bearer ${authTokenFor(expiredPromptScenario.member)}`)
+      .send({
+        text: 'Prompt expirado tentando receber comentario.',
+      });
 
     expect(outsiderResponse.status).toBe(403);
     expect(inactiveMembershipResponse.status).toBe(403);
     expect(archivedClubResponse.status).toBe(403);
     expect(archivedPromptResponse.status).toBe(403);
     expect(removedPromptResponse.status).toBe(403);
+    expect(expiredPromptResponse.status).toBe(403);
   });
 
   it('retorna 404 para clube deletado prompt inexistente ou de outro clube', async () => {

@@ -102,6 +102,10 @@ export async function createClubPromptComment({
     forbiddenError();
   }
 
+  if (prompt.expiresAt && prompt.expiresAt.getTime() <= Date.now()) {
+    forbiddenError();
+  }
+
   const now = new Date();
   const commentId = await prisma.$transaction(async (tx) => {
     const createdComment = await tx.clubPromptComment.create({

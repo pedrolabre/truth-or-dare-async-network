@@ -26,6 +26,7 @@ type PromptPermissionTarget = {
   archivedAt: Date | null;
   removedAt: Date | null;
   createdAt: Date;
+  expiresAt?: Date | null;
 };
 
 export function getActivePromptMembership<T extends PromptMembership>(
@@ -75,6 +76,10 @@ function isInsideAuthorEditWindow(prompt: PromptPermissionTarget, now: Date) {
   const windowMs = CLUB_PROMPT_AUTHOR_EDIT_WINDOW_MINUTES * 60 * 1000;
 
   return now.getTime() - prompt.createdAt.getTime() <= windowMs;
+}
+
+function isExpiredPrompt(prompt: PromptPermissionTarget) {
+  return Boolean(prompt.expiresAt && prompt.expiresAt.getTime() <= Date.now());
 }
 
 export function canAnswerPrompt({
@@ -158,7 +163,8 @@ export function buildPromptViewerState({
   return {
     likedByMe,
     answeredByMe,
-    canAnswer: canAnswerPrompt({ club, prompt, membership }),
+    canAnswer:
+      canAnswerPrompt({ club, prompt, membership }) && !isExpiredPrompt(prompt),
     canEdit: canEditPrompt({
       club,
       prompt,

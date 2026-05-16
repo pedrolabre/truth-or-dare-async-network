@@ -132,6 +132,17 @@ async function createResponsesListScenario({
       createdAt: minutesAgo(5),
     },
   });
+  await prisma.clubPromptResponse.create({
+    data: {
+      clubId: club.id,
+      promptId: prompt.id,
+      userId: thirdResponder.id,
+      text: 'Resposta arquivada.',
+      archivedAt: minutesAgo(4),
+      completedAt: minutesAgo(4),
+      createdAt: minutesAgo(4),
+    },
+  });
 
   return {
     owner,
@@ -192,6 +203,9 @@ describe('GET /clubs/:id/prompts/:promptId/responses', () => {
     });
     expect(response.body.items.map((item: { text: string }) => item.text)).not.toContain(
       'Resposta removida.',
+    );
+    expect(response.body.items.map((item: { text: string }) => item.text)).not.toContain(
+      'Resposta arquivada.',
     );
   });
 

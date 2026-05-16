@@ -39,6 +39,10 @@ function futureDate(minutes = 60) {
   return new Date(Date.now() + minutes * 60 * 1000);
 }
 
+function pastDate(minutes = 60) {
+  return new Date(Date.now() - minutes * 60 * 1000);
+}
+
 async function createClubPromptDetailScenario() {
   const owner = await createTestUser();
   const author = await createTestUser();
@@ -201,6 +205,63 @@ describe('GET /clubs/:id/prompts/:promptId detail', () => {
         attemptsUsed: 1,
       }),
     ]);
+  });
+
+  it('ignora respostas arquivadas ou removidas no detalhe e no answeredByMe', async () => {
+    const { member, club, prompt } = await createClubPromptDetailScenario();
+
+    await prisma.clubPromptResponse.createMany({
+      data: [
+        {
+          clubId: club.id,
+          promptId: prompt.id,
+          userId: member.id,
+          text: 'Resposta arquivada do membro.',
+          archivedAt: new Date(),
+          completedAt: new Date(),
+        },
+        {
+          clubId: club.id,
+          promptId: prompt.id,
+          userId: member.id,
+          text: 'Resposta removida do membro.',
+          removedAt: new Date(),
+          completedAt: new Date(),
+        },
+      ],
+    });
+
+    const response = await request(app)
+      .get(`/clubs/${club.id}/prompts/${prompt.id}`)
+      .set('Authorization', `Bearer ${authTokenFor(member)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.viewerState).toMatchObject({
+      answeredByMe: false,
+    });
+    expect(response.body.responses).toEqual([]);
+  });
+
+  it('marca prompt expirado como indisponivel para resposta no detalhe', async () => {
+    const { member, club, prompt } = await createClubPromptDetailScenario();
+
+    await prisma.clubPrompt.update({
+      where: {
+        id: prompt.id,
+      },
+      data: {
+        expiresAt: pastDate(5),
+      },
+    });
+
+    const response = await request(app)
+      .get(`/clubs/${club.id}/prompts/${prompt.id}`)
+      .set('Authorization', `Bearer ${authTokenFor(member)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.viewerState).toMatchObject({
+      canAnswer: false,
+    });
   });
 
   it('calcula permissoes de detalhe para autor e moderador', async () => {

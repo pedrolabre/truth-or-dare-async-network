@@ -107,6 +107,7 @@ export async function listClubPromptResponses({
   const orderDirection = normalizeSort(sort);
   const where = {
     promptId: prompt.id,
+    archivedAt: null,
     removedAt: null,
   };
 
