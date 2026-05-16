@@ -1,5 +1,9 @@
 import { prisma } from '../lib/prisma';
 import { computeDareStatus } from './dares.service';
+import {
+  FeedClubItem,
+  getFeedClubItems,
+} from './feed-club-items.service';
 import { getLikesCount, isLikedByUser } from './likes.service';
 
 export type FeedItem =
@@ -34,16 +38,7 @@ export type FeedItem =
     likesCount: number;
     likedByMe: boolean;
   }
-  | {
-      id: string;
-      type: 'club';
-      clubName: string;
-      badge: 'Verdade' | 'Desafio';
-      quote: string;
-      answersCount: number;
-      likesCount: number;
-      likedByMe: boolean;
-    };
+  | FeedClubItem;
 
 function formatRelativePastDate(date: Date): string {
   const now = new Date();
@@ -87,7 +82,7 @@ function formatRelativeFutureDate(date: Date): string {
 }
 
 export async function getFeed(userId?: string): Promise<FeedItem[]> {
-  const [truths, dares, clubPrompts] = await Promise.all([
+  const [truths, dares, clubItems] = await Promise.all([
     prisma.truth.findMany({
       orderBy: {
         createdAt: 'desc',
@@ -106,16 +101,7 @@ export async function getFeed(userId?: string): Promise<FeedItem[]> {
         author: true,
       },
     }),
-    prisma.clubPrompt.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: 10,
-      include: {
-        club: true,
-        author: true,
-      },
-    }),
+    getFeedClubItems(userId),
   ]);
 
   const truthItems: FeedItem[] = await Promise.all(
@@ -185,26 +171,6 @@ export async function getFeed(userId?: string): Promise<FeedItem[]> {
       };
     }),
   );
-
-  const clubItems: FeedItem[] = await Promise.all(
-  clubPrompts.map(async (prompt) => {
-    const likesCount = await getLikesCount(prompt.id, 'club');
-    const likedByMe = userId
-      ? await isLikedByUser(userId, prompt.id, 'club')
-      : false;
-
-    return {
-      id: prompt.id,
-      type: 'club',
-      clubName: prompt.club.name,
-      badge: prompt.type === 'truth' ? 'Verdade' : 'Desafio',
-      quote: prompt.content,
-      answersCount: 0,
-      likesCount,
-      likedByMe,
-    };
-  }),
-);
 
   return [...truthItems, ...dareItems, ...clubItems];
 }
