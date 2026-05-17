@@ -1,7 +1,7 @@
 import express from 'express';
 import request from 'supertest';
-import feedRoutes from '../src/routes/feed.routes';
-import truthsRoutes from '../src/routes/truths.routes';
+import feedRoutes from '../src/routes/feed/feed.routes';
+import truthsRoutes from '../src/routes/truths/truths.routes';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';

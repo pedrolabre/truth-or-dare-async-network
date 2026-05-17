@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import feedRoutes from '../src/routes/feed.routes';
+import feedRoutes from '../src/routes/feed/feed.routes';
 import {
   buildFeedScenario,
   resetFeedData,

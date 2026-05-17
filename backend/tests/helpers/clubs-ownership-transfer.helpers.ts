@@ -4,7 +4,7 @@ import {
   ClubMemberStatus,
   ClubStatus,
 } from '../../src/generated/prisma/client';
-import clubsRoutes from '../../src/routes/clubs.routes';
+import clubsRoutes from '../../src/routes/clubs/clubs.routes';
 import {
   addUserToClub,
   createTestClub,

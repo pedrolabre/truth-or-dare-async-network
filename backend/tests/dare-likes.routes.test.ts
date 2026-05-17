@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import dareLikesRoutes from '../src/routes/dare-likes.routes';
+import dareLikesRoutes from '../src/routes/dares/likes.routes';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';

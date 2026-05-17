@@ -5,7 +5,7 @@ import {
   ClubMemberStatus,
   ClubVisibility,
 } from '../src/generated/prisma/client';
-import clubsRoutes from '../src/routes/clubs.routes';
+import clubsRoutes from '../src/routes/clubs/clubs.routes';
 import { prisma } from '../src/lib/prisma';
 import {
   addUserToClub,

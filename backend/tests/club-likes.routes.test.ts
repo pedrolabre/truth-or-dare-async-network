@@ -6,7 +6,7 @@ import {
   LikeTargetType,
 } from '../src/generated/prisma/client';
 import { prisma } from '../src/lib/prisma';
-import clubLikesRoutes from '../src/routes/club-likes.routes';
+import clubLikesRoutes from '../src/routes/clubs/likes.routes';
 import {
   addUserToClub,
   createTestClub,

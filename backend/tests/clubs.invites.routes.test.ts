@@ -6,7 +6,7 @@ import {
   ClubStatus,
 } from '../src/generated/prisma/client';
 import { prisma } from '../src/lib/prisma';
-import clubsRoutes from '../src/routes/clubs.routes';
+import clubsRoutes from '../src/routes/clubs/clubs.routes';
 import {
   addUserToClub,
   createTestClub,

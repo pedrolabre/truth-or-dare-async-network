@@ -1,8 +1,8 @@
 import express from 'express';
 import request from 'supertest';
 
-import truthCommentsLikesRoutes from '../src/routes/truth-comments-likes.routes';
-import truthsRoutes from '../src/routes/truths.routes';
+import truthCommentsLikesRoutes from '../src/routes/truths/comments-likes.routes';
+import truthsRoutes from '../src/routes/truths/truths.routes';
 import { prisma } from '../src/lib/prisma';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';

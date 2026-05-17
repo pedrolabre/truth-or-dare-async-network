@@ -1,6 +1,6 @@
 import express from 'express';
 import request from 'supertest';
-import truthsRoutes from '../src/routes/truths.routes';
+import truthsRoutes from '../src/routes/truths/truths.routes';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';

@@ -6,7 +6,7 @@ import {
   ClubPromptType,
 } from '../src/generated/prisma/client';
 import { prisma } from '../src/lib/prisma';
-import clubPromptsRoutes from '../src/routes/club-prompts.routes';
+import clubPromptsRoutes from '../src/routes/clubs/prompts.routes';
 import {
   addUserToClub,
   createTestClub,
