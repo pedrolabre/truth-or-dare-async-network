@@ -26,6 +26,14 @@ const DISCOVERY_SOURCES: ClubDiscoverySource[] = [
 
 export const CLUBS_SEARCH_DEBOUNCE_MS = 350;
 
+type LoadOptions = {
+  clearOnError?: boolean;
+  showLoading?: boolean;
+  showRefreshing?: boolean;
+};
+
+type LoadSearchOptions = Pick<LoadOptions, 'showLoading' | 'showRefreshing'>;
+
 function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return error instanceof Error ? error.message : fallbackMessage;
 }
@@ -59,6 +67,7 @@ export function useClubsScreen() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isDiscoverLoading, setIsDiscoverLoading] = useState(false);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [myClubsErrorMessage, setMyClubsErrorMessage] = useState<string | null>(
     null,
   );
@@ -180,6 +189,10 @@ export function useClubsScreen() {
     const timeoutId = setTimeout(() => {
       async function loadSearchClubs() {
         try {
+          if (searchRequestIdRef.current !== searchRequestId) {
+            return;
+          }
+
           const clubs = await fetchSearchClubs(trimmedSearchQuery);
 
           if (
@@ -286,6 +299,219 @@ export function useClubsScreen() {
     setActiveTab(tab);
   }
 
+  async function reloadMyClubs({
+    clearOnError = true,
+    showLoading = true,
+    showRefreshing = false,
+  }: LoadOptions = {}) {
+    try {
+      if (showLoading) {
+        setIsInitialLoading(true);
+      }
+
+      if (showRefreshing) {
+        setIsRefreshing(true);
+      }
+
+      setMyClubsErrorMessage(null);
+
+      const clubs = await getMyClubs();
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setMyClubs(clubs.map(mapClubSummaryToListItem));
+    } catch (error) {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (clearOnError) {
+        setMyClubs([]);
+      }
+
+      setMyClubsErrorMessage(
+        getErrorMessage(error, 'Não foi possível carregar seus clubes.'),
+      );
+    } finally {
+      if (isMountedRef.current) {
+        if (showLoading) {
+          setIsInitialLoading(false);
+        }
+
+        if (showRefreshing) {
+          setIsRefreshing(false);
+        }
+      }
+    }
+  }
+
+  async function reloadDiscoverClubs({
+    clearOnError = true,
+    showLoading = true,
+    showRefreshing = false,
+  }: LoadOptions = {}) {
+    hasRequestedDiscoverRef.current = true;
+
+    try {
+      if (showLoading) {
+        setIsDiscoverLoading(true);
+      }
+
+      if (showRefreshing) {
+        setIsRefreshing(true);
+      }
+
+      setDiscoverErrorMessage(null);
+
+      const clubsResponse = await fetchDiscoverClubs();
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setDiscoverClubs(mapDiscoverClubsResponse(clubsResponse));
+    } catch (error) {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      if (clearOnError) {
+        setDiscoverClubs([]);
+      }
+
+      setDiscoverErrorMessage(
+        getErrorMessage(
+          error,
+          'Não foi possível carregar clubes para descobrir.',
+        ),
+      );
+    } finally {
+      if (isMountedRef.current) {
+        if (showLoading) {
+          setIsDiscoverLoading(false);
+        }
+
+        if (showRefreshing) {
+          setIsRefreshing(false);
+        }
+      }
+    }
+  }
+
+  async function reloadSearchClubs(
+    searchQuery: string,
+    {
+      showLoading = true,
+      showRefreshing = false,
+    }: LoadSearchOptions = {},
+  ) {
+    const trimmedSearchQuery = searchQuery.trim();
+
+    if (trimmedSearchQuery.length === 0) {
+      setIsSearchLoading(false);
+      setSearchErrorMessage(null);
+      setSearchResults([]);
+
+      return;
+    }
+
+    const searchRequestId = searchRequestIdRef.current + 1;
+    searchRequestIdRef.current = searchRequestId;
+
+    try {
+      if (showLoading) {
+        setIsSearchLoading(true);
+      }
+
+      if (showRefreshing) {
+        setIsRefreshing(true);
+      }
+
+      setSearchErrorMessage(null);
+
+      const clubs = await fetchSearchClubs(trimmedSearchQuery);
+
+      if (
+        !isMountedRef.current ||
+        searchRequestIdRef.current !== searchRequestId
+      ) {
+        return;
+      }
+
+      setSearchResults(
+        clubs.map((club) => mapClubSummaryToDiscoverItem(club, 'search')),
+      );
+    } catch (error) {
+      if (
+        !isMountedRef.current ||
+        searchRequestIdRef.current !== searchRequestId
+      ) {
+        return;
+      }
+
+      setSearchErrorMessage(
+        getErrorMessage(error, 'Não foi possível buscar clubes.'),
+      );
+      setSearchResults([]);
+    } finally {
+      if (
+        isMountedRef.current &&
+        searchRequestIdRef.current === searchRequestId
+      ) {
+        setIsSearchLoading(false);
+      }
+
+      if (isMountedRef.current && showRefreshing) {
+        setIsRefreshing(false);
+      }
+    }
+  }
+
+  async function handleRefresh() {
+    if (activeTab === 'my-clubs') {
+      await reloadMyClubs({
+        clearOnError: false,
+        showLoading: false,
+        showRefreshing: true,
+      });
+
+      return;
+    }
+
+    if (hasSearchQuery) {
+      await reloadSearchClubs(trimmedQuery, {
+        showLoading: false,
+        showRefreshing: true,
+      });
+
+      return;
+    }
+
+    await reloadDiscoverClubs({
+      clearOnError: false,
+      showLoading: false,
+      showRefreshing: true,
+    });
+  }
+
+  async function handleRetry() {
+    if (activeTab === 'my-clubs') {
+      await reloadMyClubs();
+
+      return;
+    }
+
+    if (hasSearchQuery) {
+      await reloadSearchClubs(trimmedQuery);
+
+      return;
+    }
+
+    await reloadDiscoverClubs();
+  }
+
   const state: ClubsScreenState = {
     activeTab,
     query,
@@ -299,6 +525,7 @@ export function useClubsScreen() {
     discoverContentState,
     isLoading: activeContentState === 'loading',
     isInitialLoading,
+    isRefreshing,
     isSearchLoading,
     errorMessage,
     searchErrorMessage,
@@ -311,5 +538,7 @@ export function useClubsScreen() {
     ...state,
     setQuery,
     handleChangeTab,
+    handleRefresh,
+    handleRetry,
   };
 }

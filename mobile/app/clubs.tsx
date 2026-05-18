@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  RefreshControl,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -37,11 +38,14 @@ export default function ClubsScreen() {
     activeContentState,
     errorMessage,
     hasSearchQuery,
+    isRefreshing,
     myClubs,
     query,
     visibleDiscoverClubs,
     setQuery,
     handleChangeTab,
+    handleRefresh,
+    handleRetry,
   } = useClubsScreen();
 
   const trimmedQuery = query.trim();
@@ -71,6 +75,8 @@ export default function ClubsScreen() {
           title={errorTitle}
           description={errorDescription}
           iconName="error-outline"
+          actionLabel="Tentar novamente"
+          onAction={handleRetry}
         />
       );
     }
@@ -194,6 +200,15 @@ export default function ClubsScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={handleRefresh}
+                tintColor={colors.green}
+                colors={[colors.green]}
+                progressBackgroundColor={colors.surface}
+              />
+            }
           >
             <View style={styles.headerSection}>
               <Text style={[styles.title, { color: colors.text }]}>

@@ -41,6 +41,7 @@ export type ClubsScreenState = {
   discoverContentState: ClubsContentState;
   isLoading: boolean;
   isInitialLoading: boolean;
+  isRefreshing: boolean;
   isSearchLoading: boolean;
   errorMessage: string | null;
   searchErrorMessage: string | null;

@@ -733,4 +733,340 @@ describe('useClubsScreen', () => {
       'Clube Descoberto',
     );
   });
+
+  it('refresh em Meus Clubes chama getMyClubs novamente sem trocar aba', async () => {
+    mockedGetMyClubs
+      .mockResolvedValueOnce([
+        makeClubSummary({
+          id: 'my-club-1',
+          name: 'Clube Inicial',
+        }),
+      ])
+      .mockResolvedValueOnce([
+        makeClubSummary({
+          id: 'my-club-2',
+          name: 'Clube Atualizado',
+        }),
+      ]);
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubs[0].name).toBe('Clube Inicial');
+    });
+
+    await act(async () => {
+      await result.current.handleRefresh();
+    });
+
+    expect(mockedGetMyClubs).toHaveBeenCalledTimes(2);
+    expect(mockedDiscoverClubs).not.toHaveBeenCalled();
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
+    expect(result.current.activeTab).toBe('my-clubs');
+    expect(result.current.myClubs[0].name).toBe('Clube Atualizado');
+    expect(result.current.isRefreshing).toBe(false);
+  });
+
+  it('refresh em Descobrir sem query recarrega discoverClubs mesmo ja carregado', async () => {
+    mockedDiscoverClubs
+      .mockResolvedValueOnce(
+        makeDiscoverResponse({
+          suggested: [
+            makeClubSummary({
+              id: 'discover-1',
+              name: 'Descoberta Inicial',
+              viewerMembership: {
+                isMember: false,
+                role: null,
+                status: null,
+              },
+            }),
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        makeDiscoverResponse({
+          popular: [
+            makeClubSummary({
+              id: 'discover-2',
+              name: 'Descoberta Atualizada',
+              memberCount: 20,
+              viewerMembership: {
+                isMember: false,
+                role: null,
+                status: null,
+              },
+            }),
+          ],
+        }),
+      );
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverClubs[0].name).toBe('Descoberta Inicial');
+    });
+
+    await act(async () => {
+      await result.current.handleRefresh();
+    });
+
+    expect(mockedDiscoverClubs).toHaveBeenCalledTimes(2);
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
+    expect(result.current.activeTab).toBe('discover');
+    expect(result.current.query).toBe('');
+    expect(result.current.discoverClubs[0].name).toBe(
+      'Descoberta Atualizada',
+    );
+    expect(result.current.discoverClubs[0].badgeLabel).toBe('Popular');
+  });
+
+  it('refresh em busca recarrega searchClubs com a query atual', async () => {
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [
+          makeClubSummary({
+            id: 'discover-1',
+            name: 'Clube Descoberto',
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+      }),
+    );
+    mockedSearchClubs
+      .mockResolvedValueOnce([
+        makeClubSummary({
+          id: 'search-1',
+          name: 'Resultado Inicial',
+          viewerMembership: {
+            isMember: false,
+            role: null,
+            status: null,
+          },
+        }),
+      ])
+      .mockResolvedValueOnce([
+        makeClubSummary({
+          id: 'search-2',
+          name: 'Resultado Atualizado',
+          viewerMembership: {
+            isMember: false,
+            role: null,
+            status: null,
+          },
+        }),
+      ]);
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('desafios');
+    });
+
+    await advanceSearchDebounce();
+
+    await waitFor(() => {
+      expect(result.current.searchResults[0].name).toBe('Resultado Inicial');
+    });
+
+    await act(async () => {
+      await result.current.handleRefresh();
+    });
+
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(2);
+    expect(mockedSearchClubs).toHaveBeenLastCalledWith('desafios');
+    expect(mockedDiscoverClubs).toHaveBeenCalledTimes(1);
+    expect(result.current.activeTab).toBe('discover');
+    expect(result.current.query).toBe('desafios');
+    expect(result.current.searchResults[0].name).toBe('Resultado Atualizado');
+  });
+
+  it('retry apos erro de Meus Clubes repete getMyClubs', async () => {
+    mockedGetMyClubs
+      .mockRejectedValueOnce(new Error('Falha em Meus Clubes'))
+      .mockResolvedValueOnce([
+        makeClubSummary({
+          id: 'my-club-retry',
+          name: 'Clube Recuperado',
+        }),
+      ]);
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('error');
+    });
+
+    await act(async () => {
+      await result.current.handleRetry();
+    });
+
+    expect(mockedGetMyClubs).toHaveBeenCalledTimes(2);
+    expect(result.current.activeTab).toBe('my-clubs');
+    expect(result.current.myClubsContentState).toBe('list');
+    expect(result.current.myClubs[0].name).toBe('Clube Recuperado');
+  });
+
+  it('retry apos erro de Descobrir repete discoverClubs', async () => {
+    mockedDiscoverClubs
+      .mockRejectedValueOnce(new Error('Falha na descoberta'))
+      .mockResolvedValueOnce(
+        makeDiscoverResponse({
+          recent: [
+            makeClubSummary({
+              id: 'discover-retry',
+              name: 'Descoberta Recuperada',
+              viewerMembership: {
+                isMember: false,
+                role: null,
+                status: null,
+              },
+            }),
+          ],
+        }),
+      );
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('error');
+    });
+
+    await act(async () => {
+      await result.current.handleRetry();
+    });
+
+    expect(mockedDiscoverClubs).toHaveBeenCalledTimes(2);
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
+    expect(result.current.activeTab).toBe('discover');
+    expect(result.current.discoverContentState).toBe('list');
+    expect(result.current.discoverClubs[0].name).toBe(
+      'Descoberta Recuperada',
+    );
+  });
+
+  it('retry apos erro de busca repete searchClubs sem apagar discovery carregado', async () => {
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [
+          makeClubSummary({
+            id: 'discover-1',
+            name: 'Clube Descoberto',
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+      }),
+    );
+    mockedSearchClubs
+      .mockRejectedValueOnce(new Error('Falha na busca'))
+      .mockRejectedValueOnce(new Error('Falha nova na busca'));
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('quebrada');
+    });
+
+    await advanceSearchDebounce();
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('error');
+    });
+
+    await act(async () => {
+      await result.current.handleRetry();
+    });
+
+    await waitFor(() => {
+      expect(result.current.errorMessage).toBe('Falha nova na busca');
+    });
+
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(2);
+    expect(mockedSearchClubs).toHaveBeenLastCalledWith('quebrada');
+    expect(result.current.query).toBe('quebrada');
+    expect(result.current.discoverClubs[0].name).toBe('Clube Descoberto');
+    expect(result.current.visibleDiscoverClubs).toEqual([]);
+  });
+
+  it('refresh e retry nao chamam searchClubs fora da aba Descobrir', async () => {
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('desafios');
+    });
+
+    await advanceSearchDebounce();
+
+    await act(async () => {
+      await result.current.handleRefresh();
+    });
+
+    await act(async () => {
+      await result.current.handleRetry();
+    });
+
+    expect(result.current.activeTab).toBe('my-clubs');
+    expect(result.current.query).toBe('desafios');
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
+    expect(mockedDiscoverClubs).not.toHaveBeenCalled();
+    expect(mockedGetMyClubs).toHaveBeenCalledTimes(3);
+  });
 });

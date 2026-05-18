@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ClubsThemeColors } from '../../constants/clubsTheme';
 
 type Props = {
@@ -8,6 +8,8 @@ type Props = {
   title?: string;
   description?: string;
   iconName?: keyof typeof MaterialIcons.glyphMap;
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
 export default function ClubsEmptyState({
@@ -15,6 +17,8 @@ export default function ClubsEmptyState({
   title = 'Nenhum clube encontrado',
   description = 'Tente outro termo ou volte mais tarde para explorar novos clubes.',
   iconName = 'groups',
+  actionLabel,
+  onAction,
 }: Props) {
   return (
     <View
@@ -40,6 +44,22 @@ export default function ClubsEmptyState({
       <Text style={[styles.description, { color: colors.subText }]}>
         {description}
       </Text>
+
+      {actionLabel && onAction ? (
+        <Pressable
+          testID="clubs-empty-state-action"
+          onPress={onAction}
+          style={({ pressed }) => [
+            styles.actionButton,
+            { backgroundColor: colors.green },
+            pressed && styles.actionButtonPressed,
+          ]}
+        >
+          <Text style={[styles.actionText, { color: colors.white }]}>
+            {actionLabel}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -73,5 +93,19 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '500',
     maxWidth: 280,
+  },
+  actionButton: {
+    minHeight: 44,
+    borderRadius: 999,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonPressed: {
+    opacity: 0.9,
+  },
+  actionText: {
+    fontSize: 13,
+    fontWeight: '900',
   },
 });

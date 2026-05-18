@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 import ClubsScreen from '../app/clubs';
 import { useClubsScreen } from '../hooks/useClubsScreen';
@@ -52,11 +52,14 @@ const baseHookState: ReturnType<typeof useClubsScreen> = {
   errorMessage: null,
   filteredDiscoverClubs: [],
   handleChangeTab: jest.fn(),
+  handleRefresh: jest.fn(),
+  handleRetry: jest.fn(),
   hasSearchQuery: false,
   isDiscoverEmpty: true,
   isInitialLoading: false,
   isLoading: false,
   isMyClubsEmpty: true,
+  isRefreshing: false,
   isSearchLoading: false,
   myClubs: [],
   myClubsContentState: 'empty',
@@ -154,5 +157,25 @@ describe('ClubsScreen', () => {
     expect(getByText('9 membros')).toBeTruthy();
     expect(getByText('Busca')).toBeTruthy();
     expect(queryByText('Nenhum clube encontrado')).toBeNull();
+  });
+
+  it('renderiza retry visivel no estado de erro', () => {
+    const handleRetry = jest.fn();
+
+    mockedUseClubsScreen.mockReturnValue({
+      ...baseHookState,
+      activeContentState: 'error',
+      errorMessage: 'Falha de rede',
+      handleRetry,
+      myClubsContentState: 'error',
+    });
+
+    const { getByText } = render(<ClubsScreen />);
+
+    expect(getByText('Falha de rede')).toBeTruthy();
+
+    fireEvent.press(getByText('Tentar novamente'));
+
+    expect(handleRetry).toHaveBeenCalledTimes(1);
   });
 });
