@@ -99,6 +99,7 @@ export function mapClubSummaryToListItem(
     id: club.id,
     name: club.name,
     description: getClubDescription(club.description),
+    memberCount: club.memberCount,
     membersLabel: formatClubMembersLabel(club.memberCount),
     statusLabel: getClubListStatusLabel(club),
     iconName: getClubIconName(club.iconName),
@@ -114,10 +115,13 @@ export function mapClubSummaryToDiscoverItem(
     id: club.id,
     name: club.name,
     description: getClubDescription(club.description),
+    memberCount: club.memberCount,
     membersLabel: formatClubMembersLabel(club.memberCount),
     badgeLabel: DISCOVERY_BADGE_LABELS[source],
     iconName: getClubIconName(club.iconName),
     // The "popular" discovery source is the one that should receive trending treatment in the card.
     isTrending: source === 'popular',
+    isMember: club.viewerMembership.isMember,
+    membershipStatus: club.viewerMembership.status,
   };
 }

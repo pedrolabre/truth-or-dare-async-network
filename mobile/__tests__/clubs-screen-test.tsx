@@ -47,11 +47,13 @@ const mockedUseClubsScreen = useClubsScreen as jest.MockedFunction<
 const baseHookState: ReturnType<typeof useClubsScreen> = {
   activeTab: 'my-clubs',
   activeContentState: 'empty',
+  clubActionErrorMessage: null,
   discoverClubs: [],
   discoverContentState: 'empty',
   errorMessage: null,
   filteredDiscoverClubs: [],
   handleChangeTab: jest.fn(),
+  handleJoinClub: jest.fn(),
   handleRefresh: jest.fn(),
   handleRetry: jest.fn(),
   hasSearchQuery: false,
@@ -61,6 +63,7 @@ const baseHookState: ReturnType<typeof useClubsScreen> = {
   isMyClubsEmpty: true,
   isRefreshing: false,
   isSearchLoading: false,
+  joiningClubIds: [],
   myClubs: [],
   myClubsContentState: 'empty',
   query: '',
@@ -99,11 +102,15 @@ describe('ClubsScreen', () => {
       id: 'club-discover-1',
       name: 'Clube Público Real',
       description: 'Desafios rápidos para jogar em grupo.',
+      memberCount: 5,
       membersLabel: '5 membros',
       badgeLabel: 'Popular',
       iconName: 'explore',
       isTrending: true,
+      isMember: false,
+      membershipStatus: null,
     };
+    const handleJoinClub = jest.fn();
 
     mockedUseClubsScreen.mockReturnValue({
       ...baseHookState,
@@ -112,6 +119,7 @@ describe('ClubsScreen', () => {
       discoverClubs: [discoverItem],
       discoverContentState: 'list',
       filteredDiscoverClubs: [discoverItem],
+      handleJoinClub,
       isDiscoverEmpty: false,
       visibleDiscoverClubs: [discoverItem],
     });
@@ -122,7 +130,8 @@ describe('ClubsScreen', () => {
     expect(getByText('Desafios rápidos para jogar em grupo.')).toBeTruthy();
     expect(getByText('5 membros')).toBeTruthy();
     expect(getByText('Popular')).toBeTruthy();
-    expect(getByText('Explorar')).toBeTruthy();
+    fireEvent.press(getByText('Entrar'));
+    expect(handleJoinClub).toHaveBeenCalledWith(discoverItem);
     expect(queryByText('Abrir clube')).toBeNull();
   });
 
@@ -131,10 +140,13 @@ describe('ClubsScreen', () => {
       id: 'club-search-1',
       name: 'Clube Encontrado',
       description: 'Resultado vindo da API de busca.',
+      memberCount: 9,
       membersLabel: '9 membros',
       badgeLabel: 'Busca',
       iconName: 'search',
       isTrending: false,
+      isMember: false,
+      membershipStatus: null,
     };
 
     mockedUseClubsScreen.mockReturnValue({

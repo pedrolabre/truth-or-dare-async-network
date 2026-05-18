@@ -7,16 +7,46 @@ import type { ClubDiscoverItem } from '../../types/clubs';
 type Props = {
   club: ClubDiscoverItem;
   colors: ClubsThemeColors;
+  isJoining?: boolean;
+  onJoin: (club: ClubDiscoverItem) => void;
   onPress?: (club: ClubDiscoverItem) => void;
 };
+
+function getJoinActionLabel(club: ClubDiscoverItem, isJoining: boolean) {
+  if (isJoining) {
+    return 'Entrando...';
+  }
+
+  if (club.isMember) {
+    return 'Membro';
+  }
+
+  if (club.membershipStatus === 'requested') {
+    return 'Pendente';
+  }
+
+  if (club.membershipStatus === 'invited') {
+    return 'Convite';
+  }
+
+  return 'Entrar';
+}
 
 export default function ClubDiscoverCard({
   club,
   colors,
+  isJoining = false,
+  onJoin,
   onPress,
 }: Props) {
   const iconName =
     (club.iconName as keyof typeof MaterialIcons.glyphMap | undefined) ?? 'groups';
+  const joinActionLabel = getJoinActionLabel(club, isJoining);
+  const isJoinDisabled =
+    isJoining ||
+    club.isMember ||
+    club.membershipStatus === 'requested' ||
+    club.membershipStatus === 'invited';
 
   return (
     <Pressable
@@ -83,9 +113,31 @@ export default function ClubDiscoverCard({
             </Text>
           </View>
 
-          <Text style={[styles.actionText, { color: colors.green }]}>
-            Explorar
-          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Entrar no clube ${club.name}`}
+            disabled={isJoinDisabled}
+            onPress={() => onJoin(club)}
+            testID={`club-discover-join-${club.id}`}
+            style={({ pressed }) => [
+              styles.actionButton,
+              {
+                backgroundColor: isJoinDisabled
+                  ? colors.surfaceStrong
+                  : colors.green,
+              },
+              pressed && !isJoinDisabled && styles.actionButtonPressed,
+            ]}
+          >
+            <Text
+              style={[
+                styles.actionText,
+                { color: isJoinDisabled ? colors.muted : colors.white },
+              ]}
+            >
+              {joinActionLabel}
+            </Text>
+          </Pressable>
         </View>
       </View>
     </Pressable>
@@ -160,6 +212,17 @@ const styles = StyleSheet.create({
   membersText: {
     fontSize: 11,
     fontWeight: '700',
+  },
+  actionButton: {
+    minHeight: 36,
+    minWidth: 104,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonPressed: {
+    opacity: 0.9,
   },
   actionText: {
     fontSize: 12,

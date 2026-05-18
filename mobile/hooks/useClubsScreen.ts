@@ -2,9 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   discoverClubs as fetchDiscoverClubs,
   getMyClubs,
+  joinClub,
   searchClubs as fetchSearchClubs,
 } from '../services/clubsApi';
 import {
+  formatClubMembersLabel,
   mapClubSummaryToDiscoverItem,
   mapClubSummaryToListItem,
 } from '../services/clubsMappers';
@@ -16,7 +18,12 @@ import type {
   ClubsScreenState,
   ClubsTabKey,
 } from '../types/clubs';
-import type { DiscoverClubsApi } from '../types/clubsApi';
+import type {
+  ClubMemberApi,
+  ClubMemberRoleApi,
+  ClubMemberStatusApi,
+  DiscoverClubsApi,
+} from '../types/clubsApi';
 
 const DISCOVERY_SOURCES: ClubDiscoverySource[] = [
   'suggested',
@@ -33,6 +40,20 @@ type LoadOptions = {
 };
 
 type LoadSearchOptions = Pick<LoadOptions, 'showLoading' | 'showRefreshing'>;
+
+const MEMBER_STATUS_LABELS: Record<ClubMemberStatusApi, string> = {
+  active: 'Membro',
+  invited: 'Convite',
+  requested: 'Pendente',
+  removed: 'Removido',
+};
+
+const MEMBER_ROLE_LABELS: Record<ClubMemberRoleApi, string> = {
+  owner: 'Dono',
+  admin: 'Admin',
+  moderator: 'Moderador',
+  member: 'Membro',
+};
 
 function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return error instanceof Error ? error.message : fallbackMessage;
@@ -68,6 +89,7 @@ export function useClubsScreen() {
   const [isDiscoverLoading, setIsDiscoverLoading] = useState(false);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [joiningClubIds, setJoiningClubIds] = useState<string[]>([]);
   const [myClubsErrorMessage, setMyClubsErrorMessage] = useState<string | null>(
     null,
   );
@@ -77,8 +99,12 @@ export function useClubsScreen() {
   const [searchErrorMessage, setSearchErrorMessage] = useState<string | null>(
     null,
   );
+  const [clubActionErrorMessage, setClubActionErrorMessage] = useState<
+    string | null
+  >(null);
   const hasRequestedDiscoverRef = useRef(false);
   const isMountedRef = useRef(true);
+  const joiningClubIdsRef = useRef<Set<string>>(new Set());
   const searchRequestIdRef = useRef(0);
 
   useEffect(() => {
@@ -469,6 +495,141 @@ export function useClubsScreen() {
     }
   }
 
+  function setClubJoinPending(clubId: string, isJoining: boolean) {
+    const nextJoiningClubIds = new Set(joiningClubIdsRef.current);
+
+    if (isJoining) {
+      nextJoiningClubIds.add(clubId);
+    } else {
+      nextJoiningClubIds.delete(clubId);
+    }
+
+    joiningClubIdsRef.current = nextJoiningClubIds;
+    setJoiningClubIds(Array.from(nextJoiningClubIds));
+  }
+
+  function getJoinedMemberCount(
+    club: ClubDiscoverItem,
+    membership: ClubMemberApi,
+  ) {
+    if (membership.status !== 'active' || club.isMember) {
+      return club.memberCount;
+    }
+
+    return club.memberCount + 1;
+  }
+
+  function updateDiscoverClubAfterJoin(
+    club: ClubDiscoverItem,
+    membership: ClubMemberApi,
+  ) {
+    return (currentClub: ClubDiscoverItem): ClubDiscoverItem => {
+      if (currentClub.id !== club.id) {
+        return currentClub;
+      }
+
+      const memberCount = getJoinedMemberCount(currentClub, membership);
+      const isActiveMember = membership.status === 'active';
+
+      return {
+        ...currentClub,
+        memberCount,
+        membersLabel: formatClubMembersLabel(memberCount),
+        isMember: isActiveMember,
+        membershipStatus: membership.status,
+      };
+    };
+  }
+
+  function getJoinedClubStatusLabel(membership: ClubMemberApi) {
+    if (membership.status === 'active' && membership.role) {
+      return MEMBER_ROLE_LABELS[membership.role];
+    }
+
+    return MEMBER_STATUS_LABELS[membership.status];
+  }
+
+  function upsertJoinedClubInMyClubs(
+    club: ClubDiscoverItem,
+    membership: ClubMemberApi,
+  ) {
+    const memberCount = getJoinedMemberCount(club, membership);
+    const membersLabel = formatClubMembersLabel(memberCount);
+    const statusLabel = getJoinedClubStatusLabel(membership);
+    const isActive = membership.status === 'active';
+
+    setMyClubs((currentClubs) => {
+      const hasClub = currentClubs.some((currentClub) => currentClub.id === club.id);
+
+      if (hasClub) {
+        return currentClubs.map((currentClub) =>
+          currentClub.id === club.id
+            ? {
+                ...currentClub,
+                memberCount,
+                membersLabel,
+                statusLabel,
+                isActive,
+              }
+            : currentClub,
+        );
+      }
+
+      const joinedClub: ClubListItem = {
+        id: club.id,
+        name: club.name,
+        description: club.description,
+        memberCount,
+        membersLabel,
+        statusLabel,
+        iconName: club.iconName,
+        isActive,
+      };
+
+      return [joinedClub, ...currentClubs];
+    });
+  }
+
+  async function handleJoinClub(club: ClubDiscoverItem) {
+    if (club.isMember || joiningClubIdsRef.current.has(club.id)) {
+      return;
+    }
+
+    setClubJoinPending(club.id, true);
+    setClubActionErrorMessage(null);
+
+    try {
+      const membership = await joinClub(club.id);
+
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setDiscoverClubs((currentClubs) =>
+        currentClubs.map(updateDiscoverClubAfterJoin(club, membership)),
+      );
+      setSearchResults((currentClubs) =>
+        currentClubs.map(updateDiscoverClubAfterJoin(club, membership)),
+      );
+
+      if (membership.status === 'active') {
+        upsertJoinedClubInMyClubs(club, membership);
+      }
+    } catch (error) {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setClubActionErrorMessage(
+        getErrorMessage(error, 'Nao foi possivel entrar no clube.'),
+      );
+    } finally {
+      if (isMountedRef.current) {
+        setClubJoinPending(club.id, false);
+      }
+    }
+  }
+
   async function handleRefresh() {
     if (activeTab === 'my-clubs') {
       await reloadMyClubs({
@@ -527,8 +688,10 @@ export function useClubsScreen() {
     isInitialLoading,
     isRefreshing,
     isSearchLoading,
+    joiningClubIds,
     errorMessage,
     searchErrorMessage,
+    clubActionErrorMessage,
     hasSearchQuery,
     isDiscoverEmpty: discoverContentState === 'empty',
     isMyClubsEmpty: myClubsContentState === 'empty',
@@ -540,5 +703,6 @@ export function useClubsScreen() {
     handleChangeTab,
     handleRefresh,
     handleRetry,
+    handleJoinClub,
   };
 }

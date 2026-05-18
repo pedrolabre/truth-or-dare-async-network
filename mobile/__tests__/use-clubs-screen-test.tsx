@@ -4,12 +4,22 @@ import {
   CLUBS_SEARCH_DEBOUNCE_MS,
   useClubsScreen,
 } from '../hooks/useClubsScreen';
-import { discoverClubs, getMyClubs, searchClubs } from '../services/clubsApi';
-import type { ClubSummaryApi, DiscoverClubsApi } from '../types/clubsApi';
+import {
+  discoverClubs,
+  getMyClubs,
+  joinClub,
+  searchClubs,
+} from '../services/clubsApi';
+import type {
+  ClubMemberApi,
+  ClubSummaryApi,
+  DiscoverClubsApi,
+} from '../types/clubsApi';
 
 jest.mock('../services/clubsApi', () => ({
   discoverClubs: jest.fn(),
   getMyClubs: jest.fn(),
+  joinClub: jest.fn(),
   searchClubs: jest.fn(),
 }));
 
@@ -17,6 +27,7 @@ const mockedDiscoverClubs = discoverClubs as jest.MockedFunction<
   typeof discoverClubs
 >;
 const mockedGetMyClubs = getMyClubs as jest.MockedFunction<typeof getMyClubs>;
+const mockedJoinClub = joinClub as jest.MockedFunction<typeof joinClub>;
 const mockedSearchClubs = searchClubs as jest.MockedFunction<
   typeof searchClubs
 >;
@@ -52,6 +63,26 @@ function makeClubSummary(overrides: ClubSummaryOverrides = {}): ClubSummaryApi {
       ...baseClub.viewerMembership,
       ...overrides.viewerMembership,
     },
+  };
+}
+
+function makeClubMember(
+  overrides: Partial<ClubMemberApi> = {},
+): ClubMemberApi {
+  return {
+    id: 'member-1',
+    clubId: 'club-1',
+    userId: 'user-1',
+    name: 'Pedro',
+    username: 'pedro',
+    role: 'member',
+    status: 'active',
+    joinedAt: '2026-05-18T12:00:00.000Z',
+    lastSeenAt: null,
+    mutedUntil: null,
+    createdAt: '2026-05-18T12:00:00.000Z',
+    updatedAt: '2026-05-18T12:00:00.000Z',
+    ...overrides,
   };
 }
 
@@ -94,6 +125,7 @@ describe('useClubsScreen', () => {
     jest.useRealTimers();
     mockedGetMyClubs.mockResolvedValue([]);
     mockedDiscoverClubs.mockResolvedValue(makeDiscoverResponse());
+    mockedJoinClub.mockResolvedValue(makeClubMember());
     mockedSearchClubs.mockResolvedValue([]);
   });
 
@@ -121,6 +153,7 @@ describe('useClubsScreen', () => {
         id: 'club-1',
         name: 'Bons Desafios',
         description: 'Um clube para desafios leves.',
+        memberCount: 2,
         membersLabel: '2 membros',
         statusLabel: 'Dono',
         iconName: 'sports-esports',
@@ -242,28 +275,37 @@ describe('useClubsScreen', () => {
         id: 'club-1',
         name: 'Clube Sugerido',
         description: 'Um clube para desafios leves.',
+        memberCount: 2,
         membersLabel: '2 membros',
         badgeLabel: 'Sugestão',
         iconName: 'sports-esports',
         isTrending: false,
+        isMember: false,
+        membershipStatus: null,
       },
       {
         id: 'club-2',
         name: 'Clube Popular',
         description: 'Um clube para desafios leves.',
+        memberCount: 12,
         membersLabel: '12 membros',
         badgeLabel: 'Popular',
         iconName: 'sports-esports',
         isTrending: true,
+        isMember: false,
+        membershipStatus: null,
       },
       {
         id: 'club-3',
         name: 'Clube Novo',
         description: 'Um clube para desafios leves.',
+        memberCount: 1,
         membersLabel: '1 membro',
         badgeLabel: 'Novo',
         iconName: 'sports-esports',
         isTrending: false,
+        isMember: false,
+        membershipStatus: null,
       },
     ]);
     expect(result.current.visibleDiscoverClubs).toEqual(
@@ -446,10 +488,13 @@ describe('useClubsScreen', () => {
         id: 'search-1',
         name: 'Clube Buscado',
         description: 'Um clube para desafios leves.',
+        memberCount: 7,
         membersLabel: '7 membros',
         badgeLabel: 'Busca',
         iconName: 'sports-esports',
         isTrending: false,
+        isMember: false,
+        membershipStatus: null,
       },
     ]);
     expect(result.current.visibleDiscoverClubs).toEqual(
@@ -732,6 +777,202 @@ describe('useClubsScreen', () => {
     expect(result.current.visibleDiscoverClubs[0].name).toBe(
       'Clube Descoberto',
     );
+  });
+
+  it('entrada com sucesso atualiza contadores locais e preserva aba e query', async () => {
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [
+          makeClubSummary({
+            id: 'discover-1',
+            name: 'Clube Descoberto',
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+      }),
+    );
+    mockedSearchClubs.mockResolvedValue([
+      makeClubSummary({
+        id: 'search-join',
+        name: 'Clube para Entrar',
+        memberCount: 7,
+        viewerMembership: {
+          isMember: false,
+          role: null,
+          status: null,
+        },
+      }),
+    ]);
+    mockedJoinClub.mockResolvedValue(
+      makeClubMember({
+        clubId: 'search-join',
+        role: 'member',
+        status: 'active',
+      }),
+    );
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('entrar');
+    });
+
+    await advanceSearchDebounce();
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('search-results');
+    });
+
+    const clubToJoin = result.current.visibleDiscoverClubs[0];
+
+    await act(async () => {
+      await result.current.handleJoinClub(clubToJoin);
+    });
+
+    expect(mockedJoinClub).toHaveBeenCalledTimes(1);
+    expect(mockedJoinClub).toHaveBeenCalledWith('search-join');
+    expect(result.current.activeTab).toBe('discover');
+    expect(result.current.query).toBe('entrar');
+    expect(result.current.searchResults[0]).toEqual({
+      ...clubToJoin,
+      memberCount: 8,
+      membersLabel: '8 membros',
+      isMember: true,
+      membershipStatus: 'active',
+    });
+    expect(result.current.myClubs[0]).toEqual({
+      id: 'search-join',
+      name: 'Clube para Entrar',
+      description: 'Um clube para desafios leves.',
+      memberCount: 8,
+      membersLabel: '8 membros',
+      statusLabel: 'Membro',
+      iconName: 'sports-esports',
+      isActive: true,
+    });
+    expect(result.current.clubActionErrorMessage).toBeNull();
+    expect(result.current.joiningClubIds).toEqual([]);
+  });
+
+  it('erro de entrada preserva dados locais e expoe erro amigavel', async () => {
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [
+          makeClubSummary({
+            id: 'join-error',
+            name: 'Clube com Falha',
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+      }),
+    );
+    mockedJoinClub.mockRejectedValue(new Error('Falha ao entrar'));
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    const clubToJoin = result.current.visibleDiscoverClubs[0];
+
+    await act(async () => {
+      await result.current.handleJoinClub(clubToJoin);
+    });
+
+    expect(mockedJoinClub).toHaveBeenCalledWith('join-error');
+    expect(result.current.discoverClubs[0]).toEqual(clubToJoin);
+    expect(result.current.myClubs).toEqual([]);
+    expect(result.current.clubActionErrorMessage).toBe('Falha ao entrar');
+    expect(result.current.joiningClubIds).toEqual([]);
+  });
+
+  it('ignora duplo toque enquanto entrada esta em andamento', async () => {
+    const joinDeferred = createDeferred<ClubMemberApi>();
+
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [
+          makeClubSummary({
+            id: 'join-pending',
+            name: 'Clube Pendente',
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+      }),
+    );
+    mockedJoinClub.mockReturnValue(joinDeferred.promise);
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    const clubToJoin = result.current.visibleDiscoverClubs[0];
+    let firstJoinPromise!: Promise<void>;
+
+    act(() => {
+      firstJoinPromise = result.current.handleJoinClub(clubToJoin);
+      void result.current.handleJoinClub(clubToJoin);
+    });
+
+    expect(mockedJoinClub).toHaveBeenCalledTimes(1);
+    expect(result.current.joiningClubIds).toEqual(['join-pending']);
+
+    await act(async () => {
+      joinDeferred.resolve(
+        makeClubMember({
+          clubId: 'join-pending',
+        }),
+      );
+      await firstJoinPromise;
+    });
+
+    expect(result.current.joiningClubIds).toEqual([]);
+    expect(result.current.discoverClubs[0].isMember).toBe(true);
   });
 
   it('refresh em Meus Clubes chama getMyClubs novamente sem trocar aba', async () => {

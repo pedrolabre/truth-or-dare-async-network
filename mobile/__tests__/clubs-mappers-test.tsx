@@ -46,6 +46,7 @@ describe('clubs mappers', () => {
       id: 'club-1',
       name: 'Bons Desafios',
       description: 'Um clube para desafios leves.',
+      memberCount: 2,
       membersLabel: '2 membros',
       statusLabel: 'Dono',
       iconName: 'sports-esports',
@@ -67,6 +68,7 @@ describe('clubs mappers', () => {
 
     expect(item.description).toBe('Clube sem descrição por enquanto.');
     expect(item.iconName).toBe('groups');
+    expect(item.memberCount).toBe(1);
     expect(item.membersLabel).toBe('1 membro');
     expect(item.statusLabel).toBe('Membro');
   });
@@ -102,6 +104,9 @@ describe('clubs mappers', () => {
     const search = mapClubSummaryToDiscoverItem(makeClubSummary(), 'search');
 
     expect(suggested.badgeLabel).toBe('Sugestão');
+    expect(suggested.memberCount).toBe(2);
+    expect(suggested.isMember).toBe(true);
+    expect(suggested.membershipStatus).toBe('active');
     expect(suggested.isTrending).toBe(false);
     expect(popular.badgeLabel).toBe('Popular');
     expect(popular.isTrending).toBe(true);

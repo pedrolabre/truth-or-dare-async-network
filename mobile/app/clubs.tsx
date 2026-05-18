@@ -36,15 +36,18 @@ export default function ClubsScreen() {
   const {
     activeTab,
     activeContentState,
+    clubActionErrorMessage,
     errorMessage,
     hasSearchQuery,
     isRefreshing,
+    joiningClubIds,
     myClubs,
     query,
     visibleDiscoverClubs,
     setQuery,
     handleChangeTab,
     handleRefresh,
+    handleJoinClub,
     handleRetry,
   } = useClubsScreen();
 
@@ -138,6 +141,8 @@ export default function ClubsScreen() {
             key={club.id}
             club={club}
             colors={colors}
+            isJoining={joiningClubIds.includes(club.id)}
+            onJoin={handleJoinClub}
           />
         ))}
       </View>
@@ -227,6 +232,22 @@ export default function ClubsScreen() {
               />
             ) : null}
 
+            {activeTab === 'discover' && clubActionErrorMessage ? (
+              <View
+                style={[
+                  styles.actionErrorBox,
+                  {
+                    backgroundColor: colors.redSoft,
+                    borderColor: colors.cardBorder,
+                  },
+                ]}
+              >
+                <Text style={[styles.actionErrorText, { color: colors.red }]}>
+                  {clubActionErrorMessage}
+                </Text>
+              </View>
+            ) : null}
+
             {renderContent()}
           </ScrollView>
         </View>
@@ -293,5 +314,16 @@ const styles = StyleSheet.create({
   },
   cardsList: {
     gap: 14,
+  },
+  actionErrorBox: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  actionErrorText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
   },
 });
