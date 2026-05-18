@@ -116,8 +116,14 @@ export default function ClubDiscoverCard({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Entrar no clube ${club.name}`}
-            disabled={isJoinDisabled}
-            onPress={() => onJoin(club)}
+            accessibilityState={{ disabled: isJoinDisabled }}
+            onPress={(event) => {
+              event?.stopPropagation?.();
+
+              if (!isJoinDisabled) {
+                onJoin(club);
+              }
+            }}
             testID={`club-discover-join-${club.id}`}
             style={({ pressed }) => [
               styles.actionButton,

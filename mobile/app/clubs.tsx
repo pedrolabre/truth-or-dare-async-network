@@ -7,7 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 
 import FeedHeader from '../components/feed/FeedHeader';
 import FeedBottomNav from '../components/feed/FeedBottomNav';
@@ -27,6 +27,7 @@ import {
 } from '../constants/clubsTheme';
 import { useClubsScreen } from '../hooks/useClubsScreen';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
+import type { ClubDiscoverItem, ClubListItem } from '../types/clubs';
 
 export default function ClubsScreen() {
   const router = useRouter();
@@ -52,6 +53,10 @@ export default function ClubsScreen() {
   } = useClubsScreen();
 
   const trimmedQuery = query.trim();
+
+  function handleOpenClub(club: ClubListItem | ClubDiscoverItem) {
+    router.push(`/clubs/${encodeURIComponent(club.id)}` as Href);
+  }
 
   function renderContent() {
     if (activeContentState === 'loading') {
@@ -128,6 +133,7 @@ export default function ClubsScreen() {
               key={club.id}
               club={club}
               colors={colors}
+              onPress={handleOpenClub}
             />
           ))}
         </View>
@@ -143,6 +149,7 @@ export default function ClubsScreen() {
             colors={colors}
             isJoining={joiningClubIds.includes(club.id)}
             onJoin={handleJoinClub}
+            onPress={handleOpenClub}
           />
         ))}
       </View>

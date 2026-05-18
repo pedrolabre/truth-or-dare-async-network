@@ -4,6 +4,9 @@ import { fireEvent, render } from '@testing-library/react-native';
 import ClubsScreen from '../app/clubs';
 import { useClubsScreen } from '../hooks/useClubsScreen';
 
+const mockRouterPush = jest.fn();
+const mockRouterReplace = jest.fn();
+
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
   const { Text } = require('react-native');
@@ -16,8 +19,8 @@ jest.mock('@expo/vector-icons', () => {
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
+    push: mockRouterPush,
+    replace: mockRouterReplace,
   }),
 }));
 
@@ -133,6 +136,100 @@ describe('ClubsScreen', () => {
     fireEvent.press(getByText('Entrar'));
     expect(handleJoinClub).toHaveBeenCalledWith(discoverItem);
     expect(queryByText('Abrir clube')).toBeNull();
+  });
+
+  it('navega para o detalhe ao pressionar um card de Meus Clubes', () => {
+    const myClub = {
+      id: 'my-real-club-id',
+      name: 'Clube Real do Usuario',
+      description: 'Clube vindo da API de Meus Clubes.',
+      memberCount: 3,
+      membersLabel: '3 membros',
+      statusLabel: 'Membro',
+      iconName: 'groups',
+      isActive: true,
+    };
+
+    mockedUseClubsScreen.mockReturnValue({
+      ...baseHookState,
+      activeContentState: 'list',
+      isMyClubsEmpty: false,
+      myClubs: [myClub],
+      myClubsContentState: 'list',
+    });
+
+    const { getByText } = render(<ClubsScreen />);
+
+    fireEvent.press(getByText('Clube Real do Usuario'));
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/clubs/my-real-club-id');
+  });
+
+  it('navega para o detalhe ao pressionar um card de Descobrir', () => {
+    const discoverItem = {
+      id: 'discover-real-club-id',
+      name: 'Clube Publico Navegavel',
+      description: 'Clube publico vindo da API.',
+      memberCount: 8,
+      membersLabel: '8 membros',
+      badgeLabel: 'Sugestao',
+      iconName: 'explore',
+      isTrending: false,
+      isMember: false,
+      membershipStatus: null,
+    };
+
+    mockedUseClubsScreen.mockReturnValue({
+      ...baseHookState,
+      activeTab: 'discover',
+      activeContentState: 'list',
+      discoverClubs: [discoverItem],
+      discoverContentState: 'list',
+      filteredDiscoverClubs: [discoverItem],
+      isDiscoverEmpty: false,
+      visibleDiscoverClubs: [discoverItem],
+    });
+
+    const { getByText } = render(<ClubsScreen />);
+
+    fireEvent.press(getByText('Clube Publico Navegavel'));
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/clubs/discover-real-club-id');
+  });
+
+  it('pressionar Entrar nao navega e chama a acao de entrada', () => {
+    const discoverItem = {
+      id: 'join-without-navigation',
+      name: 'Clube para Entrar',
+      description: 'Clube publico com acao independente.',
+      memberCount: 4,
+      membersLabel: '4 membros',
+      badgeLabel: 'Novo',
+      iconName: 'explore',
+      isTrending: false,
+      isMember: false,
+      membershipStatus: null,
+    };
+    const handleJoinClub = jest.fn();
+
+    mockedUseClubsScreen.mockReturnValue({
+      ...baseHookState,
+      activeTab: 'discover',
+      activeContentState: 'list',
+      discoverClubs: [discoverItem],
+      discoverContentState: 'list',
+      filteredDiscoverClubs: [discoverItem],
+      handleJoinClub,
+      isDiscoverEmpty: false,
+      visibleDiscoverClubs: [discoverItem],
+    });
+
+    const { getByTestId } = render(<ClubsScreen />);
+
+    fireEvent.press(getByTestId('club-discover-join-join-without-navigation'));
+
+    expect(handleJoinClub).toHaveBeenCalledWith(discoverItem);
+    expect(mockRouterPush).not.toHaveBeenCalled();
   });
 
   it('renderiza resultados de busca remota na aba Descobrir', () => {

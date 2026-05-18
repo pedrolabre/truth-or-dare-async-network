@@ -25,6 +25,7 @@ export default function RootLayout() {
           name="clubs"
           options={{ animation: 'none' }}
         />
+        <Stack.Screen name="clubs/[id]" />
         <Stack.Screen
           name="profile"
           options={{ animation: 'none' }}
