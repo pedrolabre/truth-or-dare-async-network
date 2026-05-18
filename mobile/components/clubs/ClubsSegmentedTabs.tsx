@@ -9,7 +9,7 @@ type Props = {
   colors: ClubsThemeColors;
 };
 
-const TABS: Array<{ key: ClubsTabKey; label: string }> = [
+const TABS: { key: ClubsTabKey; label: string }[] = [
   { key: 'my-clubs', label: 'Meus Clubes' },
   { key: 'discover', label: 'Descobrir' },
 ];

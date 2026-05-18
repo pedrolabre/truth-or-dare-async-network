@@ -22,7 +22,7 @@ export default function VerificationCodeBoxes({
   length = 6,
   colors,
 }: Props) {
-  const inputsRef = useRef<Array<TextInput | null>>([]);
+  const inputsRef = useRef<(TextInput | null)[]>([]);
 
   function handleChange(text: string, index: number) {
     const clean = text.replace(/[^0-9]/g, '');

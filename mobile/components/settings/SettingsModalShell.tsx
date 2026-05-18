@@ -1,9 +1,9 @@
 import React from 'react';
-import { useColorScheme } from 'react-native';
 import {
   Modal,
   Pressable,
   StyleSheet,
+  useColorScheme,
 } from 'react-native';
 
 type Props = {
