@@ -8,14 +8,16 @@ import type {
 } from '../types/clubsApi';
 
 export type ClubDiscoverySource = keyof DiscoverClubsApi;
+export type ClubDiscoverItemSource = ClubDiscoverySource | 'search';
 
 const DEFAULT_CLUB_DESCRIPTION = 'Clube sem descrição por enquanto.';
 const DEFAULT_CLUB_ICON_NAME = 'groups';
 
-const DISCOVERY_BADGE_LABELS: Record<ClubDiscoverySource, string> = {
+const DISCOVERY_BADGE_LABELS: Record<ClubDiscoverItemSource, string> = {
   suggested: 'Sugestão',
   popular: 'Popular',
   recent: 'Novo',
+  search: 'Busca',
 };
 
 const CLUB_STATUS_LABELS: Record<ClubStatusApi, string | undefined> = {
@@ -106,7 +108,7 @@ export function mapClubSummaryToListItem(
 
 export function mapClubSummaryToDiscoverItem(
   club: ClubSummaryApi,
-  source: ClubDiscoverySource,
+  source: ClubDiscoverItemSource,
 ): ClubDiscoverItem {
   return {
     id: club.id,

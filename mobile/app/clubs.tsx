@@ -36,6 +36,7 @@ export default function ClubsScreen() {
     activeTab,
     activeContentState,
     errorMessage,
+    hasSearchQuery,
     myClubs,
     query,
     visibleDiscoverClubs,
@@ -52,18 +53,23 @@ export default function ClubsScreen() {
 
     if (activeContentState === 'error') {
       const isMyClubsTab = activeTab === 'my-clubs';
+      const isSearchError = activeTab === 'discover' && hasSearchQuery;
+      const errorTitle = isSearchError
+        ? 'Não foi possível buscar clubes'
+        : isMyClubsTab
+          ? 'Não foi possível carregar seus clubes'
+          : 'Não foi possível carregar clubes para descobrir';
+      const errorDescription =
+        errorMessage ??
+        (isSearchError
+          ? 'A descoberta carregada continua disponível ao limpar a busca.'
+          : 'Verifique sua conexão e tente novamente mais tarde.');
 
       return (
         <ClubsEmptyState
           colors={colors}
-          title={
-            isMyClubsTab
-              ? 'Não foi possível carregar seus clubes'
-              : 'Não foi possível carregar clubes para descobrir'
-          }
-          description={
-            errorMessage ?? 'Verifique sua conexão e tente novamente mais tarde.'
-          }
+          title={errorTitle}
+          description={errorDescription}
           iconName="error-outline"
         />
       );

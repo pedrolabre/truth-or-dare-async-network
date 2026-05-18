@@ -99,6 +99,7 @@ describe('clubs mappers', () => {
     );
     const popular = mapClubSummaryToDiscoverItem(makeClubSummary(), 'popular');
     const recent = mapClubSummaryToDiscoverItem(makeClubSummary(), 'recent');
+    const search = mapClubSummaryToDiscoverItem(makeClubSummary(), 'search');
 
     expect(suggested.badgeLabel).toBe('Sugestão');
     expect(suggested.isTrending).toBe(false);
@@ -106,5 +107,7 @@ describe('clubs mappers', () => {
     expect(popular.isTrending).toBe(true);
     expect(recent.badgeLabel).toBe('Novo');
     expect(recent.isTrending).toBe(false);
+    expect(search.badgeLabel).toBe('Busca');
+    expect(search.isTrending).toBe(false);
   });
 });

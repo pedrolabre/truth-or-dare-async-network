@@ -57,9 +57,11 @@ const baseHookState: ReturnType<typeof useClubsScreen> = {
   isInitialLoading: false,
   isLoading: false,
   isMyClubsEmpty: true,
+  isSearchLoading: false,
   myClubs: [],
   myClubsContentState: 'empty',
   query: '',
+  searchErrorMessage: null,
   searchResults: [],
   setQuery: jest.fn(),
   visibleDiscoverClubs: [],
@@ -119,5 +121,38 @@ describe('ClubsScreen', () => {
     expect(getByText('Popular')).toBeTruthy();
     expect(getByText('Explorar')).toBeTruthy();
     expect(queryByText('Abrir clube')).toBeNull();
+  });
+
+  it('renderiza resultados de busca remota na aba Descobrir', () => {
+    const searchItem = {
+      id: 'club-search-1',
+      name: 'Clube Encontrado',
+      description: 'Resultado vindo da API de busca.',
+      membersLabel: '9 membros',
+      badgeLabel: 'Busca',
+      iconName: 'search',
+      isTrending: false,
+    };
+
+    mockedUseClubsScreen.mockReturnValue({
+      ...baseHookState,
+      activeTab: 'discover',
+      activeContentState: 'search-results',
+      discoverContentState: 'search-results',
+      filteredDiscoverClubs: [searchItem],
+      hasSearchQuery: true,
+      isDiscoverEmpty: false,
+      query: 'encontrado',
+      searchResults: [searchItem],
+      visibleDiscoverClubs: [searchItem],
+    });
+
+    const { getByText, queryByText } = render(<ClubsScreen />);
+
+    expect(getByText('Clube Encontrado')).toBeTruthy();
+    expect(getByText('Resultado vindo da API de busca.')).toBeTruthy();
+    expect(getByText('9 membros')).toBeTruthy();
+    expect(getByText('Busca')).toBeTruthy();
+    expect(queryByText('Nenhum clube encontrado')).toBeNull();
   });
 });

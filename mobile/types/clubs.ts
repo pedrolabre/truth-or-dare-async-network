@@ -41,7 +41,9 @@ export type ClubsScreenState = {
   discoverContentState: ClubsContentState;
   isLoading: boolean;
   isInitialLoading: boolean;
+  isSearchLoading: boolean;
   errorMessage: string | null;
+  searchErrorMessage: string | null;
   hasSearchQuery: boolean;
   isDiscoverEmpty: boolean;
   isMyClubsEmpty: boolean;

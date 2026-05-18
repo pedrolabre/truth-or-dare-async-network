@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { discoverClubs as fetchDiscoverClubs, getMyClubs } from '../services/clubsApi';
+import {
+  discoverClubs as fetchDiscoverClubs,
+  getMyClubs,
+  searchClubs as fetchSearchClubs,
+} from '../services/clubsApi';
 import {
   mapClubSummaryToDiscoverItem,
   mapClubSummaryToListItem,
@@ -19,6 +23,8 @@ const DISCOVERY_SOURCES: ClubDiscoverySource[] = [
   'popular',
   'recent',
 ];
+
+export const CLUBS_SEARCH_DEBOUNCE_MS = 350;
 
 function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return error instanceof Error ? error.message : fallbackMessage;
@@ -49,17 +55,22 @@ export function useClubsScreen() {
   const [query, setQuery] = useState('');
   const [myClubs, setMyClubs] = useState<ClubListItem[]>([]);
   const [discoverClubs, setDiscoverClubs] = useState<ClubDiscoverItem[]>([]);
-  const [searchResults] = useState<ClubDiscoverItem[]>([]);
+  const [searchResults, setSearchResults] = useState<ClubDiscoverItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [isDiscoverLoading, setIsDiscoverLoading] = useState(false);
+  const [isSearchLoading, setIsSearchLoading] = useState(false);
   const [myClubsErrorMessage, setMyClubsErrorMessage] = useState<string | null>(
     null,
   );
   const [discoverErrorMessage, setDiscoverErrorMessage] = useState<
     string | null
   >(null);
+  const [searchErrorMessage, setSearchErrorMessage] = useState<string | null>(
+    null,
+  );
   const hasRequestedDiscoverRef = useRef(false);
   const isMountedRef = useRef(true);
+  const searchRequestIdRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -146,6 +157,71 @@ export function useClubsScreen() {
     void loadDiscoverClubs();
   }, [activeTab]);
 
+  useEffect(() => {
+    const trimmedSearchQuery = query.trim();
+    const searchRequestId = searchRequestIdRef.current + 1;
+
+    searchRequestIdRef.current = searchRequestId;
+
+    if (activeTab !== 'discover' || trimmedSearchQuery.length === 0) {
+      setIsSearchLoading(false);
+      setSearchErrorMessage(null);
+
+      if (trimmedSearchQuery.length === 0) {
+        setSearchResults([]);
+      }
+
+      return;
+    }
+
+    setIsSearchLoading(true);
+    setSearchErrorMessage(null);
+
+    const timeoutId = setTimeout(() => {
+      async function loadSearchClubs() {
+        try {
+          const clubs = await fetchSearchClubs(trimmedSearchQuery);
+
+          if (
+            !isMountedRef.current ||
+            searchRequestIdRef.current !== searchRequestId
+          ) {
+            return;
+          }
+
+          setSearchResults(
+            clubs.map((club) => mapClubSummaryToDiscoverItem(club, 'search')),
+          );
+        } catch (error) {
+          if (
+            !isMountedRef.current ||
+            searchRequestIdRef.current !== searchRequestId
+          ) {
+            return;
+          }
+
+          setSearchErrorMessage(
+            getErrorMessage(error, 'Não foi possível buscar clubes.'),
+          );
+          setSearchResults([]);
+        } finally {
+          if (
+            isMountedRef.current &&
+            searchRequestIdRef.current === searchRequestId
+          ) {
+            setIsSearchLoading(false);
+          }
+        }
+      }
+
+      void loadSearchClubs();
+    }, CLUBS_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [activeTab, query]);
+
   const trimmedQuery = query.trim();
   const hasSearchQuery = trimmedQuery.length > 0;
 
@@ -166,6 +242,18 @@ export function useClubsScreen() {
   }, [isInitialLoading, myClubs.length, myClubsErrorMessage]);
 
   const discoverContentState = useMemo<ClubsContentState>(() => {
+    if (hasSearchQuery) {
+      if (isSearchLoading) {
+        return 'loading';
+      }
+
+      if (searchErrorMessage) {
+        return 'error';
+      }
+
+      return searchResults.length > 0 ? 'search-results' : 'search-empty';
+    }
+
     if (isDiscoverLoading) {
       return 'loading';
     }
@@ -174,23 +262,25 @@ export function useClubsScreen() {
       return 'error';
     }
 
-    if (hasSearchQuery) {
-      return searchResults.length > 0 ? 'search-results' : 'search-empty';
-    }
-
     return discoverClubs.length > 0 ? 'list' : 'empty';
   }, [
     discoverClubs.length,
     discoverErrorMessage,
     hasSearchQuery,
     isDiscoverLoading,
+    isSearchLoading,
+    searchErrorMessage,
     searchResults.length,
   ]);
 
   const activeContentState =
     activeTab === 'my-clubs' ? myClubsContentState : discoverContentState;
   const errorMessage =
-    activeTab === 'my-clubs' ? myClubsErrorMessage : discoverErrorMessage;
+    activeTab === 'my-clubs'
+      ? myClubsErrorMessage
+      : hasSearchQuery
+        ? searchErrorMessage
+        : discoverErrorMessage;
 
   function handleChangeTab(tab: ClubsTabKey) {
     setActiveTab(tab);
@@ -209,7 +299,9 @@ export function useClubsScreen() {
     discoverContentState,
     isLoading: activeContentState === 'loading',
     isInitialLoading,
+    isSearchLoading,
     errorMessage,
+    searchErrorMessage,
     hasSearchQuery,
     isDiscoverEmpty: discoverContentState === 'empty',
     isMyClubsEmpty: myClubsContentState === 'empty',
