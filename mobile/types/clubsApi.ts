@@ -63,7 +63,7 @@ export type ClubDetailsApi = ClubSummaryApi & {
   permissions: ClubPermissionsApi;
 };
 
-export type ClubMemberSummaryApi = {
+export type ClubMemberApi = {
   id: string;
   clubId: string;
   userId: string;
@@ -78,6 +78,8 @@ export type ClubMemberSummaryApi = {
   updatedAt: string;
 };
 
+export type ClubMemberSummaryApi = ClubMemberApi;
+
 export type ClubPromptAttachmentApi = {
   id?: string;
   type: 'image' | 'video' | 'audio' | 'file' | 'link';
@@ -88,7 +90,7 @@ export type ClubPromptAttachmentApi = {
   durationSeconds?: number;
 };
 
-export type ClubPromptSummaryApi = {
+export type ClubPromptApi = {
   id: string;
   clubId: string;
   authorId: string;
@@ -110,7 +112,9 @@ export type ClubPromptSummaryApi = {
   updatedAt: string;
 };
 
-export type ClubPromptResponseSummaryApi = {
+export type ClubPromptSummaryApi = ClubPromptApi;
+
+export type ClubPromptResponseApi = {
   id: string;
   clubId: string;
   promptId: string;
@@ -128,17 +132,49 @@ export type ClubPromptResponseSummaryApi = {
   updatedAt: string;
 };
 
-export type ClubPromptDetailApi = ClubPromptSummaryApi & {
+export type ClubPromptResponseSummaryApi = ClubPromptResponseApi;
+
+export type ClubPromptViewerStateApi = {
+  likedByMe: boolean;
+  answeredByMe: boolean;
+  canAnswer: boolean;
+};
+
+export type ClubPromptDetailApi = ClubPromptApi & {
   archivedAt: string | null;
   removedAt: string | null;
   removedById: string | null;
   removalReason: string | null;
-  responses: ClubPromptResponseSummaryApi[];
-  viewerState: {
-    likedByMe: boolean;
-    answeredByMe: boolean;
-    canAnswer: boolean;
+  responses: ClubPromptResponseApi[];
+  viewerState: ClubPromptViewerStateApi & {
     canEdit: boolean;
     canRemove: boolean;
   };
+};
+
+export type ClubFeedItemApi = ClubPromptApi & {
+  viewerState: ClubPromptViewerStateApi;
+  recentResponses: ClubPromptResponseApi[];
+};
+
+export type ClubFeedOrderApi =
+  | 'activity'
+  | 'relevance'
+  | 'deadline'
+  | 'pinned';
+
+export type ClubFeedApi = {
+  club: ClubSummaryApi;
+  items: ClubFeedItemApi[];
+};
+
+export type DiscoverClubsApi = {
+  suggested: ClubSummaryApi[];
+  popular: ClubSummaryApi[];
+  recent: ClubSummaryApi[];
+};
+
+export type ToggleClubLikeApi = {
+  liked: boolean;
+  likesCount: number;
 };

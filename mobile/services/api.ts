@@ -16,6 +16,7 @@ import type {
   SubmitDareProofPayload,
   SubmitDareProofResponse,
 } from '../types/action';
+import type { ToggleClubLikeApi } from '../types/clubsApi';
 
 type SignupInput = {
   name: string;
@@ -53,7 +54,7 @@ export type ChallengeUser = {
 
 const TOKEN_KEY = 'auth_token';
 
-function getApiUrl() {
+export function getApiUrl() {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL;
 
   if (!apiUrl) {
@@ -63,7 +64,7 @@ function getApiUrl() {
   return apiUrl;
 }
 
-async function parseResponse(response: Response) {
+export async function parseResponse(response: Response) {
   let data: any = null;
   let text = '';
 
@@ -257,8 +258,16 @@ export async function deleteDare(id: string) {
 
 export async function toggleLike(
   targetId: string,
+  type: 'club',
+): Promise<ToggleClubLikeApi>;
+export async function toggleLike(
+  targetId: string,
+  type: 'truth' | 'dare',
+): Promise<{ liked: boolean }>;
+export async function toggleLike(
+  targetId: string,
   type: 'truth' | 'dare' | 'club',
-): Promise<{ liked: boolean }> {
+): Promise<{ liked: boolean } | ToggleClubLikeApi> {
   const baseUrl = getApiUrl();
   const token = await getToken();
 
