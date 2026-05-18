@@ -1,6 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
-import { getMyClubs } from '../services/clubsApi';
-import { mapClubSummaryToListItem } from '../services/clubsMappers';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { discoverClubs as fetchDiscoverClubs, getMyClubs } from '../services/clubsApi';
+import {
+  mapClubSummaryToDiscoverItem,
+  mapClubSummaryToListItem,
+} from '../services/clubsMappers';
+import type { ClubDiscoverySource } from '../services/clubsMappers';
 import type {
   ClubDiscoverItem,
   ClubListItem,
@@ -8,21 +12,60 @@ import type {
   ClubsScreenState,
   ClubsTabKey,
 } from '../types/clubs';
+import type { DiscoverClubsApi } from '../types/clubsApi';
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error
-    ? error.message
-    : 'Não foi possível carregar seus clubes.';
+const DISCOVERY_SOURCES: ClubDiscoverySource[] = [
+  'suggested',
+  'popular',
+  'recent',
+];
+
+function getErrorMessage(error: unknown, fallbackMessage: string): string {
+  return error instanceof Error ? error.message : fallbackMessage;
+}
+
+function mapDiscoverClubsResponse(
+  clubsResponse: DiscoverClubsApi,
+): ClubDiscoverItem[] {
+  const mappedClubs: ClubDiscoverItem[] = [];
+  const mappedClubIds = new Set<string>();
+
+  for (const source of DISCOVERY_SOURCES) {
+    for (const club of clubsResponse[source]) {
+      if (mappedClubIds.has(club.id)) {
+        continue;
+      }
+
+      mappedClubIds.add(club.id);
+      mappedClubs.push(mapClubSummaryToDiscoverItem(club, source));
+    }
+  }
+
+  return mappedClubs;
 }
 
 export function useClubsScreen() {
   const [activeTab, setActiveTab] = useState<ClubsTabKey>('my-clubs');
   const [query, setQuery] = useState('');
   const [myClubs, setMyClubs] = useState<ClubListItem[]>([]);
-  const [discoverClubs] = useState<ClubDiscoverItem[]>([]);
+  const [discoverClubs, setDiscoverClubs] = useState<ClubDiscoverItem[]>([]);
   const [searchResults] = useState<ClubDiscoverItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDiscoverLoading, setIsDiscoverLoading] = useState(false);
+  const [myClubsErrorMessage, setMyClubsErrorMessage] = useState<string | null>(
+    null,
+  );
+  const [discoverErrorMessage, setDiscoverErrorMessage] = useState<
+    string | null
+  >(null);
+  const hasRequestedDiscoverRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -30,7 +73,7 @@ export function useClubsScreen() {
     async function loadMyClubs() {
       try {
         setIsInitialLoading(true);
-        setErrorMessage(null);
+        setMyClubsErrorMessage(null);
 
         const clubs = await getMyClubs();
 
@@ -45,7 +88,9 @@ export function useClubsScreen() {
         }
 
         setMyClubs([]);
-        setErrorMessage(getErrorMessage(error));
+        setMyClubsErrorMessage(
+          getErrorMessage(error, 'Não foi possível carregar seus clubes.'),
+        );
       } finally {
         if (isMounted) {
           setIsInitialLoading(false);
@@ -60,6 +105,47 @@ export function useClubsScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    if (activeTab !== 'discover' || hasRequestedDiscoverRef.current) {
+      return;
+    }
+
+    hasRequestedDiscoverRef.current = true;
+
+    async function loadDiscoverClubs() {
+      try {
+        setIsDiscoverLoading(true);
+        setDiscoverErrorMessage(null);
+
+        const clubsResponse = await fetchDiscoverClubs();
+
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        setDiscoverClubs(mapDiscoverClubsResponse(clubsResponse));
+      } catch (error) {
+        if (!isMountedRef.current) {
+          return;
+        }
+
+        setDiscoverClubs([]);
+        setDiscoverErrorMessage(
+          getErrorMessage(
+            error,
+            'Não foi possível carregar clubes para descobrir.',
+          ),
+        );
+      } finally {
+        if (isMountedRef.current) {
+          setIsDiscoverLoading(false);
+        }
+      }
+    }
+
+    void loadDiscoverClubs();
+  }, [activeTab]);
+
   const trimmedQuery = query.trim();
   const hasSearchQuery = trimmedQuery.length > 0;
 
@@ -72,23 +158,39 @@ export function useClubsScreen() {
       return 'loading';
     }
 
-    if (errorMessage) {
+    if (myClubsErrorMessage) {
       return 'error';
     }
 
     return myClubs.length > 0 ? 'list' : 'empty';
-  }, [errorMessage, isInitialLoading, myClubs.length]);
+  }, [isInitialLoading, myClubs.length, myClubsErrorMessage]);
 
   const discoverContentState = useMemo<ClubsContentState>(() => {
+    if (isDiscoverLoading) {
+      return 'loading';
+    }
+
+    if (discoverErrorMessage) {
+      return 'error';
+    }
+
     if (hasSearchQuery) {
       return searchResults.length > 0 ? 'search-results' : 'search-empty';
     }
 
     return discoverClubs.length > 0 ? 'list' : 'empty';
-  }, [discoverClubs.length, hasSearchQuery, searchResults.length]);
+  }, [
+    discoverClubs.length,
+    discoverErrorMessage,
+    hasSearchQuery,
+    isDiscoverLoading,
+    searchResults.length,
+  ]);
 
   const activeContentState =
     activeTab === 'my-clubs' ? myClubsContentState : discoverContentState;
+  const errorMessage =
+    activeTab === 'my-clubs' ? myClubsErrorMessage : discoverErrorMessage;
 
   function handleChangeTab(tab: ClubsTabKey) {
     setActiveTab(tab);
@@ -105,7 +207,7 @@ export function useClubsScreen() {
     activeContentState,
     myClubsContentState,
     discoverContentState,
-    isLoading: isInitialLoading,
+    isLoading: activeContentState === 'loading',
     isInitialLoading,
     errorMessage,
     hasSearchQuery,

@@ -51,10 +51,16 @@ export default function ClubsScreen() {
     }
 
     if (activeContentState === 'error') {
+      const isMyClubsTab = activeTab === 'my-clubs';
+
       return (
         <ClubsEmptyState
           colors={colors}
-          title="Não foi possível carregar seus clubes"
+          title={
+            isMyClubsTab
+              ? 'Não foi possível carregar seus clubes'
+              : 'Não foi possível carregar clubes para descobrir'
+          }
           description={
             errorMessage ?? 'Verifique sua conexão e tente novamente mais tarde.'
           }
@@ -92,7 +98,7 @@ export default function ClubsScreen() {
           description={
             isMyClubsTab
               ? 'Quando você entrar ou criar um clube, ele aparecerá aqui.'
-              : 'Clubes públicos aparecerão aqui quando a descoberta for carregada.'
+              : 'Não encontramos clubes públicos para mostrar agora.'
           }
           iconName={isMyClubsTab ? 'groups' : 'explore'}
         />

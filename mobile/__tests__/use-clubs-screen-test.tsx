@@ -1,14 +1,22 @@
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useClubsScreen } from '../hooks/useClubsScreen';
-import { getMyClubs } from '../services/clubsApi';
-import type { ClubSummaryApi } from '../types/clubsApi';
+import { discoverClubs, getMyClubs, searchClubs } from '../services/clubsApi';
+import type { ClubSummaryApi, DiscoverClubsApi } from '../types/clubsApi';
 
 jest.mock('../services/clubsApi', () => ({
+  discoverClubs: jest.fn(),
   getMyClubs: jest.fn(),
+  searchClubs: jest.fn(),
 }));
 
+const mockedDiscoverClubs = discoverClubs as jest.MockedFunction<
+  typeof discoverClubs
+>;
 const mockedGetMyClubs = getMyClubs as jest.MockedFunction<typeof getMyClubs>;
+const mockedSearchClubs = searchClubs as jest.MockedFunction<
+  typeof searchClubs
+>;
 
 type ClubSummaryOverrides = Partial<Omit<ClubSummaryApi, 'viewerMembership'>> & {
   viewerMembership?: Partial<ClubSummaryApi['viewerMembership']>;
@@ -44,9 +52,38 @@ function makeClubSummary(overrides: ClubSummaryOverrides = {}): ClubSummaryApi {
   };
 }
 
+function makeDiscoverResponse(
+  overrides: Partial<DiscoverClubsApi> = {},
+): DiscoverClubsApi {
+  return {
+    suggested: [],
+    popular: [],
+    recent: [],
+    ...overrides,
+  };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return {
+    promise,
+    reject,
+    resolve,
+  };
+}
+
 describe('useClubsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedGetMyClubs.mockResolvedValue([]);
+    mockedDiscoverClubs.mockResolvedValue(makeDiscoverResponse());
+    mockedSearchClubs.mockResolvedValue([]);
   });
 
   it('carrega Meus Clubes ao abrir a tela', async () => {
@@ -62,6 +99,8 @@ describe('useClubsScreen', () => {
     });
 
     expect(mockedGetMyClubs).toHaveBeenCalledTimes(1);
+    expect(mockedDiscoverClubs).not.toHaveBeenCalled();
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
     expect(result.current.myClubs).toEqual([
       {
         id: 'club-1',
@@ -77,8 +116,6 @@ describe('useClubsScreen', () => {
   });
 
   it('representa resposta vazia em Meus Clubes', async () => {
-    mockedGetMyClubs.mockResolvedValue([]);
-
     const { result } = renderHook(() => useClubsScreen());
 
     await waitFor(() => {
@@ -102,5 +139,220 @@ describe('useClubsScreen', () => {
     expect(result.current.myClubs).toEqual([]);
     expect(result.current.errorMessage).toBe('Falha de rede');
     expect(result.current.activeContentState).toBe('error');
+  });
+
+  it('não carrega Descobrir na abertura inicial', async () => {
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    expect(result.current.activeTab).toBe('my-clubs');
+    expect(result.current.discoverContentState).toBe('empty');
+    expect(mockedDiscoverClubs).not.toHaveBeenCalled();
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
+  });
+
+  it('carrega Descobrir ao trocar de aba e deduplica os grupos reais', async () => {
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [
+          makeClubSummary({
+            id: 'club-1',
+            name: 'Clube Sugerido',
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+        popular: [
+          makeClubSummary({
+            id: 'club-1',
+            name: 'Duplicado Popular',
+            memberCount: 50,
+          }),
+          makeClubSummary({
+            id: 'club-2',
+            name: 'Clube Popular',
+            memberCount: 12,
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+        recent: [
+          makeClubSummary({
+            id: 'club-3',
+            name: 'Clube Novo',
+            memberCount: 1,
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+          makeClubSummary({
+            id: 'club-2',
+            name: 'Duplicado Recente',
+          }),
+        ],
+      }),
+    );
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    expect(mockedDiscoverClubs).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    expect(result.current.activeTab).toBe('discover');
+    expect(mockedDiscoverClubs).toHaveBeenCalledTimes(1);
+    expect(result.current.discoverClubs).toEqual([
+      {
+        id: 'club-1',
+        name: 'Clube Sugerido',
+        description: 'Um clube para desafios leves.',
+        membersLabel: '2 membros',
+        badgeLabel: 'Sugestão',
+        iconName: 'sports-esports',
+        isTrending: false,
+      },
+      {
+        id: 'club-2',
+        name: 'Clube Popular',
+        description: 'Um clube para desafios leves.',
+        membersLabel: '12 membros',
+        badgeLabel: 'Popular',
+        iconName: 'sports-esports',
+        isTrending: true,
+      },
+      {
+        id: 'club-3',
+        name: 'Clube Novo',
+        description: 'Um clube para desafios leves.',
+        membersLabel: '1 membro',
+        badgeLabel: 'Novo',
+        iconName: 'sports-esports',
+        isTrending: false,
+      },
+    ]);
+    expect(result.current.visibleDiscoverClubs).toEqual(
+      result.current.discoverClubs,
+    );
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.handleChangeTab('my-clubs');
+      result.current.handleChangeTab('discover');
+    });
+
+    expect(mockedDiscoverClubs).toHaveBeenCalledTimes(1);
+  });
+
+  it('representa loading e vazio de Descobrir', async () => {
+    const discoverDeferred = createDeferred<DiscoverClubsApi>();
+    mockedDiscoverClubs.mockReturnValue(discoverDeferred.promise);
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('loading');
+    });
+
+    expect(result.current.activeContentState).toBe('loading');
+    expect(result.current.isLoading).toBe(true);
+
+    await act(async () => {
+      discoverDeferred.resolve(makeDiscoverResponse());
+      await discoverDeferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('empty');
+    });
+
+    expect(result.current.isDiscoverEmpty).toBe(true);
+    expect(result.current.errorMessage).toBeNull();
+  });
+
+  it('representa erro de Descobrir sem contaminar Meus Clubes', async () => {
+    mockedDiscoverClubs.mockRejectedValue(new Error('Falha na descoberta'));
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('error');
+    });
+
+    expect(result.current.activeContentState).toBe('error');
+    expect(result.current.errorMessage).toBe('Falha na descoberta');
+
+    act(() => {
+      result.current.handleChangeTab('my-clubs');
+    });
+
+    expect(result.current.myClubsContentState).toBe('empty');
+    expect(result.current.errorMessage).toBeNull();
+  });
+
+  it('não chama searchClubs ao alterar query na aba Descobrir', async () => {
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [makeClubSummary()],
+      }),
+    );
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    act(() => {
+      result.current.setQuery('desafios');
+    });
+
+    expect(result.current.hasSearchQuery).toBe(true);
+    expect(result.current.discoverContentState).toBe('search-empty');
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
   });
 });
