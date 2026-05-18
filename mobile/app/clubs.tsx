@@ -15,6 +15,9 @@ import ClubsSegmentedTabs from '../components/clubs/ClubsSegmentedTabs';
 import ClubsSearchInput from '../components/clubs/ClubsSearchInput';
 import ClubsEmptyState from '../components/clubs/ClubsEmptyState';
 import ClubsFab from '../components/clubs/ClubsFab';
+import ClubListCard from '../components/clubs/ClubListCard';
+import ClubDiscoverCard from '../components/clubs/ClubDiscoverCard';
+import ClubsSkeletonList from '../components/clubs/ClubsSkeletonList';
 
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -31,10 +34,97 @@ export default function ClubsScreen() {
 
   const {
     activeTab,
+    activeContentState,
+    errorMessage,
+    myClubs,
     query,
+    visibleDiscoverClubs,
     setQuery,
     handleChangeTab,
   } = useClubsScreen();
+
+  const trimmedQuery = query.trim();
+
+  function renderContent() {
+    if (activeContentState === 'loading') {
+      return <ClubsSkeletonList colors={colors} />;
+    }
+
+    if (activeContentState === 'error') {
+      return (
+        <ClubsEmptyState
+          colors={colors}
+          title="Não foi possível carregar seus clubes"
+          description={
+            errorMessage ?? 'Verifique sua conexão e tente novamente mais tarde.'
+          }
+          iconName="error-outline"
+        />
+      );
+    }
+
+    if (activeContentState === 'search-empty') {
+      return (
+        <ClubsEmptyState
+          colors={colors}
+          title="Nenhum clube encontrado"
+          description={
+            trimmedQuery
+              ? `A busca ainda não retornou resultados para "${trimmedQuery}".`
+              : 'Digite um termo para procurar clubes.'
+          }
+          iconName="search"
+        />
+      );
+    }
+
+    if (activeContentState === 'empty') {
+      const isMyClubsTab = activeTab === 'my-clubs';
+
+      return (
+        <ClubsEmptyState
+          colors={colors}
+          title={
+            isMyClubsTab
+              ? 'Você ainda não participa de clubes'
+              : 'Nenhum clube disponível para descobrir'
+          }
+          description={
+            isMyClubsTab
+              ? 'Quando você entrar ou criar um clube, ele aparecerá aqui.'
+              : 'Clubes públicos aparecerão aqui quando a descoberta for carregada.'
+          }
+          iconName={isMyClubsTab ? 'groups' : 'explore'}
+        />
+      );
+    }
+
+    if (activeTab === 'my-clubs') {
+      return (
+        <View style={styles.cardsList}>
+          {myClubs.map((club) => (
+            <ClubListCard
+              key={club.id}
+              club={club}
+              colors={colors}
+            />
+          ))}
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.cardsList}>
+        {visibleDiscoverClubs.map((club) => (
+          <ClubDiscoverCard
+            key={club.id}
+            club={club}
+            colors={colors}
+          />
+        ))}
+      </View>
+    );
+  }
 
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
     switch (key) {
@@ -98,7 +188,7 @@ export default function ClubsScreen() {
                 Clubes
               </Text>
               <Text style={[styles.subtitle, { color: colors.subText }]}>
-                Gerencie e descubra clubes quando o backend estiver disponível.
+                Seus grupos de desafios em um só lugar.
               </Text>
             </View>
 
@@ -110,20 +200,7 @@ export default function ClubsScreen() {
               />
             ) : null}
 
-            <ClubsEmptyState
-              colors={colors}
-              title={
-                activeTab === 'my-clubs'
-                  ? 'Nenhum clube disponível'
-                  : 'Busca de clubes indisponível'
-              }
-              description={
-                activeTab === 'my-clubs'
-                  ? 'Seus clubes aparecerão aqui quando estiverem integrados com o backend.'
-                  : 'A busca de clubes será habilitada quando o backend estiver conectado.'
-              }
-              iconName={activeTab === 'my-clubs' ? 'groups' : 'search'}
-            />
+            {renderContent()}
           </ScrollView>
         </View>
 
@@ -170,7 +247,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 20,
-    paddingBottom: 100,
+    paddingBottom: 156,
     gap: 20,
   },
   headerSection: {
@@ -186,5 +263,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
+  },
+  cardsList: {
+    gap: 14,
   },
 });

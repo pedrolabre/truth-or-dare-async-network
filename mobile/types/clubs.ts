@@ -1,5 +1,13 @@
 export type ClubsTabKey = 'my-clubs' | 'discover';
 
+export type ClubsContentState =
+  | 'loading'
+  | 'error'
+  | 'empty'
+  | 'list'
+  | 'search-empty'
+  | 'search-results';
+
 export type ClubListItem = {
   id: string;
   name: string;
@@ -25,6 +33,16 @@ export type ClubsScreenState = {
   query: string;
   myClubs: ClubListItem[];
   discoverClubs: ClubDiscoverItem[];
+  searchResults: ClubDiscoverItem[];
   filteredDiscoverClubs: ClubDiscoverItem[];
+  visibleDiscoverClubs: ClubDiscoverItem[];
+  activeContentState: ClubsContentState;
+  myClubsContentState: ClubsContentState;
+  discoverContentState: ClubsContentState;
   isLoading: boolean;
+  isInitialLoading: boolean;
+  errorMessage: string | null;
+  hasSearchQuery: boolean;
+  isDiscoverEmpty: boolean;
+  isMyClubsEmpty: boolean;
 };
