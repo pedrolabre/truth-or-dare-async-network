@@ -1148,6 +1148,79 @@ describe('useClubsScreen', () => {
     expect(result.current.searchResults[0].name).toBe('Resultado Atualizado');
   });
 
+  it('refresh em busca com erro preserva discovery carregado', async () => {
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [
+          makeClubSummary({
+            id: 'discover-1',
+            name: 'Clube Descoberto',
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+      }),
+    );
+    mockedSearchClubs
+      .mockResolvedValueOnce([
+        makeClubSummary({
+          id: 'search-1',
+          name: 'Resultado Inicial',
+          viewerMembership: {
+            isMember: false,
+            role: null,
+            status: null,
+          },
+        }),
+      ])
+      .mockRejectedValueOnce(new Error('Falha no refresh da busca'));
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('desafios');
+    });
+
+    await advanceSearchDebounce();
+
+    await waitFor(() => {
+      expect(result.current.searchResults[0].name).toBe('Resultado Inicial');
+    });
+
+    await act(async () => {
+      await result.current.handleRefresh();
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('error');
+    });
+
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(2);
+    expect(mockedSearchClubs).toHaveBeenLastCalledWith('desafios');
+    expect(result.current.query).toBe('desafios');
+    expect(result.current.searchErrorMessage).toBe('Falha no refresh da busca');
+    expect(result.current.searchResults).toEqual([]);
+    expect(result.current.discoverClubs[0].name).toBe('Clube Descoberto');
+    expect(result.current.isRefreshing).toBe(false);
+  });
+
   it('retry apos erro de Meus Clubes repete getMyClubs', async () => {
     mockedGetMyClubs
       .mockRejectedValueOnce(new Error('Falha em Meus Clubes'))
@@ -1279,6 +1352,92 @@ describe('useClubsScreen', () => {
     expect(result.current.query).toBe('quebrada');
     expect(result.current.discoverClubs[0].name).toBe('Clube Descoberto');
     expect(result.current.visibleDiscoverClubs).toEqual([]);
+  });
+
+  it('retry apos erro de busca recupera resultados reais', async () => {
+    mockedDiscoverClubs.mockResolvedValue(
+      makeDiscoverResponse({
+        suggested: [
+          makeClubSummary({
+            id: 'discover-1',
+            name: 'Clube Descoberto',
+            viewerMembership: {
+              isMember: false,
+              role: null,
+              status: null,
+            },
+          }),
+        ],
+      }),
+    );
+    mockedSearchClubs
+      .mockRejectedValueOnce(new Error('Falha na busca'))
+      .mockResolvedValueOnce([
+        makeClubSummary({
+          id: 'search-recovered',
+          name: 'Resultado Recuperado',
+          memberCount: 11,
+          viewerMembership: {
+            isMember: false,
+            role: null,
+            status: null,
+          },
+        }),
+      ]);
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubsContentState).toBe('empty');
+    });
+
+    act(() => {
+      result.current.handleChangeTab('discover');
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('list');
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('recuperar');
+    });
+
+    await advanceSearchDebounce();
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('error');
+    });
+
+    await act(async () => {
+      await result.current.handleRetry();
+    });
+
+    await waitFor(() => {
+      expect(result.current.discoverContentState).toBe('search-results');
+    });
+
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(2);
+    expect(mockedSearchClubs).toHaveBeenLastCalledWith('recuperar');
+    expect(result.current.errorMessage).toBeNull();
+    expect(result.current.searchErrorMessage).toBeNull();
+    expect(result.current.discoverClubs[0].name).toBe('Clube Descoberto');
+    expect(result.current.visibleDiscoverClubs).toEqual([
+      {
+        id: 'search-recovered',
+        name: 'Resultado Recuperado',
+        description: 'Um clube para desafios leves.',
+        memberCount: 11,
+        membersLabel: '11 membros',
+        badgeLabel: 'Busca',
+        iconName: 'sports-esports',
+        isTrending: false,
+        isMember: false,
+        membershipStatus: null,
+      },
+    ]);
   });
 
   it('refresh e retry nao chamam searchClubs fora da aba Descobrir', async () => {

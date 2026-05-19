@@ -268,6 +268,40 @@ describe('ClubsScreen', () => {
     expect(queryByText('Nenhum clube encontrado')).toBeNull();
   });
 
+  it('navega para o detalhe ao pressionar um resultado de busca', () => {
+    const searchItem = {
+      id: 'search-real-club-id',
+      name: 'Clube Encontrado Navegavel',
+      description: 'Resultado vindo da API de busca.',
+      memberCount: 9,
+      membersLabel: '9 membros',
+      badgeLabel: 'Busca',
+      iconName: 'search',
+      isTrending: false,
+      isMember: false,
+      membershipStatus: null,
+    };
+
+    mockedUseClubsScreen.mockReturnValue({
+      ...baseHookState,
+      activeTab: 'discover',
+      activeContentState: 'search-results',
+      discoverContentState: 'search-results',
+      filteredDiscoverClubs: [searchItem],
+      hasSearchQuery: true,
+      isDiscoverEmpty: false,
+      query: 'encontrado',
+      searchResults: [searchItem],
+      visibleDiscoverClubs: [searchItem],
+    });
+
+    const { getByText } = render(<ClubsScreen />);
+
+    fireEvent.press(getByText('Clube Encontrado Navegavel'));
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/clubs/search-real-club-id');
+  });
+
   it('renderiza retry visivel no estado de erro', () => {
     const handleRetry = jest.fn();
 
