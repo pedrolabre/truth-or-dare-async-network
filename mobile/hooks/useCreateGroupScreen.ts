@@ -3,6 +3,13 @@ import {
   DEFAULT_CREATE_GROUP_ICON_NAME,
   isCreateGroupIconName,
 } from '../constants/createGroupIcons';
+import {
+  CREATE_GROUP_TAG_MAX_COUNT,
+  CREATE_GROUP_TAG_MAX_LENGTH,
+  isCreateGroupTagOption,
+  normalizeCreateGroupTag,
+} from '../constants/createGroupTags';
+import type { ClubVisibilityApi } from '../types/clubsApi';
 import type {
   CreateGroupFriend,
   CreateGroupSubmitPayload,
@@ -13,6 +20,7 @@ export const CREATE_GROUP_NAME_MIN_LENGTH = 3;
 export const CREATE_GROUP_NAME_MAX_LENGTH = 80;
 export const CREATE_GROUP_DESCRIPTION_MAX_LENGTH = 280;
 export const CREATE_GROUP_DESCRIPTION_RECOMMENDED_MIN_LENGTH = 20;
+export const CREATE_GROUP_RULES_MAX_LENGTH = 2000;
 
 const GROUP_NAME_ALLOWED_PATTERN = /^[\p{L}\p{N} .,'&()!?:_-]+$/u;
 
@@ -63,6 +71,14 @@ function getDescriptionWarningMessage(description: string) {
   return null;
 }
 
+function getRulesValidationMessage(rules: string) {
+  if (rules.length > CREATE_GROUP_RULES_MAX_LENGTH) {
+    return 'Use no maximo 2000 caracteres.';
+  }
+
+  return null;
+}
+
 const CREATE_GROUP_FRIENDS_MOCK: CreateGroupFriend[] = [
   {
     id: 'friend-ana',
@@ -84,6 +100,9 @@ const CREATE_GROUP_FRIENDS_MOCK: CreateGroupFriend[] = [
 export function useCreateGroupScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [visibility, setVisibility] = useState<ClubVisibilityApi>('public');
+  const [rules, setRules] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [friendQuery, setFriendQuery] = useState('');
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [selectedIcon, setSelectedIcon] = useState<GroupIconName>(
@@ -115,10 +134,12 @@ export function useCreateGroupScreen() {
     () => getDescriptionWarningMessage(description),
     [description],
   );
+  const rulesError = useMemo(() => getRulesValidationMessage(rules), [rules]);
   const selectedCount = selectedMembers.length;
   const canCreate =
     nameError === null &&
     descriptionError === null &&
+    rulesError === null &&
     isCreateGroupIconName(selectedIcon);
 
   function toggleMember(id: string) {
@@ -146,16 +167,40 @@ export function useCreateGroupScreen() {
     setIconModalVisible(false);
   }
 
+  function toggleTag(value: string) {
+    const normalizedTag = normalizeCreateGroupTag(value);
+
+    if (
+      !isCreateGroupTagOption(normalizedTag) ||
+      normalizedTag.length > CREATE_GROUP_TAG_MAX_LENGTH
+    ) {
+      return;
+    }
+
+    setSelectedTags((current) => {
+      if (current.includes(normalizedTag)) {
+        return current.filter((tag) => tag !== normalizedTag);
+      }
+
+      if (current.length >= CREATE_GROUP_TAG_MAX_COUNT) {
+        return current;
+      }
+
+      return [...current, normalizedTag];
+    });
+  }
+
   function buildPayload(): CreateGroupSubmitPayload {
     const trimmedDescription = description.trim();
+    const trimmedRules = rules.trim();
 
     return {
       name: name.trim(),
       description: trimmedDescription ? trimmedDescription : null,
       iconName: selectedIcon,
-      visibility: 'public',
-      rules: null,
-      tags: [],
+      visibility,
+      rules: trimmedRules ? trimmedRules : null,
+      tags: Array.from(new Set(selectedTags.map(normalizeCreateGroupTag))),
       initialMemberIds: Array.from(new Set(selectedMembers)),
     };
   }
@@ -163,6 +208,9 @@ export function useCreateGroupScreen() {
   return {
     name,
     description,
+    visibility,
+    rules,
+    selectedTags,
     friendQuery,
     selectedMembers,
     selectedIcon,
@@ -174,11 +222,18 @@ export function useCreateGroupScreen() {
     descriptionWarning,
     descriptionCharacterCount: description.length,
     descriptionMaxLength: CREATE_GROUP_DESCRIPTION_MAX_LENGTH,
+    rulesError,
+    rulesCharacterCount: rules.length,
+    rulesMaxLength: CREATE_GROUP_RULES_MAX_LENGTH,
+    tagMaxCount: CREATE_GROUP_TAG_MAX_COUNT,
     canCreate,
     setName,
     setDescription,
+    setVisibility,
+    setRules,
     setFriendQuery,
     toggleMember,
+    toggleTag,
     openIconModal,
     closeIconModal,
     selectIcon,

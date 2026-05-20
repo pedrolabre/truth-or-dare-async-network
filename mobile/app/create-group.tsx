@@ -14,6 +14,7 @@ import FeedHeader from '../components/feed/FeedHeader';
 
 import CreateGroupIntro from '../components/create-group/CreateGroupIntro';
 import CreateGroupIdentityCard from '../components/create-group/CreateGroupIdentityCard';
+import CreateGroupSettingsCard from '../components/create-group/CreateGroupSettingsCard';
 import CreateGroupMembersCard from '../components/create-group/CreateGroupMembersCard';
 import CreateGroupIconPickerModal from '../components/create-group/CreateGroupIconPickerModal';
 
@@ -33,6 +34,9 @@ export default function CreateGroupScreen() {
   const {
     name,
     description,
+    visibility,
+    rules,
+    selectedTags,
     friendQuery,
     selectedMembers,
     selectedIcon,
@@ -44,11 +48,18 @@ export default function CreateGroupScreen() {
     descriptionWarning,
     descriptionCharacterCount,
     descriptionMaxLength,
+    rulesError,
+    rulesCharacterCount,
+    rulesMaxLength,
+    tagMaxCount,
     canCreate,
     setName,
     setDescription,
+    setVisibility,
+    setRules,
     setFriendQuery,
     toggleMember,
+    toggleTag,
     openIconModal,
     closeIconModal,
     selectIcon,
@@ -132,6 +143,20 @@ export default function CreateGroupScreen() {
               onChangeName={setName}
               onChangeDescription={setDescription}
               onPressIcon={openIconModal}
+            />
+
+            <CreateGroupSettingsCard
+              colors={colors}
+              visibility={visibility}
+              rules={rules}
+              rulesError={rulesError}
+              rulesCharacterCount={rulesCharacterCount}
+              rulesMaxLength={rulesMaxLength}
+              selectedTags={selectedTags}
+              tagMaxCount={tagMaxCount}
+              onChangeVisibility={setVisibility}
+              onChangeRules={setRules}
+              onToggleTag={toggleTag}
             />
 
             <CreateGroupMembersCard
