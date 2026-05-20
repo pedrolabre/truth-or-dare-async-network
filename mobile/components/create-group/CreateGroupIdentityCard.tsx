@@ -15,6 +15,11 @@ type Props = {
   name: string;
   description: string;
   selectedIcon: GroupIconName;
+  nameError: string | null;
+  descriptionError: string | null;
+  descriptionWarning: string | null;
+  descriptionCharacterCount: number;
+  descriptionMaxLength: number;
   onChangeName: (value: string) => void;
   onChangeDescription: (value: string) => void;
   onPressIcon: () => void;
@@ -25,10 +30,19 @@ export default function CreateGroupIdentityCard({
   name,
   description,
   selectedIcon,
+  nameError,
+  descriptionError,
+  descriptionWarning,
+  descriptionCharacterCount,
+  descriptionMaxLength,
   onChangeName,
   onChangeDescription,
   onPressIcon,
 }: Props) {
+  const shouldShowNameError = name.length > 0 && nameError !== null;
+  const descriptionFeedback = descriptionError ?? descriptionWarning;
+  const descriptionFeedbackColor = descriptionError ? colors.red : colors.green;
+
   return (
     <View
       style={[
@@ -68,35 +82,65 @@ export default function CreateGroupIdentityCard({
                 styles.input,
                 {
                   backgroundColor: colors.white,
-                  borderColor: colors.outline,
+                  borderColor: shouldShowNameError ? colors.red : colors.outline,
                   color: colors.text,
                 },
               ]}
             />
+            <Text
+              style={[
+                styles.fieldHelper,
+                { color: shouldShowNameError ? colors.red : colors.muted },
+              ]}
+            >
+              {shouldShowNameError
+                ? nameError
+                : '3 a 80 caracteres. O link final sera definido ao criar.'}
+            </Text>
           </View>
         </View>
       </View>
 
       <View style={styles.fieldBlock}>
-        <Text style={[styles.fieldLabel, { color: colors.green }]}>
-          Descrição do Clube
-        </Text>
+        <View style={styles.fieldLabelRow}>
+          <Text style={[styles.fieldLabel, { color: colors.green }]}>
+            Descrição do Clube
+          </Text>
+          <Text
+            style={[
+              styles.counterText,
+              { color: descriptionError ? colors.red : colors.muted },
+            ]}
+          >
+            {descriptionCharacterCount}/{descriptionMaxLength}
+          </Text>
+        </View>
         <TextInput
           value={description}
           onChangeText={onChangeDescription}
           placeholder="O que define esse grupo?"
           placeholderTextColor={colors.muted}
           multiline
+          maxLength={descriptionMaxLength}
           textAlignVertical="top"
           style={[
             styles.textarea,
             {
               backgroundColor: colors.white,
-              borderColor: colors.outline,
+              borderColor: descriptionError ? colors.red : colors.outline,
               color: colors.text,
             },
           ]}
         />
+        {descriptionFeedback ? (
+          <Text style={[styles.fieldHelper, { color: descriptionFeedbackColor }]}>
+            {descriptionFeedback}
+          </Text>
+        ) : (
+          <Text style={[styles.fieldHelper, { color: colors.muted }]}>
+            Descrição opcional.
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -139,6 +183,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 0.7,
+  },
+  fieldLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  fieldHelper: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
+  },
+  counterText: {
+    fontSize: 11,
+    fontWeight: '900',
   },
   input: {
     minHeight: 50,

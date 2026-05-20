@@ -1,7 +1,14 @@
-import { MaterialIcons } from '@expo/vector-icons';
 import type { ClubVisibilityApi } from './clubsApi';
 
-export type GroupIconName = keyof typeof MaterialIcons.glyphMap;
+export type GroupIconName =
+  | 'groups'
+  | 'sports-esports'
+  | 'local-fire-department'
+  | 'auto-awesome'
+  | 'celebration'
+  | 'school'
+  | 'nightlife'
+  | 'favorite';
 
 export type CreateGroupFriend = {
   id: string;

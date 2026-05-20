@@ -7,13 +7,13 @@ import {
   View,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { CREATE_GROUP_ICON_OPTIONS } from '../../constants/createGroupIcons';
 import type { CreateGroupThemeColors } from '../../constants/createGroupTheme';
 import type { GroupIconName } from '../../types/createGroup';
 
 type Props = {
   visible: boolean;
   colors: CreateGroupThemeColors;
-  icons: GroupIconName[];
   selectedIcon: GroupIconName;
   onClose: () => void;
   onSelectIcon: (icon: GroupIconName) => void;
@@ -22,7 +22,6 @@ type Props = {
 export default function CreateGroupIconPickerModal({
   visible,
   colors,
-  icons,
   selectedIcon,
   onClose,
   onSelectIcon,
@@ -50,7 +49,7 @@ export default function CreateGroupIconPickerModal({
           </Text>
 
           <View style={styles.iconGrid}>
-            {icons.map((icon) => {
+            {CREATE_GROUP_ICON_OPTIONS.map((icon) => {
               const isSelected = icon === selectedIcon;
 
               return (

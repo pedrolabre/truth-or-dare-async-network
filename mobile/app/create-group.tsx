@@ -20,7 +20,6 @@ import CreateGroupIconPickerModal from '../components/create-group/CreateGroupIc
 import { useTheme } from '../context/ThemeContext';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
 import { useCreateGroupScreen } from '../hooks/useCreateGroupScreen';
-import { CREATE_GROUP_ICON_OPTIONS } from '../constants/createGroupIcons';
 import {
   DARK_CREATE_GROUP_COLORS,
   LIGHT_CREATE_GROUP_COLORS,
@@ -40,6 +39,11 @@ export default function CreateGroupScreen() {
     iconModalVisible,
     filteredFriends,
     selectedCount,
+    nameError,
+    descriptionError,
+    descriptionWarning,
+    descriptionCharacterCount,
+    descriptionMaxLength,
     canCreate,
     setName,
     setDescription,
@@ -48,6 +52,7 @@ export default function CreateGroupScreen() {
     openIconModal,
     closeIconModal,
     selectIcon,
+    buildPayload,
   } = useCreateGroupScreen();
 
   function handleCreateGroup() {
@@ -55,12 +60,7 @@ export default function CreateGroupScreen() {
       return;
     }
 
-    console.log('Criar grupo futuramente com backend:', {
-      name: name.trim(),
-      description: description.trim(),
-      selectedMembers,
-      selectedIcon,
-    });
+    console.log('Criar grupo futuramente com backend:', buildPayload());
 
     router.replace('/clubs');
   }
@@ -124,6 +124,11 @@ export default function CreateGroupScreen() {
               name={name}
               description={description}
               selectedIcon={selectedIcon}
+              nameError={nameError}
+              descriptionError={descriptionError}
+              descriptionWarning={descriptionWarning}
+              descriptionCharacterCount={descriptionCharacterCount}
+              descriptionMaxLength={descriptionMaxLength}
               onChangeName={setName}
               onChangeDescription={setDescription}
               onPressIcon={openIconModal}
@@ -184,7 +189,6 @@ export default function CreateGroupScreen() {
         visible={iconModalVisible}
         colors={colors}
         selectedIcon={selectedIcon}
-        icons={CREATE_GROUP_ICON_OPTIONS}
         onClose={closeIconModal}
         onSelectIcon={selectIcon}
       />
