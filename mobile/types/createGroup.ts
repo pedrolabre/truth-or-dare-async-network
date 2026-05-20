@@ -10,10 +10,10 @@ export type GroupIconName =
   | 'nightlife'
   | 'favorite';
 
-export type CreateGroupFriend = {
+export type CreateGroupMemberOption = {
   id: string;
   name: string;
-  username: string;
+  email: string;
 };
 
 export type CreateGroupSubmitPayload = {

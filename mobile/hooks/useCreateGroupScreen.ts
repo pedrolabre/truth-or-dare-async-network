@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   DEFAULT_CREATE_GROUP_ICON_NAME,
   isCreateGroupIconName,
@@ -9,9 +9,10 @@ import {
   isCreateGroupTagOption,
   normalizeCreateGroupTag,
 } from '../constants/createGroupTags';
+import { getUsers, type ChallengeUser } from '../services/api';
 import type { ClubVisibilityApi } from '../types/clubsApi';
 import type {
-  CreateGroupFriend,
+  CreateGroupMemberOption,
   CreateGroupSubmitPayload,
   GroupIconName,
 } from '../types/createGroup';
@@ -21,12 +22,16 @@ export const CREATE_GROUP_NAME_MAX_LENGTH = 80;
 export const CREATE_GROUP_DESCRIPTION_MAX_LENGTH = 280;
 export const CREATE_GROUP_DESCRIPTION_RECOMMENDED_MIN_LENGTH = 20;
 export const CREATE_GROUP_RULES_MAX_LENGTH = 2000;
+export const CREATE_GROUP_MEMBER_SEARCH_DEBOUNCE_MS = 350;
 
 const GROUP_NAME_ALLOWED_PATTERN = /^[\p{L}\p{N} .,'&()!?:_-]+$/u;
 
-function normalize(value: string) {
-  return value.trim().toLowerCase();
-}
+type SearchUsers = (query?: string) => Promise<ChallengeUser[]>;
+
+type UseCreateGroupScreenOptions = {
+  searchUsers?: SearchUsers;
+  memberSearchDebounceMs?: number;
+};
 
 function getNameValidationMessage(name: string) {
   const trimmedName = name.trim();
@@ -79,51 +84,97 @@ function getRulesValidationMessage(rules: string) {
   return null;
 }
 
-const CREATE_GROUP_FRIENDS_MOCK: CreateGroupFriend[] = [
-  {
-    id: 'friend-ana',
-    name: 'Ana Souza',
-    username: '@ana',
-  },
-  {
-    id: 'friend-bruno',
-    name: 'Bruno Lima',
-    username: '@bruno',
-  },
-  {
-    id: 'friend-carla',
-    name: 'Carla Mendes',
-    username: '@carla',
-  },
-];
+function mapUsersToMemberOptions(
+  users: ChallengeUser[],
+): CreateGroupMemberOption[] {
+  const seenIds = new Set<string>();
+  const members: CreateGroupMemberOption[] = [];
 
-export function useCreateGroupScreen() {
+  users.forEach((user) => {
+    if (seenIds.has(user.id)) {
+      return;
+    }
+
+    seenIds.add(user.id);
+    members.push({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+    });
+  });
+
+  return members;
+}
+
+export function useCreateGroupScreen({
+  searchUsers = getUsers,
+  memberSearchDebounceMs = CREATE_GROUP_MEMBER_SEARCH_DEBOUNCE_MS,
+}: UseCreateGroupScreenOptions = {}) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [visibility, setVisibility] = useState<ClubVisibilityApi>('public');
   const [rules, setRules] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [friendQuery, setFriendQuery] = useState('');
+  const [memberOptions, setMemberOptions] = useState<
+    CreateGroupMemberOption[]
+  >([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [memberSearchError, setMemberSearchError] = useState<string | null>(
+    null,
+  );
+  const [memberSearchRetryKey, setMemberSearchRetryKey] = useState(0);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [selectedIcon, setSelectedIcon] = useState<GroupIconName>(
     DEFAULT_CREATE_GROUP_ICON_NAME,
   );
   const [iconModalVisible, setIconModalVisible] = useState(false);
+  const latestMemberSearchId = useRef(0);
 
-  const filteredFriends = useMemo(() => {
-    const query = normalize(friendQuery);
+  useEffect(() => {
+    const query = friendQuery.trim();
+    const searchId = latestMemberSearchId.current + 1;
+    let isActive = true;
 
-    if (!query) {
-      return CREATE_GROUP_FRIENDS_MOCK;
-    }
+    latestMemberSearchId.current = searchId;
+    setIsLoadingMembers(true);
+    setMemberSearchError(null);
 
-    return CREATE_GROUP_FRIENDS_MOCK.filter((friend) => {
-      return (
-        normalize(friend.name).includes(query) ||
-        normalize(friend.username).includes(query)
-      );
-    });
-  }, [friendQuery]);
+    const timeout = setTimeout(() => {
+      void (async () => {
+        try {
+          const users = await searchUsers(query);
+
+          if (!isActive || latestMemberSearchId.current !== searchId) {
+            return;
+          }
+
+          setMemberOptions(mapUsersToMemberOptions(users));
+          setMemberSearchError(null);
+        } catch (error) {
+          if (!isActive || latestMemberSearchId.current !== searchId) {
+            return;
+          }
+
+          const message =
+            error instanceof Error && error.message
+              ? error.message
+              : 'Nao foi possivel carregar usuarios.';
+
+          setMemberSearchError(message);
+        } finally {
+          if (isActive && latestMemberSearchId.current === searchId) {
+            setIsLoadingMembers(false);
+          }
+        }
+      })();
+    }, memberSearchDebounceMs);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeout);
+    };
+  }, [friendQuery, memberSearchDebounceMs, memberSearchRetryKey, searchUsers]);
 
   const nameError = useMemo(() => getNameValidationMessage(name), [name]);
   const descriptionError = useMemo(
@@ -143,12 +194,18 @@ export function useCreateGroupScreen() {
     isCreateGroupIconName(selectedIcon);
 
   function toggleMember(id: string) {
-    setSelectedMembers((current) =>
-      current.includes(id)
-        ? current.filter((memberId) => memberId !== id)
-        : [...current, id],
-    );
+    setSelectedMembers((current) => {
+      const uniqueMembers = Array.from(new Set(current));
+
+      return uniqueMembers.includes(id)
+        ? uniqueMembers.filter((memberId) => memberId !== id)
+        : [...uniqueMembers, id];
+    });
   }
+
+  const retryMemberSearch = useCallback(() => {
+    setMemberSearchRetryKey((current) => current + 1);
+  }, []);
 
   function openIconModal() {
     setIconModalVisible(true);
@@ -215,7 +272,9 @@ export function useCreateGroupScreen() {
     selectedMembers,
     selectedIcon,
     iconModalVisible,
-    filteredFriends,
+    memberOptions,
+    isLoadingMembers,
+    memberSearchError,
     selectedCount,
     nameError,
     descriptionError,
@@ -233,6 +292,7 @@ export function useCreateGroupScreen() {
     setRules,
     setFriendQuery,
     toggleMember,
+    retryMemberSearch,
     toggleTag,
     openIconModal,
     closeIconModal,

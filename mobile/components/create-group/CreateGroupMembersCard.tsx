@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -8,16 +9,19 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import type { CreateGroupThemeColors } from '../../constants/createGroupTheme';
-import type { CreateGroupFriend } from '../../types/createGroup';
+import type { CreateGroupMemberOption } from '../../types/createGroup';
 
 type Props = {
   colors: CreateGroupThemeColors;
   friendQuery: string;
   selectedMembers: string[];
   selectedCount: number;
-  friends: CreateGroupFriend[];
+  members: CreateGroupMemberOption[];
+  isLoadingMembers: boolean;
+  memberSearchError: string | null;
   onChangeQuery: (value: string) => void;
   onToggleMember: (id: string) => void;
+  onRetrySearch: () => void;
 };
 
 function getInitials(name: string) {
@@ -34,10 +38,19 @@ export default function CreateGroupMembersCard({
   friendQuery,
   selectedMembers,
   selectedCount,
-  friends,
+  members,
+  isLoadingMembers,
+  memberSearchError,
   onChangeQuery,
   onToggleMember,
+  onRetrySearch,
 }: Props) {
+  const showError = !isLoadingMembers && memberSearchError;
+  const showEmpty =
+    !isLoadingMembers && !memberSearchError && members.length === 0;
+  const showList =
+    !isLoadingMembers && !memberSearchError && members.length > 0;
+
   return (
     <View
       style={[
@@ -81,69 +94,159 @@ export default function CreateGroupMembersCard({
         <TextInput
           value={friendQuery}
           onChangeText={onChangeQuery}
-          placeholder="Buscar amigos pelo nome..."
+          placeholder="Buscar usuarios pelo nome..."
           placeholderTextColor={colors.muted}
           style={[styles.searchInput, { color: colors.text }]}
         />
       </View>
 
       <View style={styles.memberList}>
-        {friends.map((friend) => {
-          const isSelected = selectedMembers.includes(friend.id);
+        {isLoadingMembers ? (
+          <View style={styles.feedbackState}>
+            <ActivityIndicator size="small" color={colors.green} />
+            <Text style={[styles.feedbackText, { color: colors.subText }]}>
+              Buscando usuarios...
+            </Text>
+          </View>
+        ) : null}
 
-          return (
+        {showError ? (
+          <View style={styles.feedbackState}>
+            <View
+              style={[
+                styles.feedbackIconWrap,
+                { backgroundColor: colors.background },
+              ]}
+            >
+              <MaterialIcons
+                name="error-outline"
+                size={26}
+                color={colors.muted}
+              />
+            </View>
+
+            <Text style={[styles.feedbackTitle, { color: colors.text }]}>
+              Nao foi possivel carregar usuarios
+            </Text>
+
+            <Text style={[styles.feedbackText, { color: colors.subText }]}>
+              {memberSearchError}
+            </Text>
+
             <Pressable
-              key={friend.id}
-              onPress={() => onToggleMember(friend.id)}
+              onPress={onRetrySearch}
               style={({ pressed }) => [
-                styles.memberRow,
+                styles.retryButton,
+                { backgroundColor: colors.green },
                 pressed && styles.pressed,
               ]}
             >
-              <View style={styles.memberLeft}>
-                <View
-                  style={[
-                    styles.memberAvatar,
-                    { backgroundColor: colors.green },
+              <Text style={[styles.retryButtonText, { color: colors.white }]}>
+                Tentar novamente
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
+
+        {showEmpty ? (
+          <View style={styles.feedbackState}>
+            <View
+              style={[
+                styles.feedbackIconWrap,
+                { backgroundColor: colors.background },
+              ]}
+            >
+              <MaterialIcons
+                name="person-search"
+                size={26}
+                color={colors.muted}
+              />
+            </View>
+
+            <Text style={[styles.feedbackTitle, { color: colors.text }]}>
+              Nenhum usuario encontrado
+            </Text>
+
+            <Text style={[styles.feedbackText, { color: colors.subText }]}>
+              Tente buscar por outro nome.
+            </Text>
+          </View>
+        ) : null}
+
+        {showList
+          ? members.map((member) => {
+              const isSelected = selectedMembers.includes(member.id);
+
+              return (
+                <Pressable
+                  key={member.id}
+                  onPress={() => onToggleMember(member.id)}
+                  style={({ pressed }) => [
+                    styles.memberRow,
+                    pressed && styles.pressed,
                   ]}
                 >
-                  <Text style={[styles.memberAvatarText, { color: colors.white }]}>
-                    {getInitials(friend.name)}
-                  </Text>
-                </View>
+                  <View style={styles.memberLeft}>
+                    <View
+                      style={[
+                        styles.memberAvatar,
+                        { backgroundColor: colors.green },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.memberAvatarText,
+                          { color: colors.white },
+                        ]}
+                      >
+                        {getInitials(member.name)}
+                      </Text>
+                    </View>
 
-                <View style={styles.memberTextWrap}>
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.memberName, { color: colors.text }]}
-                  >
-                    {friend.name}
-                  </Text>
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.memberUsername, { color: colors.subText }]}
-                  >
-                    @{friend.username}
-                  </Text>
-                </View>
-              </View>
+                    <View style={styles.memberTextWrap}>
+                      <Text
+                        numberOfLines={1}
+                        style={[styles.memberName, { color: colors.text }]}
+                      >
+                        {member.name}
+                      </Text>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.memberUsername,
+                          { color: colors.subText },
+                        ]}
+                      >
+                        {member.email}
+                      </Text>
+                    </View>
+                  </View>
 
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    borderColor: isSelected ? colors.green : colors.outline,
-                    backgroundColor: isSelected ? colors.green : 'transparent',
-                  },
-                ]}
-              >
-                {isSelected ? (
-                  <MaterialIcons name="check" size={16} color={colors.white} />
-                ) : null}
-              </View>
-            </Pressable>
-          );
-        })}
+                  <View
+                    style={[
+                      styles.checkbox,
+                      {
+                        borderColor: isSelected
+                          ? colors.green
+                          : colors.outline,
+                        backgroundColor: isSelected
+                          ? colors.green
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    {isSelected ? (
+                      <MaterialIcons
+                        name="check"
+                        size={16}
+                        color={colors.white}
+                      />
+                    ) : null}
+                  </View>
+                </Pressable>
+              );
+            })
+          : null}
       </View>
     </View>
   );
@@ -198,6 +301,44 @@ const styles = StyleSheet.create({
   },
   memberList: {
     gap: 6,
+  },
+  feedbackState: {
+    minHeight: 138,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 9,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+  },
+  feedbackIconWrap: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  feedbackTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  feedbackText: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  retryButton: {
+    minHeight: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    marginTop: 2,
+  },
+  retryButtonText: {
+    fontSize: 13,
+    fontWeight: '900',
   },
   memberRow: {
     minHeight: 66,

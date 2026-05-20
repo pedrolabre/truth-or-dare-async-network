@@ -41,7 +41,9 @@ export default function CreateGroupScreen() {
     selectedMembers,
     selectedIcon,
     iconModalVisible,
-    filteredFriends,
+    memberOptions,
+    isLoadingMembers,
+    memberSearchError,
     selectedCount,
     nameError,
     descriptionError,
@@ -59,6 +61,7 @@ export default function CreateGroupScreen() {
     setRules,
     setFriendQuery,
     toggleMember,
+    retryMemberSearch,
     toggleTag,
     openIconModal,
     closeIconModal,
@@ -164,9 +167,12 @@ export default function CreateGroupScreen() {
               friendQuery={friendQuery}
               selectedMembers={selectedMembers}
               selectedCount={selectedCount}
-              friends={filteredFriends}
+              members={memberOptions}
+              isLoadingMembers={isLoadingMembers}
+              memberSearchError={memberSearchError}
               onChangeQuery={setFriendQuery}
               onToggleMember={toggleMember}
+              onRetrySearch={retryMemberSearch}
             />
 
             <View style={styles.actionsBlock}>
