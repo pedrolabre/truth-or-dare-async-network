@@ -5,8 +5,32 @@ import type {
   ClubFeedOrderApi,
   ClubMemberApi,
   ClubSummaryApi,
+  CreateClubPayloadApi,
+  CreateClubResponseApi,
   DiscoverClubsApi,
 } from '../types/clubsApi';
+
+export async function createClub(
+  payload: CreateClubPayloadApi,
+): Promise<CreateClubResponseApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
 
 export async function getMyClubs(): Promise<ClubSummaryApi[]> {
   const baseUrl = getApiUrl();

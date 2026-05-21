@@ -1,14 +1,6 @@
-import type { ClubVisibilityApi } from './clubsApi';
+import type { ClubIconNameApi, ClubVisibilityApi } from './clubsApi';
 
-export type GroupIconName =
-  | 'groups'
-  | 'sports-esports'
-  | 'local-fire-department'
-  | 'auto-awesome'
-  | 'celebration'
-  | 'school'
-  | 'nightlife'
-  | 'favorite';
+export type GroupIconName = ClubIconNameApi;
 
 export type CreateGroupMemberOption = {
   id: string;

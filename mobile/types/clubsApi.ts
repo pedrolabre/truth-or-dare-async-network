@@ -1,3 +1,13 @@
+export type ClubIconNameApi =
+  | 'groups'
+  | 'sports-esports'
+  | 'local-fire-department'
+  | 'auto-awesome'
+  | 'celebration'
+  | 'school'
+  | 'nightlife'
+  | 'favorite';
+
 export type ClubVisibilityApi = 'public' | 'private' | 'invite_only';
 
 export type ClubStatusApi = 'active' | 'archived' | 'suspended' | 'deleted';
@@ -62,6 +72,18 @@ export type ClubDetailsApi = ClubSummaryApi & {
   joinPolicy: ClubJoinPolicyApi;
   permissions: ClubPermissionsApi;
 };
+
+export type CreateClubPayloadApi = {
+  name: string;
+  description: string | null;
+  iconName: ClubIconNameApi;
+  visibility: ClubVisibilityApi;
+  rules: string | null;
+  tags: string[];
+  initialMemberIds: string[];
+};
+
+export type CreateClubResponseApi = ClubDetailsApi;
 
 export type ClubMemberApi = {
   id: string;

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   ScrollView,
   StatusBar,
@@ -44,6 +45,8 @@ export default function CreateGroupScreen() {
     memberOptions,
     isLoadingMembers,
     memberSearchError,
+    isSubmitting,
+    createGroupError,
     selectedCount,
     nameError,
     descriptionError,
@@ -55,6 +58,7 @@ export default function CreateGroupScreen() {
     rulesMaxLength,
     tagMaxCount,
     canCreate,
+    canRetryCreateGroup,
     setName,
     setDescription,
     setVisibility,
@@ -66,20 +70,23 @@ export default function CreateGroupScreen() {
     openIconModal,
     closeIconModal,
     selectIcon,
-    buildPayload,
+    handleCreateGroup,
+    retryCreateGroup,
   } = useCreateGroupScreen();
 
-  function handleCreateGroup() {
-    if (!canCreate) {
-      return;
-    }
+  function handleCreateGroupPress() {
+    void handleCreateGroup();
+  }
 
-    console.log('Criar grupo futuramente com backend:', buildPayload());
-
-    router.replace('/clubs');
+  function handleRetryCreateGroup() {
+    void retryCreateGroup();
   }
 
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
+    if (isSubmitting) {
+      return;
+    }
+
     switch (key) {
       case 'play':
         router.replace('/feed');
@@ -120,6 +127,10 @@ export default function CreateGroupScreen() {
           }
           avatarBackgroundColor={isDark ? '#121212' : colors.surface}
           onPressNotifications={() => {
+            if (isSubmitting) {
+              return;
+            }
+
             router.push('/notifications');
           }}
         />
@@ -177,20 +188,64 @@ export default function CreateGroupScreen() {
 
             <View style={styles.actionsBlock}>
               <Pressable
-                onPress={handleCreateGroup}
-                disabled={!canCreate}
+                onPress={handleCreateGroupPress}
+                disabled={!canCreate || isSubmitting}
                 style={({ pressed }) => [
                   styles.createButton,
                   {
-                    backgroundColor: canCreate ? colors.red : colors.outline,
+                    backgroundColor:
+                      canCreate && !isSubmitting ? colors.red : colors.outline,
+                    opacity: isSubmitting ? 0.82 : 1,
                   },
-                  pressed && canCreate && styles.pressed,
+                  pressed && canCreate && !isSubmitting && styles.pressed,
                 ]}
               >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : null}
                 <Text style={[styles.createButtonText, { color: colors.white }]}>
-                  Criar Grupo
+                  {isSubmitting ? 'Criando Grupo...' : 'Criar Grupo'}
                 </Text>
               </Pressable>
+
+              {createGroupError ? (
+                <View
+                  style={[
+                    styles.submitErrorBox,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.outline,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.submitErrorText, { color: colors.red }]}>
+                    {createGroupError}
+                  </Text>
+
+                  <Pressable
+                    onPress={handleRetryCreateGroup}
+                    disabled={!canRetryCreateGroup}
+                    style={({ pressed }) => [
+                      styles.retryCreateButton,
+                      {
+                        backgroundColor: canRetryCreateGroup
+                          ? colors.green
+                          : colors.outline,
+                      },
+                      pressed && canRetryCreateGroup && styles.pressed,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.retryCreateButtonText,
+                        { color: colors.white },
+                      ]}
+                    >
+                      Tentar novamente
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
 
               <Text style={[styles.helperText, { color: colors.muted }]}>
                 Ao criar um grupo, você concorda com as diretrizes da comunidade e
@@ -254,8 +309,10 @@ const styles = StyleSheet.create({
   createButton: {
     minHeight: 58,
     borderRadius: 18,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
   },
   createButtonText: {
     fontSize: 18,
@@ -268,6 +325,29 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
     paddingHorizontal: 12,
+  },
+  submitErrorBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    gap: 12,
+    padding: 14,
+  },
+  submitErrorText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  retryCreateButton: {
+    minHeight: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  retryCreateButtonText: {
+    fontSize: 13,
+    fontWeight: '900',
   },
   pressed: {
     opacity: 0.9,

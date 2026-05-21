@@ -10,7 +10,8 @@ import {
   normalizeCreateGroupTag,
 } from '../constants/createGroupTags';
 import { getUsers, type ChallengeUser } from '../services/api';
-import type { ClubVisibilityApi } from '../types/clubsApi';
+import { createClub } from '../services/clubsApi';
+import type { ClubDetailsApi, ClubVisibilityApi } from '../types/clubsApi';
 import type {
   CreateGroupMemberOption,
   CreateGroupSubmitPayload,
@@ -27,10 +28,14 @@ export const CREATE_GROUP_MEMBER_SEARCH_DEBOUNCE_MS = 350;
 const GROUP_NAME_ALLOWED_PATTERN = /^[\p{L}\p{N} .,'&()!?:_-]+$/u;
 
 type SearchUsers = (query?: string) => Promise<ChallengeUser[]>;
+type SubmitCreateClub = (
+  payload: CreateGroupSubmitPayload,
+) => Promise<ClubDetailsApi>;
 
 type UseCreateGroupScreenOptions = {
   searchUsers?: SearchUsers;
   memberSearchDebounceMs?: number;
+  submitCreateClub?: SubmitCreateClub;
 };
 
 function getNameValidationMessage(name: string) {
@@ -106,9 +111,21 @@ function mapUsersToMemberOptions(
   return members;
 }
 
+function getCreateGroupApiErrorMessage(error: unknown) {
+  const message =
+    error instanceof Error && error.message ? error.message : null;
+
+  if (!message) {
+    return 'Nao foi possivel criar o clube agora. Tente novamente.';
+  }
+
+  return `Nao foi possivel criar o clube. ${message}`;
+}
+
 export function useCreateGroupScreen({
   searchUsers = getUsers,
   memberSearchDebounceMs = CREATE_GROUP_MEMBER_SEARCH_DEBOUNCE_MS,
+  submitCreateClub = createClub,
 }: UseCreateGroupScreenOptions = {}) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -129,7 +146,13 @@ export function useCreateGroupScreen({
     DEFAULT_CREATE_GROUP_ICON_NAME,
   );
   const [iconModalVisible, setIconModalVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createGroupError, setCreateGroupError] = useState<string | null>(null);
+  const [hasCreateGroupRetryPayload, setHasCreateGroupRetryPayload] =
+    useState(false);
   const latestMemberSearchId = useRef(0);
+  const isSubmittingRef = useRef(false);
+  const lastValidPayloadRef = useRef<CreateGroupSubmitPayload | null>(null);
 
   useEffect(() => {
     const query = friendQuery.trim();
@@ -247,7 +270,7 @@ export function useCreateGroupScreen({
     });
   }
 
-  function buildPayload(): CreateGroupSubmitPayload {
+  const buildPayload = useCallback((): CreateGroupSubmitPayload => {
     const trimmedDescription = description.trim();
     const trimmedRules = rules.trim();
 
@@ -260,7 +283,61 @@ export function useCreateGroupScreen({
       tags: Array.from(new Set(selectedTags.map(normalizeCreateGroupTag))),
       initialMemberIds: Array.from(new Set(selectedMembers)),
     };
-  }
+  }, [
+    description,
+    name,
+    rules,
+    selectedIcon,
+    selectedMembers,
+    selectedTags,
+    visibility,
+  ]);
+
+  const submitPayload = useCallback(
+    async (payload: CreateGroupSubmitPayload) => {
+      if (isSubmittingRef.current) {
+        return null;
+      }
+
+      isSubmittingRef.current = true;
+      setIsSubmitting(true);
+      setCreateGroupError(null);
+
+      try {
+        return await submitCreateClub(payload);
+      } catch (error) {
+        setCreateGroupError(getCreateGroupApiErrorMessage(error));
+        return null;
+      } finally {
+        isSubmittingRef.current = false;
+        setIsSubmitting(false);
+      }
+    },
+    [submitCreateClub],
+  );
+
+  const handleCreateGroup = useCallback(async () => {
+    if (!canCreate) {
+      return null;
+    }
+
+    const payload = buildPayload();
+
+    lastValidPayloadRef.current = payload;
+    setHasCreateGroupRetryPayload(true);
+
+    return submitPayload(payload);
+  }, [buildPayload, canCreate, submitPayload]);
+
+  const retryCreateGroup = useCallback(async () => {
+    const payload = lastValidPayloadRef.current;
+
+    if (!payload) {
+      return null;
+    }
+
+    return submitPayload(payload);
+  }, [submitPayload]);
 
   return {
     name,
@@ -275,6 +352,8 @@ export function useCreateGroupScreen({
     memberOptions,
     isLoadingMembers,
     memberSearchError,
+    isSubmitting,
+    createGroupError,
     selectedCount,
     nameError,
     descriptionError,
@@ -286,6 +365,7 @@ export function useCreateGroupScreen({
     rulesMaxLength: CREATE_GROUP_RULES_MAX_LENGTH,
     tagMaxCount: CREATE_GROUP_TAG_MAX_COUNT,
     canCreate,
+    canRetryCreateGroup: hasCreateGroupRetryPayload && !isSubmitting,
     setName,
     setDescription,
     setVisibility,
@@ -298,5 +378,7 @@ export function useCreateGroupScreen({
     closeIconModal,
     selectIcon,
     buildPayload,
+    handleCreateGroup,
+    retryCreateGroup,
   };
 }
