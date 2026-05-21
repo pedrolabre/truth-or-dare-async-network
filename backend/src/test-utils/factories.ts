@@ -7,6 +7,11 @@ import {
   ClubVisibility,
 } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
+import {
+  generateResetCode,
+  getResetCodeExpiresAt,
+  hashResetCode,
+} from '../services/auth/password-reset.tokens';
 
 type BaseDateInput = {
   createdAt?: Date;
@@ -16,6 +21,16 @@ type CreateTestUserInput = BaseDateInput & {
   name?: string;
   email?: string;
   password?: string;
+};
+
+type CreateTestPasswordResetTokenInput = BaseDateInput & {
+  userId: string;
+  code?: string;
+  tokenHash?: string;
+  expiresAt?: Date;
+  usedAt?: Date | null;
+  attemptCount?: number;
+  ipAddress?: string | null;
 };
 
 type CreateTestTruthInput = BaseDateInput & {
@@ -192,6 +207,34 @@ export async function createTestUser(input: CreateTestUserInput = {}) {
       input.createdAt,
     ),
   });
+}
+
+export async function createTestPasswordResetToken(
+  input: CreateTestPasswordResetTokenInput,
+) {
+  const baseDate = input.createdAt ?? new Date();
+  const code = input.code ?? (input.tokenHash ? null : generateResetCode());
+  const tokenHash = input.tokenHash ?? hashResetCode(code ?? generateResetCode());
+  const expiresAt = input.expiresAt ?? getResetCodeExpiresAt(baseDate);
+
+  const token = await prisma.passwordResetToken.create({
+    data: withOptionalCreatedAt(
+      {
+        userId: input.userId,
+        tokenHash,
+        expiresAt,
+        usedAt: input.usedAt ?? null,
+        attemptCount: input.attemptCount ?? 0,
+        ipAddress: input.ipAddress ?? null,
+      },
+      input.createdAt,
+    ),
+  });
+
+  return {
+    token,
+    code: code ?? undefined,
+  };
 }
 
 export async function createTestTruth(input: CreateTestTruthInput) {
