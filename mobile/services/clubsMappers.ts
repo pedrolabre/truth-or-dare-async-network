@@ -48,6 +48,21 @@ export function formatClubMembersLabel(memberCount: number): string {
   return `${normalizedMemberCount} ${memberLabel}`;
 }
 
+export function upsertClubListItem(
+  currentClubs: ClubListItem[],
+  nextClub: ClubListItem,
+): ClubListItem[] {
+  const hasClub = currentClubs.some((club) => club.id === nextClub.id);
+
+  if (!hasClub) {
+    return [nextClub, ...currentClubs];
+  }
+
+  return currentClubs.map((club) =>
+    club.id === nextClub.id ? nextClub : club,
+  );
+}
+
 function getClubDescription(description: string | null | undefined): string {
   const trimmedDescription = description?.trim();
 

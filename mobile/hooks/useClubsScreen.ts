@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   discoverClubs as fetchDiscoverClubs,
   getMyClubs,
@@ -9,7 +9,9 @@ import {
   formatClubMembersLabel,
   mapClubSummaryToDiscoverItem,
   mapClubSummaryToListItem,
+  upsertClubListItem,
 } from '../services/clubsMappers';
+import { subscribeToMyClubsUpserts } from '../services/clubsLocalUpdates';
 import type { ClubDiscoverySource } from '../services/clubsMappers';
 import type {
   ClubDiscoverItem,
@@ -22,6 +24,7 @@ import type {
   ClubMemberApi,
   ClubMemberRoleApi,
   ClubMemberStatusApi,
+  ClubSummaryApi,
   DiscoverClubsApi,
 } from '../types/clubsApi';
 
@@ -106,12 +109,53 @@ export function useClubsScreen() {
   const isMountedRef = useRef(true);
   const joiningClubIdsRef = useRef<Set<string>>(new Set());
   const searchRequestIdRef = useRef(0);
+  const pendingMyClubUpsertsRef = useRef<ClubListItem[]>([]);
+
+  const mergeWithPendingMyClubUpserts = useCallback(
+    (clubs: ClubListItem[]) => {
+      const apiClubIds = new Set(clubs.map((club) => club.id));
+      const pendingClubs = pendingMyClubUpsertsRef.current.filter(
+        (club) => !apiClubIds.has(club.id),
+      );
+
+      pendingMyClubUpsertsRef.current = pendingClubs;
+
+      return pendingClubs.reduceRight(
+        (currentClubs, club) => upsertClubListItem(currentClubs, club),
+        clubs,
+      );
+    },
+    [],
+  );
+
+  const upsertCreatedClubInMyClubs = useCallback((club: ClubSummaryApi) => {
+    const clubItem = mapClubSummaryToListItem(club);
+
+    pendingMyClubUpsertsRef.current = upsertClubListItem(
+      pendingMyClubUpsertsRef.current,
+      clubItem,
+    );
+
+    setMyClubs((currentClubs) => upsertClubListItem(currentClubs, clubItem));
+    setMyClubsErrorMessage(null);
+    setIsInitialLoading(false);
+  }, []);
 
   useEffect(() => {
     return () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  useEffect(() => {
+    return subscribeToMyClubsUpserts((club) => {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      upsertCreatedClubInMyClubs(club);
+    });
+  }, [upsertCreatedClubInMyClubs]);
 
   useEffect(() => {
     let isMounted = true;
@@ -127,15 +171,24 @@ export function useClubsScreen() {
           return;
         }
 
-        setMyClubs(clubs.map(mapClubSummaryToListItem));
+        setMyClubs(
+          mergeWithPendingMyClubUpserts(clubs.map(mapClubSummaryToListItem)),
+        );
       } catch (error) {
         if (!isMounted) {
           return;
         }
 
-        setMyClubs([]);
+        const pendingClubs = mergeWithPendingMyClubUpserts([]);
+
+        setMyClubs(pendingClubs);
         setMyClubsErrorMessage(
-          getErrorMessage(error, 'Não foi possível carregar seus clubes.'),
+          pendingClubs.length > 0
+            ? null
+            : getErrorMessage(
+                error,
+                'Não foi possível carregar seus clubes.',
+              ),
         );
       } finally {
         if (isMounted) {
@@ -149,7 +202,7 @@ export function useClubsScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [mergeWithPendingMyClubUpserts]);
 
   useEffect(() => {
     if (activeTab !== 'discover' || hasRequestedDiscoverRef.current) {
@@ -347,14 +400,23 @@ export function useClubsScreen() {
         return;
       }
 
-      setMyClubs(clubs.map(mapClubSummaryToListItem));
+      setMyClubs(
+        mergeWithPendingMyClubUpserts(clubs.map(mapClubSummaryToListItem)),
+      );
     } catch (error) {
       if (!isMountedRef.current) {
         return;
       }
 
       if (clearOnError) {
-        setMyClubs([]);
+        const pendingClubs = mergeWithPendingMyClubUpserts([]);
+
+        setMyClubs(pendingClubs);
+
+        if (pendingClubs.length > 0) {
+          setMyClubsErrorMessage(null);
+          return;
+        }
       }
 
       setMyClubsErrorMessage(

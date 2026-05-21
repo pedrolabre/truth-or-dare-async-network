@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 
 import FeedBottomNav from '../components/feed/FeedBottomNav';
 import FeedHeader from '../components/feed/FeedHeader';
@@ -26,11 +26,21 @@ import {
   DARK_CREATE_GROUP_COLORS,
   LIGHT_CREATE_GROUP_COLORS,
 } from '../constants/createGroupTheme';
+import { publishMyClubsUpsert } from '../services/clubsLocalUpdates';
+import type { ClubDetailsApi } from '../types/clubsApi';
+
+const CREATE_GROUP_SUCCESS_NAVIGATION_DELAY_MS = 700;
 
 export default function CreateGroupScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = isDark ? DARK_CREATE_GROUP_COLORS : LIGHT_CREATE_GROUP_COLORS;
+  const navigationTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const [successMessage, setSuccessMessage] = React.useState<string | null>(
+    null,
+  );
 
   const {
     name,
@@ -74,16 +84,53 @@ export default function CreateGroupScreen() {
     retryCreateGroup,
   } = useCreateGroupScreen();
 
-  function handleCreateGroupPress() {
-    void handleCreateGroup();
+  const isSuccessPending = successMessage !== null;
+  const isCreateFlowLocked = isSubmitting || isSuccessPending;
+  const canPressCreate = canCreate && !isCreateFlowLocked;
+
+  React.useEffect(() => {
+    return () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  function handleCreateGroupSuccess(createdClub: ClubDetailsApi) {
+    publishMyClubsUpsert(createdClub);
+    setSuccessMessage('Clube criado. Abrindo detalhes...');
+
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
+    }
+
+    navigationTimeoutRef.current = setTimeout(() => {
+      router.replace(`/clubs/${encodeURIComponent(createdClub.id)}` as Href);
+    }, CREATE_GROUP_SUCCESS_NAVIGATION_DELAY_MS);
   }
 
-  function handleRetryCreateGroup() {
-    void retryCreateGroup();
+  async function handleCreateGroupPress() {
+    setSuccessMessage(null);
+
+    const createdClub = await handleCreateGroup();
+
+    if (createdClub) {
+      handleCreateGroupSuccess(createdClub);
+    }
+  }
+
+  async function handleRetryCreateGroup() {
+    setSuccessMessage(null);
+
+    const createdClub = await retryCreateGroup();
+
+    if (createdClub) {
+      handleCreateGroupSuccess(createdClub);
+    }
   }
 
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
-    if (isSubmitting) {
+    if (isCreateFlowLocked) {
       return;
     }
 
@@ -127,7 +174,7 @@ export default function CreateGroupScreen() {
           }
           avatarBackgroundColor={isDark ? '#121212' : colors.surface}
           onPressNotifications={() => {
-            if (isSubmitting) {
+            if (isCreateFlowLocked) {
               return;
             }
 
@@ -188,27 +235,51 @@ export default function CreateGroupScreen() {
 
             <View style={styles.actionsBlock}>
               <Pressable
-                onPress={handleCreateGroupPress}
-                disabled={!canCreate || isSubmitting}
+                onPress={() => {
+                  void handleCreateGroupPress();
+                }}
+                disabled={!canPressCreate}
                 style={({ pressed }) => [
                   styles.createButton,
                   {
                     backgroundColor:
-                      canCreate && !isSubmitting ? colors.red : colors.outline,
-                    opacity: isSubmitting ? 0.82 : 1,
+                      canPressCreate ? colors.red : colors.outline,
+                    opacity: isCreateFlowLocked ? 0.82 : 1,
                   },
-                  pressed && canCreate && !isSubmitting && styles.pressed,
+                  pressed && canPressCreate && styles.pressed,
                 ]}
               >
                 {isSubmitting ? (
                   <ActivityIndicator size="small" color={colors.white} />
                 ) : null}
                 <Text style={[styles.createButtonText, { color: colors.white }]}>
-                  {isSubmitting ? 'Criando Grupo...' : 'Criar Grupo'}
+                  {isSuccessPending
+                    ? 'Clube criado'
+                    : isSubmitting
+                      ? 'Criando Grupo...'
+                      : 'Criar Grupo'}
                 </Text>
               </Pressable>
 
-              {createGroupError ? (
+              {successMessage ? (
+                <View
+                  style={[
+                    styles.submitSuccessBox,
+                    {
+                      backgroundColor: colors.greenSoft,
+                      borderColor: colors.green,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[styles.submitSuccessText, { color: colors.green }]}
+                  >
+                    {successMessage}
+                  </Text>
+                </View>
+              ) : null}
+
+              {!successMessage && createGroupError ? (
                 <View
                   style={[
                     styles.submitErrorBox,
@@ -223,7 +294,9 @@ export default function CreateGroupScreen() {
                   </Text>
 
                   <Pressable
-                    onPress={handleRetryCreateGroup}
+                    onPress={() => {
+                      void handleRetryCreateGroup();
+                    }}
                     disabled={!canRetryCreateGroup}
                     style={({ pressed }) => [
                       styles.retryCreateButton,
@@ -336,6 +409,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
+    textAlign: 'center',
+  },
+  submitSuccessBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  submitSuccessText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
     textAlign: 'center',
   },
   retryCreateButton: {
