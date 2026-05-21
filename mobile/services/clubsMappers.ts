@@ -1,9 +1,16 @@
-import type { ClubDiscoverItem, ClubListItem } from '../types/clubs';
 import type {
+  ClubDetail,
+  ClubDiscoverItem,
+  ClubListItem,
+} from '../types/clubs';
+import type {
+  ClubDetailsApi,
   ClubMemberRoleApi,
   ClubMemberStatusApi,
+  ClubPermissionsApi,
   ClubStatusApi,
   ClubSummaryApi,
+  ClubVisibilityApi,
   DiscoverClubsApi,
 } from '../types/clubsApi';
 
@@ -41,11 +48,41 @@ const MEMBER_ROLE_LABELS: Record<ClubMemberRoleApi, string> = {
   member: 'Membro',
 };
 
+const CLUB_VISIBILITY_LABELS: Record<ClubVisibilityApi, string> = {
+  public: 'Publico',
+  private: 'Privado',
+  invite_only: 'Convite',
+};
+
+const CLUB_DETAIL_STATUS_LABELS: Record<ClubStatusApi, string> = {
+  active: 'Ativo',
+  archived: 'Arquivado',
+  suspended: 'Suspenso',
+  deleted: 'Removido',
+};
+
+const BLOCKED_CLUB_DETAIL_PERMISSIONS: ClubPermissionsApi = {
+  canViewFeed: false,
+  canPostPrompt: false,
+  canInviteMembers: false,
+  canManageMembers: false,
+  canEditClub: false,
+  canArchiveClub: false,
+  canTransferOwnership: false,
+};
+
 export function formatClubMembersLabel(memberCount: number): string {
   const normalizedMemberCount = Math.max(0, memberCount);
   const memberLabel = normalizedMemberCount === 1 ? 'membro' : 'membros';
 
   return `${normalizedMemberCount} ${memberLabel}`;
+}
+
+export function formatClubPromptsLabel(promptCount: number): string {
+  const normalizedPromptCount = Math.max(0, promptCount);
+  const promptLabel = normalizedPromptCount === 1 ? 'prompt' : 'prompts';
+
+  return `${normalizedPromptCount} ${promptLabel}`;
 }
 
 export function upsertClubListItem(
@@ -107,6 +144,26 @@ function getClubListIsActive(club: ClubSummaryApi): boolean {
   );
 }
 
+function getMembershipLabel(club: ClubSummaryApi): string {
+  const { viewerMembership } = club;
+
+  if (!viewerMembership.status) {
+    return club.visibility === 'private' ? 'Acesso privado' : 'Visitante';
+  }
+
+  if (viewerMembership.status !== 'active') {
+    return MEMBER_STATUS_LABELS[viewerMembership.status];
+  }
+
+  if (!viewerMembership.isMember) {
+    return 'Visitante';
+  }
+
+  return viewerMembership.role
+    ? MEMBER_ROLE_LABELS[viewerMembership.role]
+    : MEMBER_STATUS_LABELS.active;
+}
+
 export function mapClubSummaryToListItem(
   club: ClubSummaryApi,
 ): ClubListItem {
@@ -138,5 +195,40 @@ export function mapClubSummaryToDiscoverItem(
     isTrending: source === 'popular',
     isMember: club.viewerMembership.isMember,
     membershipStatus: club.viewerMembership.status,
+  };
+}
+
+export function getBlockedClubDetailPermissions(): ClubPermissionsApi {
+  return { ...BLOCKED_CLUB_DETAIL_PERMISSIONS };
+}
+
+export function mapClubDetailsToDetail(club: ClubDetailsApi): ClubDetail {
+  return {
+    id: club.id,
+    slug: club.slug,
+    name: club.name,
+    description: getClubDescription(club.description),
+    iconName: getClubIconName(club.iconName),
+    avatarUrl: club.avatarUrl,
+    coverUrl: club.coverUrl,
+    visibility: club.visibility,
+    visibilityLabel: CLUB_VISIBILITY_LABELS[club.visibility],
+    status: club.status,
+    statusLabel: CLUB_DETAIL_STATUS_LABELS[club.status],
+    memberCount: club.memberCount,
+    membersLabel: formatClubMembersLabel(club.memberCount),
+    promptCount: club.promptCount,
+    promptsLabel: formatClubPromptsLabel(club.promptCount),
+    lastActivityAt: club.lastActivityAt,
+    rules: club.rules,
+    tags: club.tags,
+    createdAt: club.createdAt,
+    updatedAt: club.updatedAt,
+    archivedAt: club.archivedAt,
+    deletedAt: club.deletedAt,
+    joinPolicy: club.joinPolicy,
+    viewerMembership: club.viewerMembership,
+    membershipLabel: getMembershipLabel(club),
+    permissions: club.permissions,
   };
 }

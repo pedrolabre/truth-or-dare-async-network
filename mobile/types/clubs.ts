@@ -1,3 +1,11 @@
+import type {
+  ClubJoinPolicyApi,
+  ClubPermissionsApi,
+  ClubStatusApi,
+  ClubViewerMembershipApi,
+  ClubVisibilityApi,
+} from './clubsApi';
+
 export type ClubsTabKey = 'my-clubs' | 'discover';
 
 export type ClubsContentState =
@@ -54,4 +62,55 @@ export type ClubsScreenState = {
   hasSearchQuery: boolean;
   isDiscoverEmpty: boolean;
   isMyClubsEmpty: boolean;
+};
+
+export type ClubDetailContentState =
+  | 'loading'
+  | 'ready'
+  | 'invalid-id'
+  | 'access-denied'
+  | 'not-found'
+  | 'archived'
+  | 'suspended'
+  | 'error';
+
+export type ClubDetail = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  iconName: string;
+  avatarUrl: string | null;
+  coverUrl: string | null;
+  visibility: ClubVisibilityApi;
+  visibilityLabel: string;
+  status: ClubStatusApi;
+  statusLabel: string;
+  memberCount: number;
+  membersLabel: string;
+  promptCount: number;
+  promptsLabel: string;
+  lastActivityAt: string | null;
+  rules: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+  archivedAt: string | null;
+  deletedAt: string | null;
+  joinPolicy: ClubJoinPolicyApi;
+  viewerMembership: ClubViewerMembershipApi;
+  membershipLabel: string;
+  permissions: ClubPermissionsApi;
+};
+
+export type ClubDetailsScreenState = {
+  clubId: string | null;
+  club: ClubDetail | null;
+  membership: ClubViewerMembershipApi | null;
+  permissions: ClubPermissionsApi | null;
+  contentState: ClubDetailContentState;
+  isInitialLoading: boolean;
+  isRefreshing: boolean;
+  errorMessage: string | null;
+  canRetry: boolean;
 };

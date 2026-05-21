@@ -10,6 +10,22 @@ import type {
   DiscoverClubsApi,
 } from '../types/clubsApi';
 
+export class ClubsApiError extends Error {
+  status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'ClubsApiError';
+    this.status = status;
+  }
+}
+
+function getErrorMessage(error: unknown, fallbackMessage: string): string {
+  return error instanceof Error && error.message
+    ? error.message
+    : fallbackMessage;
+}
+
 export async function createClub(
   payload: CreateClubPayloadApi,
 ): Promise<CreateClubResponseApi> {
@@ -112,6 +128,22 @@ export async function getClubDetails(
       Authorization: `Bearer ${token}`,
     },
   });
+
+  if (!response.ok) {
+    try {
+      await parseResponse(response);
+    } catch (error) {
+      throw new ClubsApiError(
+        response.status,
+        getErrorMessage(error, `Erro na requisicao (${response.status})`),
+      );
+    }
+
+    throw new ClubsApiError(
+      response.status,
+      `Erro na requisicao (${response.status})`,
+    );
+  }
 
   return parseResponse(response);
 }

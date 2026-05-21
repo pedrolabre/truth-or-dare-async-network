@@ -165,6 +165,16 @@ describe('ClubsScreen', () => {
     expect(mockRouterPush).toHaveBeenCalledWith('/clubs/my-real-club-id');
   });
 
+  it('navega para a criacao ao pressionar Criar grupo', () => {
+    mockedUseClubsScreen.mockReturnValue(baseHookState);
+
+    const { getByText } = render(<ClubsScreen />);
+
+    fireEvent.press(getByText('Criar grupo'));
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/create-group');
+  });
+
   it('navega para o detalhe ao pressionar um card de Descobrir', () => {
     const discoverItem = {
       id: 'discover-real-club-id',
