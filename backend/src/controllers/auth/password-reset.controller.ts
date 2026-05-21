@@ -16,6 +16,14 @@ function getRequestIp(req: Request): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function logPasswordResetRequest(event: string, req: Request): void {
+  console.info({
+    event,
+    timestamp: new Date().toISOString(),
+    ipAddress: getRequestIp(req),
+  });
+}
+
 function handlePasswordResetControllerError(
   res: Response,
   error: unknown,
@@ -35,6 +43,8 @@ function handlePasswordResetControllerError(
 
 export async function forgotPasswordController(req: Request, res: Response) {
   try {
+    logPasswordResetRequest('password_reset.request_received', req);
+
     const { email } = req.body;
 
     await requestPasswordReset({
@@ -54,6 +64,8 @@ export async function forgotPasswordController(req: Request, res: Response) {
 
 export async function verifyResetCodeController(req: Request, res: Response) {
   try {
+    logPasswordResetRequest('password_reset.code_verification_received', req);
+
     const { email, code } = req.body;
 
     const result = await verifyResetCode({
@@ -73,6 +85,8 @@ export async function verifyResetCodeController(req: Request, res: Response) {
 
 export async function resetPasswordController(req: Request, res: Response) {
   try {
+    logPasswordResetRequest('password_reset.reset_received', req);
+
     const { resetToken, newPassword } = req.body;
 
     const result = await resetPassword({

@@ -24,7 +24,7 @@ export function validationError(message: string): never {
 export function rateLimitExceededError(): never {
   throw new PasswordResetServiceError(
     'RATE_LIMIT_EXCEEDED',
-    'Too many reset requests',
+    'Muitas tentativas. Tente novamente em alguns minutos.',
     429,
   );
 }
@@ -40,7 +40,7 @@ export function invalidOrExpiredCodeError(): never {
 export function codeMaxAttemptsReachedError(): never {
   throw new PasswordResetServiceError(
     'CODE_MAX_ATTEMPTS_REACHED',
-    'Code max attempts reached',
+    'Muitas tentativas. Tente novamente em alguns minutos.',
     429,
   );
 }

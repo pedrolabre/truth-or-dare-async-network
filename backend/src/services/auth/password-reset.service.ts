@@ -1,6 +1,9 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../../lib/prisma';
-import { sendPasswordResetCodeEmail } from './email.service';
+import {
+  sendPasswordResetCodeEmail,
+  sendPasswordResetConfirmationEmail,
+} from './email.service';
 import {
   MAX_CODE_ATTEMPTS,
   MAX_REQUESTS_PER_EMAIL_PER_HOUR,
@@ -56,6 +59,42 @@ export type ResetPasswordResult = {
   ok: true;
 };
 
+const MIN_REQUEST_PASSWORD_RESET_DURATION_MS = 200;
+
+type PasswordResetLogLevel = 'info' | 'warn';
+
+function logPasswordResetEvent(
+  level: PasswordResetLogLevel,
+  payload: Record<string, unknown>,
+): void {
+  const entry = {
+    ...payload,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (level === 'warn') {
+    console.warn(entry);
+    return;
+  }
+
+  console.info(entry);
+}
+
+async function ensureMinimumDuration(
+  startTimeMs: number,
+  minDurationMs: number,
+): Promise<void> {
+  const elapsed = Date.now() - startTimeMs;
+
+  if (elapsed >= minDurationMs) {
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    setTimeout(resolve, minDurationMs - elapsed);
+  });
+}
+
 function requireValidEmail(input: unknown): string {
   const normalized = normalizeEmail(input);
 
@@ -99,70 +138,111 @@ export async function requestPasswordReset({
   ipAddress,
 }: RequestPasswordResetInput): Promise<RequestPasswordResetResult> {
   const normalizedEmail = requireValidEmail(email);
+  const startedAt = Date.now();
+  const normalizedIp = normalizeIpAddress(ipAddress);
 
-  const user = await prisma.user.findFirst({
-    where: {
-      email: normalizedEmail,
-    },
-    select: {
-      id: true,
-      email: true,
-    },
-  });
-
-  if (!user) {
-    return { ok: true };
-  }
-
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - RESET_REQUEST_WINDOW_MS);
-
-  const recentRequests = await prisma.passwordResetToken.count({
-    where: {
-      userId: user.id,
-      createdAt: {
-        gte: windowStart,
+  try {
+    const user = await prisma.user.findFirst({
+      where: {
+        email: normalizedEmail,
       },
-    },
-  });
-
-  if (recentRequests >= MAX_REQUESTS_PER_EMAIL_PER_HOUR) {
-    return { ok: true };
-  }
-
-  await prisma.passwordResetToken.updateMany({
-    where: {
-      userId: user.id,
-      usedAt: null,
-      expiresAt: {
-        gt: now,
+      select: {
+        id: true,
+        email: true,
       },
-    },
-    data: {
-      usedAt: now,
-    },
-  });
+    });
 
-  const code = generateResetCode();
-  const tokenHash = hashResetCode(code);
+    if (!user) {
+      const noopCode = generateResetCode();
+      hashResetCode(noopCode);
 
-  await prisma.passwordResetToken.create({
-    data: {
+      logPasswordResetEvent('info', {
+        event: 'password_reset.request_processed',
+        ipAddress: normalizedIp,
+        result: 'noop',
+      });
+
+      return { ok: true };
+    }
+
+    const now = new Date();
+    const windowStart = new Date(now.getTime() - RESET_REQUEST_WINDOW_MS);
+
+    const recentRequests = await prisma.passwordResetToken.count({
+      where: {
+        userId: user.id,
+        createdAt: {
+          gte: windowStart,
+        },
+      },
+    });
+
+    if (recentRequests >= MAX_REQUESTS_PER_EMAIL_PER_HOUR) {
+      logPasswordResetEvent('warn', {
+        event: 'password_reset.request_processed',
+        userId: user.id,
+        ipAddress: normalizedIp,
+        result: 'rate_limited',
+      });
+
+      return { ok: true };
+    }
+
+    await prisma.passwordResetToken.updateMany({
+      where: {
+        userId: user.id,
+        usedAt: null,
+        expiresAt: {
+          gt: now,
+        },
+      },
+      data: {
+        usedAt: now,
+      },
+    });
+
+    const code = generateResetCode();
+    const tokenHash = hashResetCode(code);
+
+    await prisma.passwordResetToken.create({
+      data: {
+        userId: user.id,
+        tokenHash,
+        expiresAt: getResetCodeExpiresAt(now),
+        ipAddress: normalizedIp,
+        attemptCount: 0,
+      },
+    });
+
+    const emailResult = await sendPasswordResetCodeEmail({
+      to: normalizedEmail,
+      code,
+      expiresInMinutes: RESET_CODE_TTL_MINUTES,
+    });
+
+    if (!emailResult.ok) {
+      logPasswordResetEvent('warn', {
+        event: 'password_reset.code_email_failed',
+        userId: user.id,
+        ipAddress: normalizedIp,
+        reason: emailResult.reason,
+      });
+    }
+
+    logPasswordResetEvent('info', {
+      event: 'password_reset.request_processed',
       userId: user.id,
-      tokenHash,
-      expiresAt: getResetCodeExpiresAt(now),
-      ipAddress: normalizeIpAddress(ipAddress),
-      attemptCount: 0,
-    },
-  });
+      ipAddress: normalizedIp,
+      result: emailResult.ok ? 'email_sent' : 'email_failed',
+    });
 
-  await sendPasswordResetCodeEmail({
-    to: normalizedEmail,
-    code,
-    expiresInMinutes: RESET_CODE_TTL_MINUTES,
-  });
-
-  return { ok: true };
+    return { ok: true };
+  } finally {
+    await ensureMinimumDuration(
+      startedAt,
+      MIN_REQUEST_PASSWORD_RESET_DURATION_MS,
+    );
+  }
 }
 
 export async function verifyResetCode({
@@ -182,6 +262,10 @@ export async function verifyResetCode({
   });
 
   if (!user) {
+    logPasswordResetEvent('warn', {
+      event: 'password_reset.code_verification_failed',
+      reason: 'invalid_or_expired',
+    });
     invalidOrExpiredCodeError();
   }
 
@@ -201,10 +285,20 @@ export async function verifyResetCode({
   });
 
   if (!token) {
+    logPasswordResetEvent('warn', {
+      event: 'password_reset.code_verification_failed',
+      userId: user.id,
+      reason: 'invalid_or_expired',
+    });
     invalidOrExpiredCodeError();
   }
 
   if (token.attemptCount >= MAX_CODE_ATTEMPTS) {
+    logPasswordResetEvent('warn', {
+      event: 'password_reset.code_verification_failed',
+      userId: user.id,
+      reason: 'max_attempts',
+    });
     codeMaxAttemptsReachedError();
   }
 
@@ -225,15 +319,30 @@ export async function verifyResetCode({
     });
 
     if (reachedLimit) {
+      logPasswordResetEvent('warn', {
+        event: 'password_reset.code_verification_failed',
+        userId: user.id,
+        reason: 'max_attempts',
+      });
       codeMaxAttemptsReachedError();
     }
 
+    logPasswordResetEvent('warn', {
+      event: 'password_reset.code_verification_failed',
+      userId: user.id,
+      reason: 'invalid_or_expired',
+    });
     invalidOrExpiredCodeError();
   }
 
   const resetToken = createPasswordResetSessionToken({
     userId: user.id,
     tokenId: token.id,
+  });
+
+  logPasswordResetEvent('info', {
+    event: 'password_reset.code_verified',
+    userId: user.id,
   });
 
   return { resetToken };
@@ -261,6 +370,7 @@ export async function resetPassword({
     },
     select: {
       id: true,
+      email: true,
       passwordHash: true,
     },
   });
@@ -330,6 +440,23 @@ export async function resetPassword({
       },
     }),
   ]);
+
+  logPasswordResetEvent('info', {
+    event: 'password_reset.completed',
+    userId: user.id,
+  });
+
+  const confirmationResult = await sendPasswordResetConfirmationEmail({
+    to: user.email,
+  });
+
+  if (!confirmationResult.ok) {
+    logPasswordResetEvent('warn', {
+      event: 'password_reset.confirmation_email_failed',
+      userId: user.id,
+      reason: confirmationResult.reason,
+    });
+  }
 
   return { ok: true };
 }
