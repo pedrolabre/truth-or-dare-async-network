@@ -190,6 +190,56 @@ export type ClubFeedApi = {
   items: ClubFeedItemApi[];
 };
 
+export type ClubJoinRequestApi = {
+  id: string;
+  clubId: string;
+  userId: string;
+  status: ClubMemberStatusApi;
+  message: string | null;
+  reviewedById: string | null;
+  reviewedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ClubInviteApi = {
+  id: string;
+  clubId: string;
+  inviteeId: string;
+  inviterId: string;
+  status: ClubMemberStatusApi;
+  message: string | null;
+  expiresAt: string | null;
+  acceptedAt: string | null;
+  declinedAt: string | null;
+  cancelledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type UpdateClubPayloadApi = {
+  name?: string;
+  description?: string | null;
+  iconName?: ClubIconNameApi;
+  visibility?: ClubVisibilityApi;
+  rules?: string | null;
+  tags?: string[];
+};
+
+export type CreateClubPromptPayloadApi = {
+  type: ClubPromptTypeApi;
+  content: string;
+  difficulty?: string | null;
+  maxAttempts?: number | null;
+  expiresAt?: string | null;
+  attachments?: ClubPromptAttachmentApi[];
+  isPinned?: boolean;
+  isMembersOnly?: boolean;
+};
+
 export type DiscoverClubsApi = {
   suggested: ClubSummaryApi[];
   popular: ClubSummaryApi[];

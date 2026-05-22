@@ -1,6 +1,8 @@
 import type {
   ClubJoinPolicyApi,
   ClubPermissionsApi,
+  ClubPromptApi,
+  ClubPromptTypeApi,
   ClubStatusApi,
   ClubViewerMembershipApi,
   ClubVisibilityApi,
@@ -79,6 +81,7 @@ export type ClubDetail = {
   slug: string;
   name: string;
   description: string;
+  descriptionText: string;
   iconName: string;
   avatarUrl: string | null;
   coverUrl: string | null;
@@ -114,3 +117,24 @@ export type ClubDetailsScreenState = {
   errorMessage: string | null;
   canRetry: boolean;
 };
+
+export type ClubDetailActionKey =
+  | 'join'
+  | 'join-request'
+  | 'leave'
+  | 'mute'
+  | 'unmute'
+  | 'prompt';
+
+export type ClubPromptComposerPayload = {
+  type: ClubPromptTypeApi;
+  content: string;
+  difficulty: string | null;
+  maxAttempts: number | null;
+  expiresAt: string | null;
+  isMembersOnly: boolean;
+};
+
+export type ClubPromptComposerSubmit = (
+  payload: ClubPromptComposerPayload,
+) => Promise<ClubPromptApi | null>;

@@ -12,25 +12,23 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import ClubActionBar from '../../components/clubs/ClubActionBar';
 import ClubDetailStateCard from '../../components/clubs/ClubDetailStateCard';
+import ClubHeaderCard from '../../components/clubs/ClubHeaderCard';
+import ClubInvitesModal from '../../components/clubs/ClubInvitesModal';
+import ClubPromptComposerModal from '../../components/clubs/ClubPromptComposerModal';
+import ClubSettingsModal from '../../components/clubs/ClubSettingsModal';
 import {
   DARK_CLUBS_COLORS,
   LIGHT_CLUBS_COLORS,
+  type ClubsThemeColors,
 } from '../../constants/clubsTheme';
 import { useTheme } from '../../context/ThemeContext';
 import { useClubDetailsScreen } from '../../hooks/useClubDetailsScreen';
-import type { ClubDetail } from '../../types/clubs';
 
 type ClubDetailRouteParams = {
   id?: string | string[];
 };
-
-function getClubIconName(club: ClubDetail) {
-  return (
-    (club.iconName as keyof typeof MaterialIcons.glyphMap | undefined) ??
-    'groups'
-  );
-}
 
 export default function ClubDetailScreen() {
   const router = useRouter();
@@ -38,13 +36,28 @@ export default function ClubDetailScreen() {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const colors = isDark ? DARK_CLUBS_COLORS : LIGHT_CLUBS_COLORS;
+  const [invitesVisible, setInvitesVisible] = React.useState(false);
+  const [settingsVisible, setSettingsVisible] = React.useState(false);
+  const [promptComposerVisible, setPromptComposerVisible] =
+    React.useState(false);
   const {
     club,
     clubId,
+    permissions,
     contentState,
     errorMessage,
     isRefreshing,
+    pendingAction,
+    actionErrorMessage,
+    actionSuccessMessage,
+    isMuted,
     canRetry,
+    clearActionFeedback,
+    handleClubUpdated,
+    handleJoinClub,
+    handleLeaveClub,
+    handleToggleMute,
+    handleCreatePrompt,
     handleRefresh,
     handleRetry,
   } = useClubDetailsScreen({
@@ -70,55 +83,78 @@ export default function ClubDetailScreen() {
       );
     }
 
-    const iconName = getClubIconName(club);
-
     return (
-      <View
-        testID="club-detail-summary-card"
-        style={[
-          styles.detailCard,
-          {
-            backgroundColor: colors.surface,
-            borderColor: colors.cardBorder,
-          },
-        ]}
-      >
-        <View style={styles.detailHeader}>
-          <View style={[styles.clubIcon, { backgroundColor: colors.green }]}>
-            <MaterialIcons name={iconName} size={30} color={colors.white} />
-          </View>
-
-          <View style={styles.titleStack}>
-            <Text
-              numberOfLines={2}
-              style={[styles.clubName, { color: colors.text }]}
-            >
-              {club.name}
-            </Text>
-            <Text
-              testID="club-detail-id"
-              style={[styles.clubId, { color: colors.subText }]}
-            >
-              ID: {clubId}
-            </Text>
-          </View>
-        </View>
+      <View testID="club-detail-summary-card" style={styles.readyStack}>
+        <ClubHeaderCard club={club} colors={colors} />
 
         {errorMessage ? (
-          <View
-            style={[
-              styles.refreshErrorBox,
-              {
-                backgroundColor: colors.redSoft,
-                borderColor: colors.cardBorder,
-              },
-            ]}
-          >
-            <Text style={[styles.refreshErrorText, { color: colors.red }]}>
-              {errorMessage}
+          <FeedbackBanner colors={colors} message={errorMessage} tone="danger" />
+        ) : null}
+
+        {actionErrorMessage ? (
+          <FeedbackBanner
+            colors={colors}
+            message={actionErrorMessage}
+            tone="danger"
+          />
+        ) : null}
+
+        {actionSuccessMessage ? (
+          <FeedbackBanner
+            colors={colors}
+            message={actionSuccessMessage}
+            tone="success"
+          />
+        ) : null}
+
+        <ClubActionBar
+          club={club}
+          colors={colors}
+          pendingAction={pendingAction}
+          isMuted={isMuted}
+          onJoin={() => {
+            void handleJoinClub();
+          }}
+          onLeave={() => {
+            void handleLeaveClub();
+          }}
+          onInvite={() => {
+            clearActionFeedback();
+            setInvitesVisible(true);
+          }}
+          onPostPrompt={() => {
+            clearActionFeedback();
+            setPromptComposerVisible(true);
+          }}
+          onToggleMute={() => {
+            void handleToggleMute();
+          }}
+          onOpenSettings={() => {
+            clearActionFeedback();
+            setSettingsVisible(true);
+          }}
+        />
+
+        <View
+          testID="club-detail-rules-card"
+          style={[
+            styles.rulesCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.cardBorder,
+            },
+          ]}
+        >
+          <View style={styles.rulesHeader}>
+            <MaterialIcons name="rule" size={20} color={colors.green} />
+            <Text style={[styles.rulesTitle, { color: colors.text }]}>
+              Regras
             </Text>
           </View>
-        ) : null}
+          <Text style={[styles.rulesText, { color: colors.subText }]}>
+            {club.rules ?? 'Sem regras publicadas.'}
+          </Text>
+        </View>
       </View>
     );
   }
@@ -166,8 +202,12 @@ export default function ClubDetailScreen() {
 
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            contentState === 'ready' ? styles.readyContent : styles.stateContent,
+          ]}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
@@ -182,7 +222,63 @@ export default function ClubDetailScreen() {
         >
           {renderDetailContent()}
         </ScrollView>
+
+        <ClubInvitesModal
+          visible={invitesVisible}
+          clubId={clubId}
+          canInvite={Boolean(permissions?.canInviteMembers)}
+          colors={colors}
+          onClose={() => setInvitesVisible(false)}
+        />
+
+        <ClubPromptComposerModal
+          visible={promptComposerVisible}
+          canPostPrompt={Boolean(permissions?.canPostPrompt)}
+          colors={colors}
+          onClose={() => setPromptComposerVisible(false)}
+          onSubmitPrompt={handleCreatePrompt}
+        />
+
+        <ClubSettingsModal
+          visible={settingsVisible}
+          club={club}
+          canEdit={Boolean(permissions?.canEditClub)}
+          colors={colors}
+          onClose={() => setSettingsVisible(false)}
+          onUpdated={handleClubUpdated}
+        />
       </View>
+    </View>
+  );
+}
+
+type FeedbackBannerProps = {
+  colors: ClubsThemeColors;
+  message: string;
+  tone: 'danger' | 'success';
+};
+
+function FeedbackBanner({ colors, message, tone }: FeedbackBannerProps) {
+  const isDanger = tone === 'danger';
+
+  return (
+    <View
+      style={[
+        styles.feedbackBanner,
+        {
+          backgroundColor: isDanger ? colors.redSoft : colors.greenSoft,
+          borderColor: colors.cardBorder,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.feedbackText,
+          { color: isDanger ? colors.red : colors.green },
+        ]}
+      >
+        {message}
+      </Text>
     </View>
   );
 }
@@ -224,50 +320,47 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     padding: 16,
+    paddingBottom: 28,
+  },
+  stateContent: {
     justifyContent: 'center',
   },
-  detailCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    padding: 18,
+  readyContent: {
+    justifyContent: 'flex-start',
+  },
+  readyStack: {
     gap: 16,
   },
-  detailHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  clubIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  titleStack: {
-    flex: 1,
-    gap: 4,
-  },
-  clubName: {
-    fontSize: 20,
-    lineHeight: 24,
-    fontWeight: '900',
-  },
-  clubId: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '700',
-  },
-  refreshErrorBox: {
+  feedbackBanner: {
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
-  refreshErrorText: {
+  feedbackText: {
     fontSize: 13,
     lineHeight: 18,
-    fontWeight: '700',
+    fontWeight: '800',
+  },
+  rulesCard: {
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 16,
+    gap: 10,
+  },
+  rulesHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  rulesTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  rulesText: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   pressed: {
     opacity: 0.78,

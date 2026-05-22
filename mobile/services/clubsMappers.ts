@@ -208,6 +208,7 @@ export function mapClubDetailsToDetail(club: ClubDetailsApi): ClubDetail {
     slug: club.slug,
     name: club.name,
     description: getClubDescription(club.description),
+    descriptionText: club.description ?? '',
     iconName: getClubIconName(club.iconName),
     avatarUrl: club.avatarUrl,
     coverUrl: club.coverUrl,

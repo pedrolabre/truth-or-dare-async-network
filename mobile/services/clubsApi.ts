@@ -3,11 +3,16 @@ import type {
   ClubDetailsApi,
   ClubFeedApi,
   ClubFeedOrderApi,
+  ClubInviteApi,
+  ClubJoinRequestApi,
   ClubMemberApi,
+  ClubPromptApi,
   ClubSummaryApi,
+  CreateClubPromptPayloadApi,
   CreateClubPayloadApi,
   CreateClubResponseApi,
   DiscoverClubsApi,
+  UpdateClubPayloadApi,
 } from '../types/clubsApi';
 
 export class ClubsApiError extends Error {
@@ -166,6 +171,31 @@ export async function joinClub(clubId: string): Promise<ClubMemberApi> {
   return parseResponse(response);
 }
 
+export async function requestClubJoin(
+  clubId: string,
+  message?: string | null,
+): Promise<ClubJoinRequestApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nÃ£o encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs/${clubId}/join-requests`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      message: message?.trim() ? message.trim() : null,
+    }),
+  });
+
+  return parseResponse(response);
+}
+
 export async function leaveClub(clubId: string): Promise<ClubMemberApi> {
   const baseUrl = getApiUrl();
   const token = await getToken();
@@ -179,6 +209,115 @@ export async function leaveClub(clubId: string): Promise<ClubMemberApi> {
     headers: {
       Authorization: `Bearer ${token}`,
     },
+  });
+
+  return parseResponse(response);
+}
+
+export async function muteClub(clubId: string): Promise<ClubMemberApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nÃ£o encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs/${clubId}/mute`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}
+
+export async function unmuteClub(clubId: string): Promise<ClubMemberApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nÃ£o encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs/${clubId}/unmute`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}
+
+export async function inviteClubUser(
+  clubId: string,
+  userId: string,
+  message?: string | null,
+): Promise<ClubInviteApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nÃ£o encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs/${clubId}/invites`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      userId,
+      message: message?.trim() ? message.trim() : null,
+    }),
+  });
+
+  return parseResponse(response);
+}
+
+export async function updateClub(
+  clubId: string,
+  payload: UpdateClubPayloadApi,
+): Promise<ClubDetailsApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nÃ£o encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs/${clubId}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function createClubPrompt(
+  clubId: string,
+  payload: CreateClubPromptPayloadApi,
+): Promise<ClubPromptApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nÃ£o encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs/${clubId}/prompts`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
   });
 
   return parseResponse(response);

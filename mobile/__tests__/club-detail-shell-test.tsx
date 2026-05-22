@@ -54,6 +54,7 @@ function makeClubDetail(overrides: Partial<ClubDetail> = {}): ClubDetail {
     slug: 'bons-desafios',
     name: 'Bons Desafios',
     description: 'Um clube para desafios leves.',
+    descriptionText: 'Um clube para desafios leves.',
     iconName: 'sports-esports',
     avatarUrl: null,
     coverUrl: null,
@@ -107,6 +108,16 @@ function makeHookState(
     isRefreshing: false,
     errorMessage: null,
     canRetry: true,
+    pendingAction: null,
+    actionErrorMessage: null,
+    actionSuccessMessage: null,
+    isMuted: false,
+    clearActionFeedback: jest.fn(),
+    handleClubUpdated: jest.fn(),
+    handleJoinClub: jest.fn().mockResolvedValue(undefined),
+    handleLeaveClub: jest.fn().mockResolvedValue(undefined),
+    handleToggleMute: jest.fn().mockResolvedValue(undefined),
+    handleCreatePrompt: jest.fn().mockResolvedValue(null),
     handleRefresh: jest.fn().mockResolvedValue(undefined),
     handleRetry: jest.fn().mockResolvedValue(undefined),
     ...overrides,
@@ -123,7 +134,7 @@ describe('ClubDetailScreen', () => {
   });
 
   it('recebe o id real da rota e renderiza o detalhe carregado', () => {
-    const { getAllByText, getByTestId, getByText } = render(
+    const { getAllByText, getByTestId } = render(
       <ClubDetailScreen />,
     );
 
@@ -131,11 +142,9 @@ describe('ClubDetailScreen', () => {
       clubId: 'club-real-123',
     });
     expect(getAllByText('Bons Desafios')).toHaveLength(2);
-    expect(getByTestId('club-detail-id').props.children).toEqual([
-      'ID: ',
-      'club-real-123',
-    ]);
     expect(getByTestId('club-detail-summary-card')).toBeTruthy();
+    expect(getByTestId('club-header-card')).toBeTruthy();
+    expect(getByTestId('club-action-bar')).toBeTruthy();
   });
 
   it('mantem navegacao de volta em sucesso', () => {
