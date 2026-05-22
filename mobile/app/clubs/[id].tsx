@@ -16,6 +16,7 @@ import ClubActionBar from '../../components/clubs/ClubActionBar';
 import ClubAboutPanel from '../../components/clubs/ClubAboutPanel';
 import ClubDetailStateCard from '../../components/clubs/ClubDetailStateCard';
 import ClubDetailTabs from '../../components/clubs/ClubDetailTabs';
+import ClubFeedPanel from '../../components/clubs/ClubFeedPanel';
 import ClubHeaderCard from '../../components/clubs/ClubHeaderCard';
 import ClubInvitesModal from '../../components/clubs/ClubInvitesModal';
 import ClubPromptComposerModal from '../../components/clubs/ClubPromptComposerModal';
@@ -28,6 +29,7 @@ import {
 } from '../../constants/clubsTheme';
 import { useTheme } from '../../context/ThemeContext';
 import { useClubDetailsScreen } from '../../hooks/useClubDetailsScreen';
+import { useClubFeed } from '../../hooks/useClubFeed';
 import type { ClubDetail, ClubDetailTabKey } from '../../types/clubs';
 
 type ClubDetailRouteParams = {
@@ -69,6 +71,11 @@ export default function ClubDetailScreen() {
   } = useClubDetailsScreen({
     clubId: params.id,
   });
+  const clubFeed = useClubFeed({
+    clubId,
+    isActive: contentState === 'ready' && activeTab === 'feed',
+    canViewFeed: Boolean(permissions?.canViewFeed),
+  });
   const headerTitle = club?.name ?? 'Clube';
 
   React.useEffect(() => {
@@ -93,15 +100,7 @@ export default function ClubDetailScreen() {
         );
       case 'feed':
       default:
-        return (
-          <DeferredClubPanel
-            colors={colors}
-            iconName="dynamic-feed"
-            testID="club-feed-placeholder"
-            title="Feed em preparacao"
-            description="A lista real de prompts do clube ainda nao esta conectada nesta tela. Nenhum conteudo local foi criado."
-          />
-        );
+        return <ClubFeedPanel colors={colors} feed={clubFeed} />;
     }
   }
 

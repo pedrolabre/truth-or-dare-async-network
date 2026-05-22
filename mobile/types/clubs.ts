@@ -1,4 +1,5 @@
 import type {
+  ClubFeedItemApi,
   ClubJoinPolicyApi,
   ClubPermissionsApi,
   ClubPromptApi,
@@ -140,3 +141,23 @@ export type ClubPromptComposerPayload = {
 export type ClubPromptComposerSubmit = (
   payload: ClubPromptComposerPayload,
 ) => Promise<ClubPromptApi | null>;
+
+export type ClubFeedContentState =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'empty'
+  | 'error'
+  | 'access-denied';
+
+export type ClubFeedScreenState = {
+  items: ClubFeedItemApi[];
+  contentState: ClubFeedContentState;
+  isInitialLoading: boolean;
+  isRefreshing: boolean;
+  errorMessage: string | null;
+  canRetry: boolean;
+  hasRealPromptPagination: false;
+  handleRetry: () => Promise<void>;
+  handleRefresh: () => Promise<void>;
+};

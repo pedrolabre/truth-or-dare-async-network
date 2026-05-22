@@ -1,0 +1,439 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import type { ClubsThemeColors } from '../../constants/clubsTheme';
+import type {
+  ClubFeedItemApi,
+  ClubPromptResponseApi,
+  ClubPromptTypeApi,
+} from '../../types/clubsApi';
+
+type Props = {
+  item: ClubFeedItemApi;
+  colors: ClubsThemeColors;
+};
+
+type BadgeTone = 'green' | 'red' | 'neutral';
+
+const PROMPT_TYPE_LABELS: Record<ClubPromptTypeApi, string> = {
+  truth: 'Verdade',
+  dare: 'Desafio',
+};
+
+function getDateParts(value: string): {
+  date: string;
+  time: string | null;
+} {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T?(\d{2})?:?(\d{2})?/.exec(value);
+
+  if (!match) {
+    return {
+      date: value,
+      time: null,
+    };
+  }
+
+  const [, year, month, day, hour, minute] = match;
+
+  return {
+    date: `${day}/${month}/${year}`,
+    time: hour && minute ? `${hour}:${minute}` : null,
+  };
+}
+
+function getDateTimeLabel(value: string | null): string {
+  if (!value) {
+    return 'Nao informado';
+  }
+
+  const { date, time } = getDateParts(value);
+
+  return time ? `${date} as ${time}` : date;
+}
+
+function getDeadlineLabel(expiresAt: string | null): {
+  label: string;
+  tone: BadgeTone;
+} {
+  if (!expiresAt) {
+    return {
+      label: 'Sem prazo',
+      tone: 'neutral',
+    };
+  }
+
+  const expiresAtTime = new Date(expiresAt).getTime();
+  const isExpired = Number.isFinite(expiresAtTime) && expiresAtTime < Date.now();
+
+  return {
+    label: isExpired
+      ? `Prazo encerrado em ${getDateTimeLabel(expiresAt)}`
+      : `Prazo ate ${getDateTimeLabel(expiresAt)}`,
+    tone: isExpired ? 'red' : 'green',
+  };
+}
+
+function getAnswerStateLabel(item: ClubFeedItemApi): {
+  label: string;
+  tone: BadgeTone;
+} {
+  if (item.viewerState.answeredByMe) {
+    return {
+      label: 'Respondido por voce',
+      tone: 'green',
+    };
+  }
+
+  if (!item.viewerState.canAnswer) {
+    return {
+      label: 'Resposta indisponivel',
+      tone: 'neutral',
+    };
+  }
+
+  return {
+    label: 'Pode responder',
+    tone: 'green',
+  };
+}
+
+function getCounterLabel(value: number, singular: string, plural: string) {
+  const normalizedValue = Math.max(0, value);
+
+  return `${normalizedValue} ${normalizedValue === 1 ? singular : plural}`;
+}
+
+function getResponseSummary(response: ClubPromptResponseApi): string {
+  if (response.text?.trim()) {
+    return response.text.trim();
+  }
+
+  if (response.mediaUrl) {
+    return 'Resposta com midia';
+  }
+
+  return 'Resposta registrada';
+}
+
+function getBadgeColors(colors: ClubsThemeColors, tone: BadgeTone) {
+  if (tone === 'green') {
+    return {
+      backgroundColor: colors.greenSoft,
+      color: colors.green,
+    };
+  }
+
+  if (tone === 'red') {
+    return {
+      backgroundColor: colors.redSoft,
+      color: colors.red,
+    };
+  }
+
+  return {
+    backgroundColor: colors.surfaceSoft,
+    color: colors.muted,
+  };
+}
+
+export default function ClubPromptCard({ item, colors }: Props) {
+  const typeIconName = item.type === 'truth' ? 'help-outline' : 'bolt';
+  const typeColors = getBadgeColors(
+    colors,
+    item.type === 'truth' ? 'green' : 'red',
+  );
+  const deadline = getDeadlineLabel(item.expiresAt);
+  const deadlineColors = getBadgeColors(colors, deadline.tone);
+  const answerState = getAnswerStateLabel(item);
+  const answerStateColors = getBadgeColors(colors, answerState.tone);
+  const recentResponses = item.recentResponses.filter(
+    (response) => response.id.trim().length > 0,
+  );
+
+  return (
+    <View
+      testID={`club-prompt-card-${item.id}`}
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.cardBorder,
+        },
+      ]}
+    >
+      <View style={styles.topRow}>
+        <View style={styles.authorStack}>
+          <Text
+            numberOfLines={1}
+            testID={`club-prompt-author-${item.id}`}
+            style={[styles.author, { color: colors.text }]}
+          >
+            {item.authorName}
+          </Text>
+          <Text style={[styles.publishedAt, { color: colors.muted }]}>
+            {getDateTimeLabel(item.publishedAt ?? item.createdAt)}
+          </Text>
+        </View>
+
+        <View
+          testID={`club-prompt-type-${item.id}`}
+          style={[styles.typeBadge, { backgroundColor: typeColors.backgroundColor }]}
+        >
+          <MaterialIcons name={typeIconName} size={14} color={typeColors.color} />
+          <Text
+            numberOfLines={1}
+            style={[styles.typeBadgeText, { color: typeColors.color }]}
+          >
+            {PROMPT_TYPE_LABELS[item.type]}
+          </Text>
+        </View>
+      </View>
+
+      <Text
+        testID={`club-prompt-content-${item.id}`}
+        style={[styles.content, { color: colors.text }]}
+      >
+        {item.content}
+      </Text>
+
+      <View style={styles.badgeGrid}>
+        <View
+          testID={`club-prompt-deadline-${item.id}`}
+          style={[
+            styles.infoBadge,
+            { backgroundColor: deadlineColors.backgroundColor },
+          ]}
+        >
+          <MaterialIcons
+            name="event"
+            size={14}
+            color={deadlineColors.color}
+          />
+          <Text
+            numberOfLines={1}
+            style={[styles.infoBadgeText, { color: deadlineColors.color }]}
+          >
+            {deadline.label}
+          </Text>
+        </View>
+
+        <View
+          testID={`club-prompt-answer-state-${item.id}`}
+          style={[
+            styles.infoBadge,
+            { backgroundColor: answerStateColors.backgroundColor },
+          ]}
+        >
+          <MaterialIcons
+            name={item.viewerState.answeredByMe ? 'done' : 'how-to-reg'}
+            size={14}
+            color={answerStateColors.color}
+          />
+          <Text
+            numberOfLines={1}
+            style={[styles.infoBadgeText, { color: answerStateColors.color }]}
+          >
+            {answerState.label}
+          </Text>
+        </View>
+
+        <View style={[styles.infoBadge, { backgroundColor: colors.surfaceSoft }]}>
+          <MaterialIcons name="speed" size={14} color={colors.muted} />
+          <Text
+            numberOfLines={1}
+            style={[styles.infoBadgeText, { color: colors.muted }]}
+          >
+            {item.difficulty?.trim() || 'Dificuldade nao informada'}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.countersGrid}>
+        <Counter
+          colors={colors}
+          iconName="question-answer"
+          label={getCounterLabel(item.answersCount, 'resposta', 'respostas')}
+        />
+        <Counter
+          colors={colors}
+          iconName="chat-bubble-outline"
+          label={getCounterLabel(item.commentsCount, 'comentario', 'comentarios')}
+        />
+        <Counter
+          colors={colors}
+          iconName={item.viewerState.likedByMe ? 'favorite' : 'favorite-border'}
+          label={getCounterLabel(item.likesCount, 'curtida', 'curtidas')}
+        />
+      </View>
+
+      {recentResponses.length > 0 ? (
+        <View
+          testID={`club-prompt-recent-responses-${item.id}`}
+          style={[styles.responsesBox, { borderTopColor: colors.cardBorder }]}
+        >
+          <Text style={[styles.responsesTitle, { color: colors.text }]}>
+            Respostas recentes
+          </Text>
+
+          {recentResponses.map((response) => (
+            <View key={response.id} style={styles.responseItem}>
+              <Text
+                numberOfLines={1}
+                style={[styles.responseAuthor, { color: colors.green }]}
+              >
+                {response.userName}
+              </Text>
+              <Text
+                numberOfLines={2}
+                style={[styles.responseText, { color: colors.subText }]}
+              >
+                {getResponseSummary(response)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+type CounterProps = {
+  colors: ClubsThemeColors;
+  iconName: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+};
+
+function Counter({ colors, iconName, label }: CounterProps) {
+  return (
+    <View
+      style={[
+        styles.counter,
+        {
+          backgroundColor: colors.surfaceSoft,
+          borderColor: colors.cardBorder,
+        },
+      ]}
+    >
+      <MaterialIcons name={iconName} size={15} color={colors.green} />
+      <Text numberOfLines={1} style={[styles.counterText, { color: colors.text }]}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    borderWidth: 1,
+    borderRadius: 20,
+    padding: 16,
+    gap: 13,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  authorStack: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  author: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  publishedAt: {
+    fontSize: 11,
+    lineHeight: 15,
+    fontWeight: '700',
+  },
+  typeBadge: {
+    minHeight: 30,
+    maxWidth: 126,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  typeBadgeText: {
+    flexShrink: 1,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  content: {
+    fontSize: 16,
+    lineHeight: 23,
+    fontWeight: '800',
+  },
+  badgeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  infoBadge: {
+    minHeight: 30,
+    maxWidth: '100%',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  infoBadgeText: {
+    flexShrink: 1,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '900',
+  },
+  countersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  counter: {
+    minHeight: 34,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  counterText: {
+    maxWidth: 112,
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '900',
+  },
+  responsesBox: {
+    borderTopWidth: 1,
+    paddingTop: 13,
+    gap: 10,
+  },
+  responsesTitle: {
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '900',
+  },
+  responseItem: {
+    gap: 3,
+  },
+  responseAuthor: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
+  },
+  responseText: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '600',
+  },
+});
