@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import ClubActionBar from '../components/clubs/ClubActionBar';
 import ClubAboutPanel from '../components/clubs/ClubAboutPanel';
@@ -8,6 +8,7 @@ import ClubFeedPanel from '../components/clubs/ClubFeedPanel';
 import ClubHeaderCard from '../components/clubs/ClubHeaderCard';
 import ClubPromptCard from '../components/clubs/ClubPromptCard';
 import ClubRankingPanel from '../components/clubs/ClubRankingPanel';
+import ClubTruthResponseModal from '../components/clubs/ClubTruthResponseModal';
 import { LIGHT_CLUBS_COLORS } from '../constants/clubsTheme';
 import type { ClubDetail, ClubFeedScreenState } from '../types/clubs';
 import type { ClubFeedItemApi } from '../types/clubsApi';
@@ -124,11 +125,16 @@ function makeFeedState(
     contentState: 'ready',
     isInitialLoading: false,
     isRefreshing: false,
+    isSubmittingResponse: false,
+    responseSubmittingPromptId: null,
     errorMessage: null,
+    responseErrorMessage: null,
     canRetry: true,
     hasRealPromptPagination: false,
     handleRetry: jest.fn().mockResolvedValue(undefined),
     handleRefresh: jest.fn().mockResolvedValue(undefined),
+    clearResponseError: jest.fn(),
+    submitPromptResponse: jest.fn().mockResolvedValue(null),
     ...overrides,
   };
 }
@@ -297,8 +303,13 @@ describe('club detail components', () => {
   });
 
   it('renderiza card de prompt de verdade com dados reais e respostas recentes', () => {
+    const onAnswerTruth = jest.fn();
     const { getByTestId, getByText } = render(
-      <ClubPromptCard item={makeFeedItem()} colors={LIGHT_CLUBS_COLORS} />,
+      <ClubPromptCard
+        item={makeFeedItem()}
+        colors={LIGHT_CLUBS_COLORS}
+        onAnswerTruth={onAnswerTruth}
+      />,
     );
 
     expect(getByTestId('club-prompt-card-prompt-truth-1')).toBeTruthy();
@@ -314,6 +325,9 @@ describe('club detail components', () => {
     expect(getByText('Pode responder')).toBeTruthy();
     expect(getByText('Bia')).toBeTruthy();
     expect(getByText('Ganhei um bolo de surpresa.')).toBeTruthy();
+
+    fireEvent.press(getByTestId('club-prompt-action-prompt-truth-1'));
+    expect(onAnswerTruth).toHaveBeenCalledWith(makeFeedItem());
   });
 
   it('renderiza card de desafio expirado e respondido sem criar resposta falsa', () => {
@@ -343,6 +357,72 @@ describe('club detail components', () => {
     expect(getByText('Dificuldade nao informada')).toBeTruthy();
     expect(getByText('Respondido por voce')).toBeTruthy();
     expect(queryByTestId('club-prompt-recent-responses-prompt-dare-1')).toBeNull();
+    expect(queryByTestId('club-prompt-action-prompt-dare-1')).toBeNull();
+  });
+
+  it('mostra acao de prova somente em desafio apto', () => {
+    const onSubmitDareProof = jest.fn();
+    const darePrompt = makeFeedItem({
+      id: 'prompt-dare-action',
+      type: 'dare',
+      content: 'Mostre uma prova criativa.',
+      recentResponses: [],
+    });
+    const { getByTestId, queryByTestId, rerender } = render(
+      <ClubPromptCard
+        item={darePrompt}
+        colors={LIGHT_CLUBS_COLORS}
+        onSubmitDareProof={onSubmitDareProof}
+      />,
+    );
+
+    fireEvent.press(getByTestId('club-prompt-action-prompt-dare-action'));
+    expect(onSubmitDareProof).toHaveBeenCalledWith(darePrompt);
+
+    rerender(
+      <ClubPromptCard
+        item={{
+          ...darePrompt,
+          viewerState: {
+            likedByMe: false,
+            answeredByMe: false,
+            canAnswer: false,
+          },
+        }}
+        colors={LIGHT_CLUBS_COLORS}
+        onSubmitDareProof={onSubmitDareProof}
+      />,
+    );
+
+    expect(queryByTestId('club-prompt-action-prompt-dare-action')).toBeNull();
+  });
+
+  it('preserva texto da resposta de verdade quando o envio falha', async () => {
+    const onSubmit = jest.fn().mockRejectedValue(new Error('Falha real'));
+    const { getByTestId, getByText } = render(
+      <ClubTruthResponseModal
+        visible
+        prompt={makeFeedItem()}
+        colors={LIGHT_CLUBS_COLORS}
+        isSubmitting={false}
+        onClose={jest.fn()}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.changeText(
+      getByTestId('club-truth-response-input'),
+      'Texto que deve continuar no campo.',
+    );
+    fireEvent.press(getByTestId('club-truth-response-submit'));
+
+    await waitFor(() => {
+      expect(getByText('Falha real')).toBeTruthy();
+    });
+
+    expect(getByTestId('club-truth-response-input').props.value).toBe(
+      'Texto que deve continuar no campo.',
+    );
   });
 
   it('renderiza feed com prompts reais e aviso de ausencia de paginacao', () => {

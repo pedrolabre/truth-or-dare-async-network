@@ -3,10 +3,12 @@ import type {
   ClubJoinPolicyApi,
   ClubPermissionsApi,
   ClubPromptApi,
+  ClubPromptResponseApi,
   ClubPromptTypeApi,
   ClubStatusApi,
   ClubViewerMembershipApi,
   ClubVisibilityApi,
+  CreateClubPromptResponsePayloadApi,
 } from './clubsApi';
 
 export type ClubsTabKey = 'my-clubs' | 'discover';
@@ -155,9 +157,17 @@ export type ClubFeedScreenState = {
   contentState: ClubFeedContentState;
   isInitialLoading: boolean;
   isRefreshing: boolean;
+  isSubmittingResponse: boolean;
+  responseSubmittingPromptId: string | null;
   errorMessage: string | null;
+  responseErrorMessage: string | null;
   canRetry: boolean;
   hasRealPromptPagination: false;
   handleRetry: () => Promise<void>;
   handleRefresh: () => Promise<void>;
+  clearResponseError: () => void;
+  submitPromptResponse: (
+    promptId: string,
+    payload: CreateClubPromptResponsePayloadApi,
+  ) => Promise<ClubPromptResponseApi | null>;
 };

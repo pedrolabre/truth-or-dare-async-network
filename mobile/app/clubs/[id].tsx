@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ClubActionBar from '../../components/clubs/ClubActionBar';
 import ClubAboutPanel from '../../components/clubs/ClubAboutPanel';
+import ClubDareProofModal from '../../components/clubs/ClubDareProofModal';
 import ClubDetailStateCard from '../../components/clubs/ClubDetailStateCard';
 import ClubDetailTabs from '../../components/clubs/ClubDetailTabs';
 import ClubFeedPanel from '../../components/clubs/ClubFeedPanel';
@@ -22,6 +23,7 @@ import ClubInvitesModal from '../../components/clubs/ClubInvitesModal';
 import ClubPromptComposerModal from '../../components/clubs/ClubPromptComposerModal';
 import ClubRankingPanel from '../../components/clubs/ClubRankingPanel';
 import ClubSettingsModal from '../../components/clubs/ClubSettingsModal';
+import ClubTruthResponseModal from '../../components/clubs/ClubTruthResponseModal';
 import {
   DARK_CLUBS_COLORS,
   LIGHT_CLUBS_COLORS,
@@ -31,6 +33,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useClubDetailsScreen } from '../../hooks/useClubDetailsScreen';
 import { useClubFeed } from '../../hooks/useClubFeed';
 import type { ClubDetail, ClubDetailTabKey } from '../../types/clubs';
+import type { ClubFeedItemApi } from '../../types/clubsApi';
 
 type ClubDetailRouteParams = {
   id?: string | string[];
@@ -46,6 +49,12 @@ export default function ClubDetailScreen() {
   const [settingsVisible, setSettingsVisible] = React.useState(false);
   const [promptComposerVisible, setPromptComposerVisible] =
     React.useState(false);
+  const [truthPrompt, setTruthPrompt] = React.useState<ClubFeedItemApi | null>(
+    null,
+  );
+  const [darePrompt, setDarePrompt] = React.useState<ClubFeedItemApi | null>(
+    null,
+  );
   const [activeTab, setActiveTab] =
     React.useState<ClubDetailTabKey>('feed');
   const {
@@ -100,7 +109,20 @@ export default function ClubDetailScreen() {
         );
       case 'feed':
       default:
-        return <ClubFeedPanel colors={colors} feed={clubFeed} />;
+        return (
+          <ClubFeedPanel
+            colors={colors}
+            feed={clubFeed}
+            onAnswerTruth={(item) => {
+              clubFeed.clearResponseError();
+              setTruthPrompt(item);
+            }}
+            onSubmitDareProof={(item) => {
+              clubFeed.clearResponseError();
+              setDarePrompt(item);
+            }}
+          />
+        );
     }
   }
 
@@ -263,6 +285,42 @@ export default function ClubDetailScreen() {
           colors={colors}
           onClose={() => setPromptComposerVisible(false)}
           onSubmitPrompt={handleCreatePrompt}
+        />
+
+        <ClubTruthResponseModal
+          visible={Boolean(truthPrompt)}
+          prompt={truthPrompt}
+          colors={colors}
+          isSubmitting={clubFeed.responseSubmittingPromptId === truthPrompt?.id}
+          onClose={() => setTruthPrompt(null)}
+          onSubmit={async (text) => {
+            if (!truthPrompt) {
+              return;
+            }
+
+            await clubFeed.submitPromptResponse(truthPrompt.id, {
+              text,
+              mediaUrl: null,
+              mediaType: null,
+              dareProofId: null,
+            });
+            setTruthPrompt(null);
+          }}
+        />
+
+        <ClubDareProofModal
+          visible={Boolean(darePrompt)}
+          prompt={darePrompt}
+          colors={colors}
+          submitResponse={async (payload) => {
+            if (!darePrompt) {
+              return null;
+            }
+
+            return clubFeed.submitPromptResponse(darePrompt.id, payload);
+          }}
+          onClose={() => setDarePrompt(null)}
+          onSubmitted={() => setDarePrompt(null)}
         />
 
         <ClubSettingsModal

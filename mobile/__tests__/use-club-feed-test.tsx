@@ -250,4 +250,94 @@ describe('useClubFeed', () => {
     expect(result.current.canRetry).toBe(false);
     expect(loadClubFeed).not.toHaveBeenCalled();
   });
+
+  it('envia resposta de verdade com payload real e atualiza prompt local apos sucesso', async () => {
+    const response = {
+      id: 'response-real-1',
+      clubId: 'club-1',
+      promptId: 'prompt-1',
+      userId: 'viewer-1',
+      userName: 'Viewer',
+      text: 'Minha resposta real.',
+      mediaUrl: null,
+      mediaType: null,
+      dareProofId: null,
+      attemptsUsed: 0,
+      completedAt: '2026-05-22T12:00:00.000Z',
+      likesCount: 0,
+      commentsCount: 0,
+      createdAt: '2026-05-22T12:00:00.000Z',
+      updatedAt: '2026-05-22T12:00:00.000Z',
+    };
+    const submitClubPromptResponse = jest.fn().mockResolvedValue(response);
+
+    const { result } = renderHook(() =>
+      useClubFeed({
+        clubId: 'club-1',
+        isActive: true,
+        canViewFeed: true,
+        loadClubFeed: jest.fn().mockResolvedValue(makeFeed([makeFeedItem()])),
+        submitClubPromptResponse,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    await act(async () => {
+      await result.current.submitPromptResponse('prompt-1', {
+        text: 'Minha resposta real.',
+        mediaUrl: null,
+        mediaType: null,
+        dareProofId: null,
+      });
+    });
+
+    expect(submitClubPromptResponse).toHaveBeenCalledWith('club-1', 'prompt-1', {
+      text: 'Minha resposta real.',
+      mediaUrl: null,
+      mediaType: null,
+      dareProofId: null,
+    });
+    expect(result.current.items[0]?.answersCount).toBe(1);
+    expect(result.current.items[0]?.viewerState.answeredByMe).toBe(true);
+    expect(result.current.items[0]?.viewerState.canAnswer).toBe(false);
+    expect(result.current.items[0]?.recentResponses[0]).toEqual(response);
+  });
+
+  it('nao cria resposta local quando o endpoint de resposta falha', async () => {
+    const submitClubPromptResponse = jest
+      .fn()
+      .mockRejectedValue(new Error('Falha ao responder'));
+
+    const { result } = renderHook(() =>
+      useClubFeed({
+        clubId: 'club-1',
+        isActive: true,
+        canViewFeed: true,
+        loadClubFeed: jest.fn().mockResolvedValue(makeFeed([makeFeedItem()])),
+        submitClubPromptResponse,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    await act(async () => {
+      try {
+        await result.current.submitPromptResponse('prompt-1', {
+          text: 'Tentativa preservada pela modal.',
+        });
+      } catch {
+        return;
+      }
+    });
+
+    expect(result.current.items[0]?.answersCount).toBe(0);
+    expect(result.current.items[0]?.viewerState.answeredByMe).toBe(false);
+    expect(result.current.items[0]?.recentResponses).toEqual([]);
+    expect(result.current.responseErrorMessage).toBe('Falha ao responder');
+  });
 });

@@ -13,6 +13,7 @@ type ActionProofCommentBoxProps = {
   inputTextColor: string;
   placeholderTextColor: string;
   accentColor: string;
+  helperText?: string;
   onChangeText: (text: string) => void;
 };
 
@@ -27,6 +28,7 @@ export default function ActionProofCommentBox({
   inputTextColor,
   placeholderTextColor,
   accentColor,
+  helperText = 'Esse texto será enviado junto com a prova quando o backend for integrado.',
   onChangeText,
 }: ActionProofCommentBoxProps) {
   const maxLength = 280;
@@ -70,7 +72,7 @@ export default function ActionProofCommentBox({
 
       <View style={styles.footer}>
         <Text style={[styles.helperText, { color: mutedTextColor }]}>
-          Esse texto será enviado junto com a prova quando o backend for integrado.
+          {helperText}
         </Text>
 
         <Text style={[styles.counterText, { color: mutedTextColor }]}>

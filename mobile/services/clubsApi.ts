@@ -7,8 +7,10 @@ import type {
   ClubJoinRequestApi,
   ClubMemberApi,
   ClubPromptApi,
+  ClubPromptResponseApi,
   ClubSummaryApi,
   CreateClubPromptPayloadApi,
+  CreateClubPromptResponsePayloadApi,
   CreateClubPayloadApi,
   CreateClubResponseApi,
   DiscoverClubsApi,
@@ -352,6 +354,33 @@ export async function getClubFeed(
       Authorization: `Bearer ${token}`,
     },
   });
+
+  return parseResponse(response);
+}
+
+export async function createClubPromptResponse(
+  clubId: string,
+  promptId: string,
+  payload: CreateClubPromptResponsePayloadApi,
+): Promise<ClubPromptResponseApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(
+    `${baseUrl}/clubs/${clubId}/prompts/${promptId}/responses`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
 
   return parseResponse(response);
 }

@@ -10,14 +10,22 @@ import {
 
 import type { ClubsThemeColors } from '../../constants/clubsTheme';
 import type { ClubFeedScreenState } from '../../types/clubs';
+import type { ClubFeedItemApi } from '../../types/clubsApi';
 import ClubPromptCard from './ClubPromptCard';
 
 type Props = {
   colors: ClubsThemeColors;
   feed: ClubFeedScreenState;
+  onAnswerTruth?: (item: ClubFeedItemApi) => void;
+  onSubmitDareProof?: (item: ClubFeedItemApi) => void;
 };
 
-export default function ClubFeedPanel({ colors, feed }: Props) {
+export default function ClubFeedPanel({
+  colors,
+  feed,
+  onAnswerTruth,
+  onSubmitDareProof,
+}: Props) {
   if (feed.contentState === 'access-denied') {
     return (
       <StatePanel
@@ -143,8 +151,32 @@ export default function ClubFeedPanel({ colors, feed }: Props) {
         </View>
       ) : null}
 
+      {feed.responseErrorMessage ? (
+        <View
+          testID="club-feed-response-error"
+          style={[
+            styles.feedbackBanner,
+            {
+              backgroundColor: colors.redSoft,
+              borderColor: colors.cardBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.feedbackText, { color: colors.red }]}>
+            {feed.responseErrorMessage}
+          </Text>
+        </View>
+      ) : null}
+
       {feed.items.map((item) => (
-        <ClubPromptCard key={item.id} item={item} colors={colors} />
+        <ClubPromptCard
+          key={item.id}
+          item={item}
+          colors={colors}
+          isSubmittingResponse={feed.responseSubmittingPromptId === item.id}
+          onAnswerTruth={onAnswerTruth}
+          onSubmitDareProof={onSubmitDareProof}
+        />
       ))}
 
       <PaginationNotice colors={colors} />

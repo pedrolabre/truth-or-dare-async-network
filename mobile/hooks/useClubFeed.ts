@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { getClubFeed } from '../services/clubsApi';
+import {
+  createClubPromptResponse,
+  getClubFeed,
+} from '../services/clubsApi';
 import type {
   ClubFeedContentState,
   ClubFeedScreenState,
@@ -9,6 +12,8 @@ import type {
   ClubFeedApi,
   ClubFeedItemApi,
   ClubFeedOrderApi,
+  ClubPromptResponseApi,
+  CreateClubPromptResponsePayloadApi,
 } from '../types/clubsApi';
 
 type LoadClubFeed = (
@@ -16,12 +21,19 @@ type LoadClubFeed = (
   order?: ClubFeedOrderApi,
 ) => Promise<ClubFeedApi>;
 
+type SubmitClubPromptResponse = (
+  clubId: string,
+  promptId: string,
+  payload: CreateClubPromptResponsePayloadApi,
+) => Promise<ClubPromptResponseApi>;
+
 type UseClubFeedOptions = {
   clubId: string | null;
   isActive: boolean;
   canViewFeed: boolean;
   order?: ClubFeedOrderApi;
   loadClubFeed?: LoadClubFeed;
+  submitClubPromptResponse?: SubmitClubPromptResponse;
 };
 
 type LoadOptions = {
@@ -31,13 +43,18 @@ type LoadOptions = {
 
 const GENERIC_FEED_ERROR_MESSAGE =
   'Nao foi possivel carregar o feed do clube. Tente novamente.';
+const GENERIC_RESPONSE_ERROR_MESSAGE =
+  'Nao foi possivel enviar a resposta do prompt. Tente novamente.';
 
 export const CLUB_FEED_HAS_REAL_PROMPT_PAGINATION = false;
 
-function getErrorMessage(error: unknown): string {
+function getErrorMessage(
+  error: unknown,
+  fallbackMessage = GENERIC_FEED_ERROR_MESSAGE,
+): string {
   return error instanceof Error && error.message
     ? error.message
-    : GENERIC_FEED_ERROR_MESSAGE;
+    : fallbackMessage;
 }
 
 export function getClubFeedContentState(
@@ -46,12 +63,36 @@ export function getClubFeedContentState(
   return items.length > 0 ? 'ready' : 'empty';
 }
 
+function mergePromptResponse(
+  item: ClubFeedItemApi,
+  response: ClubPromptResponseApi,
+): ClubFeedItemApi {
+  const recentResponses = [
+    response,
+    ...item.recentResponses.filter(
+      (recentResponse) => recentResponse.id !== response.id,
+    ),
+  ].slice(0, 3);
+
+  return {
+    ...item,
+    answersCount: item.answersCount + 1,
+    viewerState: {
+      ...item.viewerState,
+      answeredByMe: true,
+      canAnswer: false,
+    },
+    recentResponses,
+  };
+}
+
 export function useClubFeed({
   clubId,
   isActive,
   canViewFeed,
   order = 'activity',
   loadClubFeed = getClubFeed,
+  submitClubPromptResponse = createClubPromptResponse,
 }: UseClubFeedOptions): ClubFeedScreenState {
   const [items, setItems] = useState<ClubFeedItemApi[]>([]);
   const [contentState, setContentState] = useState<ClubFeedContentState>(
@@ -59,7 +100,13 @@ export function useClubFeed({
   );
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [responseSubmittingPromptId, setResponseSubmittingPromptId] = useState<
+    string | null
+  >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [responseErrorMessage, setResponseErrorMessage] = useState<
+    string | null
+  >(null);
   const isMountedRef = useRef(true);
   const requestIdRef = useRef(0);
 
@@ -72,6 +119,8 @@ export function useClubFeed({
   useEffect(() => {
     setItems([]);
     setErrorMessage(null);
+    setResponseErrorMessage(null);
+    setResponseSubmittingPromptId(null);
     setIsInitialLoading(false);
     setIsRefreshing(false);
     setContentState(canViewFeed ? 'idle' : 'access-denied');
@@ -169,15 +218,76 @@ export function useClubFeed({
     });
   }, [loadFeed]);
 
+  const clearResponseError = useCallback(() => {
+    setResponseErrorMessage(null);
+  }, []);
+
+  const submitPromptResponse = useCallback(
+    async (
+      promptId: string,
+      payload: CreateClubPromptResponsePayloadApi,
+    ): Promise<ClubPromptResponseApi | null> => {
+      if (!clubId) {
+        const message = 'Clube nao identificado para enviar resposta.';
+        setResponseErrorMessage(message);
+        throw new Error(message);
+      }
+
+      setResponseSubmittingPromptId(promptId);
+      setResponseErrorMessage(null);
+
+      try {
+        const response = await submitClubPromptResponse(
+          clubId,
+          promptId,
+          payload,
+        );
+
+        if (!isMountedRef.current) {
+          return null;
+        }
+
+        setItems((currentItems) =>
+          currentItems.map((item) =>
+            item.id === promptId ? mergePromptResponse(item, response) : item,
+          ),
+        );
+        setContentState((currentState) =>
+          currentState === 'empty' ? 'ready' : currentState,
+        );
+
+        return response;
+      } catch (error) {
+        if (isMountedRef.current) {
+          setResponseErrorMessage(
+            getErrorMessage(error, GENERIC_RESPONSE_ERROR_MESSAGE),
+          );
+        }
+
+        throw error;
+      } finally {
+        if (isMountedRef.current) {
+          setResponseSubmittingPromptId(null);
+        }
+      }
+    },
+    [clubId, submitClubPromptResponse],
+  );
+
   return {
     items,
     contentState,
     isInitialLoading,
     isRefreshing,
+    isSubmittingResponse: responseSubmittingPromptId !== null,
+    responseSubmittingPromptId,
     errorMessage,
+    responseErrorMessage,
     canRetry: Boolean(clubId) && canViewFeed && !isInitialLoading,
     hasRealPromptPagination: CLUB_FEED_HAS_REAL_PROMPT_PAGINATION,
     handleRetry,
     handleRefresh,
+    clearResponseError,
+    submitPromptResponse,
   };
 }

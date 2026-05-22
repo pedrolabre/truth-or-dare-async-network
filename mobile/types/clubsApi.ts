@@ -156,6 +156,13 @@ export type ClubPromptResponseApi = {
 
 export type ClubPromptResponseSummaryApi = ClubPromptResponseApi;
 
+export type CreateClubPromptResponsePayloadApi = {
+  text?: string | null;
+  mediaUrl?: string | null;
+  mediaType?: 'video' | 'audio' | 'file' | null;
+  dareProofId?: string | null;
+};
+
 export type ClubPromptViewerStateApi = {
   likedByMe: boolean;
   answeredByMe: boolean;

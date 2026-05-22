@@ -170,11 +170,16 @@ function makeFeedState(
     contentState: 'ready',
     isInitialLoading: false,
     isRefreshing: false,
+    isSubmittingResponse: false,
+    responseSubmittingPromptId: null,
     errorMessage: null,
+    responseErrorMessage: null,
     canRetry: true,
     hasRealPromptPagination: false,
     handleRetry: jest.fn().mockResolvedValue(undefined),
     handleRefresh: jest.fn().mockResolvedValue(undefined),
+    clearResponseError: jest.fn(),
+    submitPromptResponse: jest.fn().mockResolvedValue(null),
     ...overrides,
   };
 }

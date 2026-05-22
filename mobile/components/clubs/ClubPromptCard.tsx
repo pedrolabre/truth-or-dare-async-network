@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ClubsThemeColors } from '../../constants/clubsTheme';
 import type {
@@ -12,6 +12,9 @@ import type {
 type Props = {
   item: ClubFeedItemApi;
   colors: ClubsThemeColors;
+  isSubmittingResponse?: boolean;
+  onAnswerTruth?: (item: ClubFeedItemApi) => void;
+  onSubmitDareProof?: (item: ClubFeedItemApi) => void;
 };
 
 type BadgeTone = 'green' | 'red' | 'neutral';
@@ -72,6 +75,16 @@ function getDeadlineLabel(expiresAt: string | null): {
       : `Prazo ate ${getDateTimeLabel(expiresAt)}`,
     tone: isExpired ? 'red' : 'green',
   };
+}
+
+function isPromptExpired(expiresAt: string | null) {
+  if (!expiresAt) {
+    return false;
+  }
+
+  const expiresAtTime = new Date(expiresAt).getTime();
+
+  return Number.isFinite(expiresAtTime) && expiresAtTime <= Date.now();
 }
 
 function getAnswerStateLabel(item: ClubFeedItemApi): {
@@ -137,7 +150,13 @@ function getBadgeColors(colors: ClubsThemeColors, tone: BadgeTone) {
   };
 }
 
-export default function ClubPromptCard({ item, colors }: Props) {
+export default function ClubPromptCard({
+  item,
+  colors,
+  isSubmittingResponse = false,
+  onAnswerTruth,
+  onSubmitDareProof,
+}: Props) {
   const typeIconName = item.type === 'truth' ? 'help-outline' : 'bolt';
   const typeColors = getBadgeColors(
     colors,
@@ -150,6 +169,15 @@ export default function ClubPromptCard({ item, colors }: Props) {
   const recentResponses = item.recentResponses.filter(
     (response) => response.id.trim().length > 0,
   );
+  const canActOnPrompt =
+    item.viewerState.canAnswer &&
+    !item.viewerState.answeredByMe &&
+    !isPromptExpired(item.expiresAt);
+  const actionLabel = item.type === 'truth' ? 'Responder' : 'Enviar prova';
+  const actionIconName = item.type === 'truth' ? 'send' : 'cloud-upload';
+  const onPressAction =
+    item.type === 'truth' ? onAnswerTruth : onSubmitDareProof;
+  const shouldShowAction = canActOnPrompt && Boolean(onPressAction);
 
   return (
     <View
@@ -294,6 +322,31 @@ export default function ClubPromptCard({ item, colors }: Props) {
           ))}
         </View>
       ) : null}
+
+      {shouldShowAction ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmittingResponse }}
+          disabled={isSubmittingResponse}
+          testID={`club-prompt-action-${item.id}`}
+          onPress={() => {
+            onPressAction?.(item);
+          }}
+          style={({ pressed }) => [
+            styles.promptActionButton,
+            {
+              backgroundColor: item.type === 'truth' ? colors.green : colors.red,
+            },
+            pressed && !isSubmittingResponse && styles.pressed,
+            isSubmittingResponse && styles.disabledAction,
+          ]}
+        >
+          <MaterialIcons name={actionIconName} size={17} color={colors.white} />
+          <Text style={[styles.promptActionText, { color: colors.white }]}>
+            {actionLabel}
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -435,5 +488,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '600',
+  },
+  promptActionButton: {
+    minHeight: 42,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+  },
+  promptActionText: {
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '900',
+  },
+  disabledAction: {
+    opacity: 0.68,
+  },
+  pressed: {
+    opacity: 0.88,
   },
 });
