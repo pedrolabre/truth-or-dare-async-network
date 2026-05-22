@@ -13,10 +13,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import ClubActionBar from '../../components/clubs/ClubActionBar';
+import ClubAboutPanel from '../../components/clubs/ClubAboutPanel';
 import ClubDetailStateCard from '../../components/clubs/ClubDetailStateCard';
+import ClubDetailTabs from '../../components/clubs/ClubDetailTabs';
 import ClubHeaderCard from '../../components/clubs/ClubHeaderCard';
 import ClubInvitesModal from '../../components/clubs/ClubInvitesModal';
 import ClubPromptComposerModal from '../../components/clubs/ClubPromptComposerModal';
+import ClubRankingPanel from '../../components/clubs/ClubRankingPanel';
 import ClubSettingsModal from '../../components/clubs/ClubSettingsModal';
 import {
   DARK_CLUBS_COLORS,
@@ -25,6 +28,7 @@ import {
 } from '../../constants/clubsTheme';
 import { useTheme } from '../../context/ThemeContext';
 import { useClubDetailsScreen } from '../../hooks/useClubDetailsScreen';
+import type { ClubDetail, ClubDetailTabKey } from '../../types/clubs';
 
 type ClubDetailRouteParams = {
   id?: string | string[];
@@ -40,6 +44,8 @@ export default function ClubDetailScreen() {
   const [settingsVisible, setSettingsVisible] = React.useState(false);
   const [promptComposerVisible, setPromptComposerVisible] =
     React.useState(false);
+  const [activeTab, setActiveTab] =
+    React.useState<ClubDetailTabKey>('feed');
   const {
     club,
     clubId,
@@ -64,6 +70,40 @@ export default function ClubDetailScreen() {
     clubId: params.id,
   });
   const headerTitle = club?.name ?? 'Clube';
+
+  React.useEffect(() => {
+    setActiveTab('feed');
+  }, [clubId]);
+
+  function renderActiveTabPanel(readyClub: ClubDetail) {
+    switch (activeTab) {
+      case 'about':
+        return <ClubAboutPanel club={readyClub} colors={colors} />;
+      case 'ranking':
+        return <ClubRankingPanel colors={colors} />;
+      case 'members':
+        return (
+          <DeferredClubPanel
+            colors={colors}
+            iconName="groups"
+            testID="club-members-placeholder"
+            title="Membros em preparacao"
+            description={`A lista completa de membros ainda nao esta conectada nesta tela. O contador atual vem do detalhe do clube: ${readyClub.membersLabel}.`}
+          />
+        );
+      case 'feed':
+      default:
+        return (
+          <DeferredClubPanel
+            colors={colors}
+            iconName="dynamic-feed"
+            testID="club-feed-placeholder"
+            title="Feed em preparacao"
+            description="A lista real de prompts do clube ainda nao esta conectada nesta tela. Nenhum conteudo local foi criado."
+          />
+        );
+    }
+  }
 
   function renderDetailContent() {
     if (contentState !== 'ready' || !club) {
@@ -135,26 +175,13 @@ export default function ClubDetailScreen() {
           }}
         />
 
-        <View
-          testID="club-detail-rules-card"
-          style={[
-            styles.rulesCard,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.cardBorder,
-            },
-          ]}
-        >
-          <View style={styles.rulesHeader}>
-            <MaterialIcons name="rule" size={20} color={colors.green} />
-            <Text style={[styles.rulesTitle, { color: colors.text }]}>
-              Regras
-            </Text>
-          </View>
-          <Text style={[styles.rulesText, { color: colors.subText }]}>
-            {club.rules ?? 'Sem regras publicadas.'}
-          </Text>
-        </View>
+        <ClubDetailTabs
+          activeTab={activeTab}
+          colors={colors}
+          onChangeTab={setActiveTab}
+        />
+
+        {renderActiveTabPanel(club)}
       </View>
     );
   }
@@ -252,6 +279,47 @@ export default function ClubDetailScreen() {
   );
 }
 
+type DeferredClubPanelProps = {
+  colors: ClubsThemeColors;
+  iconName: keyof typeof MaterialIcons.glyphMap;
+  testID: string;
+  title: string;
+  description: string;
+};
+
+function DeferredClubPanel({
+  colors,
+  iconName,
+  testID,
+  title,
+  description,
+}: DeferredClubPanelProps) {
+  return (
+    <View
+      testID={testID}
+      style={[
+        styles.deferredPanel,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.cardBorder,
+        },
+      ]}
+    >
+      <View style={[styles.deferredIconWrap, { backgroundColor: colors.surfaceSoft }]}>
+        <MaterialIcons name={iconName} size={28} color={colors.muted} />
+      </View>
+
+      <Text style={[styles.deferredTitle, { color: colors.text }]}>
+        {title}
+      </Text>
+
+      <Text style={[styles.deferredDescription, { color: colors.subText }]}>
+        {description}
+      </Text>
+    </View>
+  );
+}
+
 type FeedbackBannerProps = {
   colors: ClubsThemeColors;
   message: string;
@@ -342,25 +410,33 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '800',
   },
-  rulesCard: {
+  deferredPanel: {
     borderWidth: 1,
     borderRadius: 22,
-    padding: 16,
-    gap: 10,
-  },
-  rulesHeader: {
-    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 28,
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
   },
-  rulesTitle: {
-    fontSize: 16,
+  deferredIconWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deferredTitle: {
+    textAlign: 'center',
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: '900',
   },
-  rulesText: {
-    fontSize: 13,
+  deferredDescription: {
+    textAlign: 'center',
+    fontSize: 14,
     lineHeight: 20,
-    fontWeight: '600',
+    fontWeight: '500',
+    maxWidth: 292,
   },
   pressed: {
     opacity: 0.78,

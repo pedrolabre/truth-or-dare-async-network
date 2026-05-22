@@ -2,7 +2,10 @@ import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
 import ClubActionBar from '../components/clubs/ClubActionBar';
+import ClubAboutPanel from '../components/clubs/ClubAboutPanel';
+import ClubDetailTabs from '../components/clubs/ClubDetailTabs';
 import ClubHeaderCard from '../components/clubs/ClubHeaderCard';
+import ClubRankingPanel from '../components/clubs/ClubRankingPanel';
 import { LIGHT_CLUBS_COLORS } from '../constants/clubsTheme';
 import type { ClubDetail } from '../types/clubs';
 
@@ -62,6 +65,27 @@ function makeClubDetail(overrides: Partial<ClubDetail> = {}): ClubDetail {
 }
 
 describe('club detail components', () => {
+  it('renderiza abas internas e comunica troca de aba', () => {
+    const onChangeTab = jest.fn();
+    const { getByTestId, getByText } = render(
+      <ClubDetailTabs
+        activeTab="feed"
+        colors={LIGHT_CLUBS_COLORS}
+        onChangeTab={onChangeTab}
+      />,
+    );
+
+    expect(getByTestId('club-detail-tabs')).toBeTruthy();
+    expect(getByText('Feed')).toBeTruthy();
+    expect(getByText('Membros')).toBeTruthy();
+    expect(getByText('Ranking')).toBeTruthy();
+    expect(getByText('Sobre')).toBeTruthy();
+
+    fireEvent.press(getByTestId('club-detail-tab-about'));
+
+    expect(onChangeTab).toHaveBeenCalledWith('about');
+  });
+
   it('renderiza header com identidade, badges, tags e contadores', () => {
     const { getAllByText, getByText, getByTestId } = render(
       <ClubHeaderCard club={makeClubDetail()} colors={LIGHT_CLUBS_COLORS} />,
@@ -151,5 +175,55 @@ describe('club detail components', () => {
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
     expect(onLeave).toHaveBeenCalledTimes(1);
     expect(onToggleMute).toHaveBeenCalledTimes(1);
+  });
+
+  it('renderiza Sobre com dados reais do detalhe do clube', () => {
+    const { getAllByText, getByText, getByTestId } = render(
+      <ClubAboutPanel club={makeClubDetail()} colors={LIGHT_CLUBS_COLORS} />,
+    );
+
+    expect(getByTestId('club-about-panel')).toBeTruthy();
+    expect(getByText('Um clube para desafios leves.')).toBeTruthy();
+    expect(getByText('Sem spam.')).toBeTruthy();
+    expect(getByText('#games')).toBeTruthy();
+    expect(getByText('#party')).toBeTruthy();
+    expect(getByText('Publico')).toBeTruthy();
+    expect(getByText('Ativo')).toBeTruthy();
+    expect(getByText('Entrada aberta')).toBeTruthy();
+    expect(getByText('4 membros')).toBeTruthy();
+    expect(getByText('7 prompts')).toBeTruthy();
+    expect(getByText('20/05/2026')).toBeTruthy();
+    expect(getAllByText('21/05/2026')).toHaveLength(2);
+  });
+
+  it('renderiza Sobre com regras e tags vazias sem inventar conteudo', () => {
+    const { getByTestId, getByText } = render(
+      <ClubAboutPanel
+        club={makeClubDetail({
+          descriptionText: '',
+          rules: null,
+          tags: [],
+          lastActivityAt: null,
+        })}
+        colors={LIGHT_CLUBS_COLORS}
+      />,
+    );
+
+    expect(getByText('Sem descricao publicada.')).toBeTruthy();
+    expect(getByText('Sem regras publicadas.')).toBeTruthy();
+    expect(getByTestId('club-about-tags-empty')).toBeTruthy();
+    expect(getByText('Sem tags publicadas.')).toBeTruthy();
+    expect(getByText('Sem atividade registrada')).toBeTruthy();
+  });
+
+  it('renderiza Ranking como indisponivel sem leaderboard local', () => {
+    const { getByTestId, getByText, queryByTestId, queryByText } = render(
+      <ClubRankingPanel colors={LIGHT_CLUBS_COLORS} />,
+    );
+
+    expect(getByTestId('club-ranking-unavailable')).toBeTruthy();
+    expect(getByText('Ranking indisponivel')).toBeTruthy();
+    expect(queryByTestId('club-ranking-leaderboard')).toBeNull();
+    expect(queryByText('999 pontos')).toBeNull();
   });
 });

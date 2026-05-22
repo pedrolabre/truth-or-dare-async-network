@@ -145,6 +145,12 @@ describe('ClubDetailScreen', () => {
     expect(getByTestId('club-detail-summary-card')).toBeTruthy();
     expect(getByTestId('club-header-card')).toBeTruthy();
     expect(getByTestId('club-action-bar')).toBeTruthy();
+    expect(getByTestId('club-detail-tabs')).toBeTruthy();
+    expect(getByTestId('club-feed-placeholder')).toBeTruthy();
+    expect(getByTestId('club-detail-tab-feed')).toBeTruthy();
+    expect(getByTestId('club-detail-tab-members')).toBeTruthy();
+    expect(getByTestId('club-detail-tab-ranking')).toBeTruthy();
+    expect(getByTestId('club-detail-tab-about')).toBeTruthy();
   });
 
   it('mantem navegacao de volta em sucesso', () => {
@@ -153,6 +159,33 @@ describe('ClubDetailScreen', () => {
     fireEvent.press(getByLabelText('Voltar'));
 
     expect(mockRouterBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('troca abas internas sem acionar refresh do detalhe carregado', () => {
+    const handleRefresh = jest.fn().mockResolvedValue(undefined);
+    mockedUseClubDetailsScreen.mockReturnValue(
+      makeHookState({
+        handleRefresh,
+      }),
+    );
+
+    const { getByTestId, getByText } = render(<ClubDetailScreen />);
+
+    expect(getByTestId('club-feed-placeholder')).toBeTruthy();
+
+    fireEvent.press(getByTestId('club-detail-tab-about'));
+    expect(getByTestId('club-about-panel')).toBeTruthy();
+    expect(getByText('Sem regras publicadas.')).toBeTruthy();
+
+    fireEvent.press(getByTestId('club-detail-tab-ranking'));
+    expect(getByTestId('club-ranking-unavailable')).toBeTruthy();
+
+    fireEvent.press(getByTestId('club-detail-tab-members'));
+    expect(getByTestId('club-members-placeholder')).toBeTruthy();
+
+    fireEvent.press(getByTestId('club-detail-tab-feed'));
+    expect(getByTestId('club-feed-placeholder')).toBeTruthy();
+    expect(handleRefresh).not.toHaveBeenCalled();
   });
 
   it('mostra loading inicial sem perder o botao de voltar', () => {
