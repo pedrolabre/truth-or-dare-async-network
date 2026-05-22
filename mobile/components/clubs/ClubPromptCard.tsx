@@ -14,6 +14,7 @@ type Props = {
   colors: ClubsThemeColors;
   isSubmittingResponse?: boolean;
   onAnswerTruth?: (item: ClubFeedItemApi) => void;
+  onOpenComments?: (item: ClubFeedItemApi) => void;
   onSubmitDareProof?: (item: ClubFeedItemApi) => void;
 };
 
@@ -155,6 +156,7 @@ export default function ClubPromptCard({
   colors,
   isSubmittingResponse = false,
   onAnswerTruth,
+  onOpenComments,
   onSubmitDareProof,
 }: Props) {
   const typeIconName = item.type === 'truth' ? 'help-outline' : 'bolt';
@@ -287,6 +289,8 @@ export default function ClubPromptCard({
           colors={colors}
           iconName="chat-bubble-outline"
           label={getCounterLabel(item.commentsCount, 'comentario', 'comentarios')}
+          onPress={onOpenComments ? () => onOpenComments(item) : undefined}
+          testID={`club-prompt-comments-${item.id}`}
         />
         <Counter
           colors={colors}
@@ -355,11 +359,43 @@ type CounterProps = {
   colors: ClubsThemeColors;
   iconName: keyof typeof MaterialIcons.glyphMap;
   label: string;
+  onPress?: () => void;
+  testID?: string;
 };
 
-function Counter({ colors, iconName, label }: CounterProps) {
+function Counter({ colors, iconName, label, onPress, testID }: CounterProps) {
+  const content = (
+    <>
+      <MaterialIcons name={iconName} size={15} color={colors.green} />
+      <Text numberOfLines={1} style={[styles.counterText, { color: colors.text }]}>
+        {label}
+      </Text>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        testID={testID}
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.counter,
+          {
+            backgroundColor: colors.surfaceSoft,
+            borderColor: colors.cardBorder,
+          },
+          pressed && styles.pressed,
+        ]}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
   return (
     <View
+      testID={testID}
       style={[
         styles.counter,
         {
@@ -368,10 +404,7 @@ function Counter({ colors, iconName, label }: CounterProps) {
         },
       ]}
     >
-      <MaterialIcons name={iconName} size={15} color={colors.green} />
-      <Text numberOfLines={1} style={[styles.counterText, { color: colors.text }]}>
-        {label}
-      </Text>
+      {content}
     </View>
   );
 }

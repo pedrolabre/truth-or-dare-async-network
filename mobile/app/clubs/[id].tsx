@@ -20,6 +20,7 @@ import ClubDetailTabs from '../../components/clubs/ClubDetailTabs';
 import ClubFeedPanel from '../../components/clubs/ClubFeedPanel';
 import ClubHeaderCard from '../../components/clubs/ClubHeaderCard';
 import ClubInvitesModal from '../../components/clubs/ClubInvitesModal';
+import ClubMembersPanel from '../../components/clubs/ClubMembersPanel';
 import ClubPromptComposerModal from '../../components/clubs/ClubPromptComposerModal';
 import ClubRankingPanel from '../../components/clubs/ClubRankingPanel';
 import ClubSettingsModal from '../../components/clubs/ClubSettingsModal';
@@ -32,6 +33,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { useClubDetailsScreen } from '../../hooks/useClubDetailsScreen';
 import { useClubFeed } from '../../hooks/useClubFeed';
+import { useClubMembers } from '../../hooks/useClubMembers';
 import type { ClubDetail, ClubDetailTabKey } from '../../types/clubs';
 import type { ClubFeedItemApi } from '../../types/clubsApi';
 
@@ -85,6 +87,10 @@ export default function ClubDetailScreen() {
     isActive: contentState === 'ready' && activeTab === 'feed',
     canViewFeed: Boolean(permissions?.canViewFeed),
   });
+  const clubMembers = useClubMembers({
+    clubId,
+    isActive: contentState === 'ready' && activeTab === 'members',
+  });
   const headerTitle = club?.name ?? 'Clube';
 
   React.useEffect(() => {
@@ -98,15 +104,7 @@ export default function ClubDetailScreen() {
       case 'ranking':
         return <ClubRankingPanel colors={colors} />;
       case 'members':
-        return (
-          <DeferredClubPanel
-            colors={colors}
-            iconName="groups"
-            testID="club-members-placeholder"
-            title="Membros em preparacao"
-            description={`A lista completa de membros ainda nao esta conectada nesta tela. O contador atual vem do detalhe do clube: ${readyClub.membersLabel}.`}
-          />
-        );
+        return <ClubMembersPanel colors={colors} members={clubMembers} />;
       case 'feed':
       default:
         return (
@@ -116,6 +114,21 @@ export default function ClubDetailScreen() {
             onAnswerTruth={(item) => {
               clubFeed.clearResponseError();
               setTruthPrompt(item);
+            }}
+            onOpenComments={(item) => {
+              router.push({
+                pathname: '/feed-comments',
+                params: {
+                  itemId: item.id,
+                  itemType: 'club',
+                  title: item.content,
+                  clubName: readyClub.name,
+                  badge: item.type === 'truth' ? 'Verdade' : 'Desafio',
+                  quote: item.content,
+                  commentsCount: String(item.commentsCount),
+                  likesCount: String(item.likesCount),
+                },
+              });
             }}
             onSubmitDareProof={(item) => {
               clubFeed.clearResponseError();
@@ -336,47 +349,6 @@ export default function ClubDetailScreen() {
   );
 }
 
-type DeferredClubPanelProps = {
-  colors: ClubsThemeColors;
-  iconName: keyof typeof MaterialIcons.glyphMap;
-  testID: string;
-  title: string;
-  description: string;
-};
-
-function DeferredClubPanel({
-  colors,
-  iconName,
-  testID,
-  title,
-  description,
-}: DeferredClubPanelProps) {
-  return (
-    <View
-      testID={testID}
-      style={[
-        styles.deferredPanel,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.cardBorder,
-        },
-      ]}
-    >
-      <View style={[styles.deferredIconWrap, { backgroundColor: colors.surfaceSoft }]}>
-        <MaterialIcons name={iconName} size={28} color={colors.muted} />
-      </View>
-
-      <Text style={[styles.deferredTitle, { color: colors.text }]}>
-        {title}
-      </Text>
-
-      <Text style={[styles.deferredDescription, { color: colors.subText }]}>
-        {description}
-      </Text>
-    </View>
-  );
-}
-
 type FeedbackBannerProps = {
   colors: ClubsThemeColors;
   message: string;
@@ -466,34 +438,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',
-  },
-  deferredPanel: {
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 20,
-    paddingVertical: 28,
-    alignItems: 'center',
-    gap: 12,
-  },
-  deferredIconWrap: {
-    width: 58,
-    height: 58,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deferredTitle: {
-    textAlign: 'center',
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '900',
-  },
-  deferredDescription: {
-    textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
-    maxWidth: 292,
   },
   pressed: {
     opacity: 0.78,

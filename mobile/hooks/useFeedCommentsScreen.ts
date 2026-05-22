@@ -185,10 +185,10 @@ export function useFeedCommentsScreen({
         badge: params.badge?.trim() || 'Verdade',
         text:
           params.quote?.trim() ||
-          'Publicação do clube pronta para receber respostas.',
+          'Prompt do clube selecionado para comentários.',
         meta: params.commentsCount?.trim()
-          ? `${params.commentsCount} respostas`
-          : 'Área de respostas do clube',
+          ? `${params.commentsCount} comentários`
+          : 'Comentários do prompt',
         likesCountLabel: params.likesCount?.trim() || '0',
         accentColor: colors.greenText,
         accentSoft: colors.greenBgSoft,
@@ -288,12 +288,14 @@ export function useFeedCommentsScreen({
   const canLoadMore = false;
   const canSend =
     isTruthCommentsAvailable && !isSending && message.trim().length > 0;
-  const title = itemType === 'club' ? 'Respostas' : 'Comentários';
+  const title = 'Comentários';
   const isEmpty = !isInitialLoading && !errorMessage && comments.length === 0;
   const unavailableMessage =
     itemType === 'truth'
       ? null
-      : 'Comentários reais ainda não estão disponíveis para este tipo de publicação.';
+      : itemType === 'club'
+        ? 'Comentários e replies de prompts de clube dependem de um endpoint real de leitura. O contrato atual permite envio, mas ainda não fornece listagem para esta tela.'
+        : 'Comentários reais ainda não estão disponíveis para este tipo de publicação.';
 
   const shareVisible = activeModal === 'share';
   const muteVisible = activeModal === 'mute';

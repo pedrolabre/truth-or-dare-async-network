@@ -17,6 +17,7 @@ type Props = {
   colors: ClubsThemeColors;
   feed: ClubFeedScreenState;
   onAnswerTruth?: (item: ClubFeedItemApi) => void;
+  onOpenComments?: (item: ClubFeedItemApi) => void;
   onSubmitDareProof?: (item: ClubFeedItemApi) => void;
 };
 
@@ -24,6 +25,7 @@ export default function ClubFeedPanel({
   colors,
   feed,
   onAnswerTruth,
+  onOpenComments,
   onSubmitDareProof,
 }: Props) {
   if (feed.contentState === 'access-denied') {
@@ -175,6 +177,7 @@ export default function ClubFeedPanel({
           colors={colors}
           isSubmittingResponse={feed.responseSubmittingPromptId === item.id}
           onAnswerTruth={onAnswerTruth}
+          onOpenComments={onOpenComments}
           onSubmitDareProof={onSubmitDareProof}
         />
       ))}

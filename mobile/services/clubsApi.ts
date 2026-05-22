@@ -6,6 +6,8 @@ import type {
   ClubInviteApi,
   ClubJoinRequestApi,
   ClubMemberApi,
+  ClubMembersApi,
+  ClubMembersQueryApi,
   ClubPromptApi,
   ClubPromptResponseApi,
   ClubSummaryApi,
@@ -129,6 +131,71 @@ export async function getClubDetails(
   }
 
   const response = await fetch(`${baseUrl}/clubs/${clubId}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    try {
+      await parseResponse(response);
+    } catch (error) {
+      throw new ClubsApiError(
+        response.status,
+        getErrorMessage(error, `Erro na requisicao (${response.status})`),
+      );
+    }
+
+    throw new ClubsApiError(
+      response.status,
+      `Erro na requisicao (${response.status})`,
+    );
+  }
+
+  return parseResponse(response);
+}
+
+export async function getClubMembers(
+  clubId: string,
+  query: ClubMembersQueryApi = {},
+): Promise<ClubMembersApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const searchParams = new URLSearchParams();
+
+  if (query.page) {
+    searchParams.set('page', String(query.page));
+  }
+
+  if (query.limit) {
+    searchParams.set('limit', String(query.limit));
+  }
+
+  if (query.role) {
+    searchParams.set('role', query.role);
+  }
+
+  if (query.status) {
+    searchParams.set('status', query.status);
+  }
+
+  if (query.search?.trim()) {
+    searchParams.set('search', query.search.trim());
+  }
+
+  const queryString = searchParams.toString();
+  const url = queryString
+    ? `${baseUrl}/clubs/${clubId}/members?${queryString}`
+    : `${baseUrl}/clubs/${clubId}/members`;
+
+  const response = await fetch(url, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

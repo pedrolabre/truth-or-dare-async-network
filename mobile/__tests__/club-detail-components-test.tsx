@@ -6,12 +6,17 @@ import ClubAboutPanel from '../components/clubs/ClubAboutPanel';
 import ClubDetailTabs from '../components/clubs/ClubDetailTabs';
 import ClubFeedPanel from '../components/clubs/ClubFeedPanel';
 import ClubHeaderCard from '../components/clubs/ClubHeaderCard';
+import ClubMembersPanel from '../components/clubs/ClubMembersPanel';
 import ClubPromptCard from '../components/clubs/ClubPromptCard';
 import ClubRankingPanel from '../components/clubs/ClubRankingPanel';
 import ClubTruthResponseModal from '../components/clubs/ClubTruthResponseModal';
 import { LIGHT_CLUBS_COLORS } from '../constants/clubsTheme';
-import type { ClubDetail, ClubFeedScreenState } from '../types/clubs';
-import type { ClubFeedItemApi } from '../types/clubsApi';
+import type {
+  ClubDetail,
+  ClubFeedScreenState,
+  ClubMembersScreenState,
+} from '../types/clubs';
+import type { ClubFeedItemApi, ClubMemberApi } from '../types/clubsApi';
 
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
@@ -135,6 +140,55 @@ function makeFeedState(
     handleRefresh: jest.fn().mockResolvedValue(undefined),
     clearResponseError: jest.fn(),
     submitPromptResponse: jest.fn().mockResolvedValue(null),
+    ...overrides,
+  };
+}
+
+function makeMember(overrides: Partial<ClubMemberApi> = {}): ClubMemberApi {
+  return {
+    id: 'membership-1',
+    clubId: 'club-1',
+    userId: 'user-member-1',
+    name: 'Marina Admin',
+    username: 'marina-admin',
+    role: 'admin',
+    status: 'active',
+    joinedAt: '2026-05-20T12:00:00.000Z',
+    lastSeenAt: null,
+    mutedUntil: null,
+    createdAt: '2026-05-20T12:00:00.000Z',
+    updatedAt: '2026-05-20T12:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function makeMembersState(
+  overrides: Partial<ClubMembersScreenState> = {},
+): ClubMembersScreenState {
+  return {
+    items: [makeMember()],
+    contentState: 'ready',
+    searchQuery: '',
+    roleFilter: null,
+    statusFilter: null,
+    pagination: {
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    },
+    isInitialLoading: false,
+    isRefreshing: false,
+    isLoadingMore: false,
+    errorMessage: null,
+    canRetry: true,
+    canLoadMore: false,
+    setSearchQuery: jest.fn(),
+    setRoleFilter: jest.fn(),
+    setStatusFilter: jest.fn(),
+    handleRetry: jest.fn().mockResolvedValue(undefined),
+    handleRefresh: jest.fn().mockResolvedValue(undefined),
+    handleLoadMore: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -304,11 +358,13 @@ describe('club detail components', () => {
 
   it('renderiza card de prompt de verdade com dados reais e respostas recentes', () => {
     const onAnswerTruth = jest.fn();
+    const onOpenComments = jest.fn();
     const { getByTestId, getByText } = render(
       <ClubPromptCard
         item={makeFeedItem()}
         colors={LIGHT_CLUBS_COLORS}
         onAnswerTruth={onAnswerTruth}
+        onOpenComments={onOpenComments}
       />,
     );
 
@@ -328,6 +384,9 @@ describe('club detail components', () => {
 
     fireEvent.press(getByTestId('club-prompt-action-prompt-truth-1'));
     expect(onAnswerTruth).toHaveBeenCalledWith(makeFeedItem());
+
+    fireEvent.press(getByTestId('club-prompt-comments-prompt-truth-1'));
+    expect(onOpenComments).toHaveBeenCalledWith(makeFeedItem());
   });
 
   it('renderiza card de desafio expirado e respondido sem criar resposta falsa', () => {
@@ -438,6 +497,96 @@ describe('club detail components', () => {
       getByText(/sem paginacao real/i),
     ).toBeTruthy();
     expect(queryByText('Carregar mais')).toBeNull();
+  });
+
+  it('renderiza painel de membros com busca, filtros reais e paginacao', () => {
+    const setSearchQuery = jest.fn();
+    const setRoleFilter = jest.fn();
+    const setStatusFilter = jest.fn();
+    const handleLoadMore = jest.fn().mockResolvedValue(undefined);
+    const members = makeMembersState({
+      canLoadMore: true,
+      pagination: {
+        page: 1,
+        limit: 1,
+        total: 2,
+        totalPages: 2,
+      },
+      setSearchQuery,
+      setRoleFilter,
+      setStatusFilter,
+      handleLoadMore,
+    });
+
+    const { getAllByText, getByPlaceholderText, getByTestId, getByText } = render(
+      <ClubMembersPanel colors={LIGHT_CLUBS_COLORS} members={members} />,
+    );
+
+    expect(getByTestId('club-members-panel')).toBeTruthy();
+    expect(getByText('Membros do clube')).toBeTruthy();
+    expect(getByText('1 de 2 membros')).toBeTruthy();
+    expect(getByText('Marina Admin')).toBeTruthy();
+    expect(getByText('@marina-admin')).toBeTruthy();
+    expect(getAllByText('Admin').length).toBeGreaterThan(0);
+    expect(getByText('Ativo')).toBeTruthy();
+
+    fireEvent.changeText(
+      getByPlaceholderText('Buscar por nome ou username'),
+      'marina',
+    );
+    fireEvent.press(getByTestId('club-members-role-filter-admin'));
+    fireEvent.press(getByTestId('club-members-status-filter-active'));
+    fireEvent.press(getByTestId('club-members-load-more'));
+
+    expect(setSearchQuery).toHaveBeenCalledWith('marina');
+    expect(setRoleFilter).toHaveBeenCalledWith('admin');
+    expect(setStatusFilter).toHaveBeenCalledWith('active');
+    expect(handleLoadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it('renderiza estados de membros vazio, erro e acesso negado', () => {
+    const handleRetry = jest.fn().mockResolvedValue(undefined);
+    const emptyMembers = makeMembersState({
+      items: [],
+      contentState: 'empty',
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      },
+    });
+    const errorMembers = makeMembersState({
+      items: [],
+      contentState: 'error',
+      errorMessage: 'Falha ao buscar membros',
+      handleRetry,
+    });
+    const blockedMembers = makeMembersState({
+      items: [],
+      contentState: 'access-denied',
+      canRetry: false,
+    });
+
+    const { getByTestId, getByText, rerender } = render(
+      <ClubMembersPanel colors={LIGHT_CLUBS_COLORS} members={emptyMembers} />,
+    );
+
+    expect(getByTestId('club-members-empty')).toBeTruthy();
+    expect(getByText('Nenhum membro encontrado')).toBeTruthy();
+
+    rerender(
+      <ClubMembersPanel colors={LIGHT_CLUBS_COLORS} members={errorMembers} />,
+    );
+    expect(getByTestId('club-members-error')).toBeTruthy();
+    fireEvent.press(getByText('Tentar novamente'));
+    expect(handleRetry).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ClubMembersPanel colors={LIGHT_CLUBS_COLORS} members={blockedMembers} />,
+    );
+    expect(getByTestId('club-members-access-denied')).toBeTruthy();
+    expect(getByText('Membros indisponiveis')).toBeTruthy();
   });
 
   it('renderiza estados de feed vazio, erro e acesso indisponivel', () => {

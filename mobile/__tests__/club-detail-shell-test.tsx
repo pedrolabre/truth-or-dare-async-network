@@ -4,10 +4,16 @@ import { fireEvent, render } from '@testing-library/react-native';
 import ClubDetailScreen from '../app/clubs/[id]';
 import { useClubDetailsScreen } from '../hooks/useClubDetailsScreen';
 import { useClubFeed } from '../hooks/useClubFeed';
-import type { ClubDetail, ClubFeedScreenState } from '../types/clubs';
-import type { ClubFeedItemApi } from '../types/clubsApi';
+import { useClubMembers } from '../hooks/useClubMembers';
+import type {
+  ClubDetail,
+  ClubFeedScreenState,
+  ClubMembersScreenState,
+} from '../types/clubs';
+import type { ClubFeedItemApi, ClubMemberApi } from '../types/clubsApi';
 
 const mockRouterBack = jest.fn();
+const mockRouterPush = jest.fn();
 const mockUseLocalSearchParams = jest.fn();
 
 jest.mock('@expo/vector-icons', () => {
@@ -24,6 +30,7 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockUseLocalSearchParams(),
   useRouter: () => ({
     back: mockRouterBack,
+    push: mockRouterPush,
   }),
 }));
 
@@ -50,10 +57,17 @@ jest.mock('../hooks/useClubFeed', () => ({
   useClubFeed: jest.fn(),
 }));
 
+jest.mock('../hooks/useClubMembers', () => ({
+  useClubMembers: jest.fn(),
+}));
+
 const mockedUseClubDetailsScreen = useClubDetailsScreen as jest.MockedFunction<
   typeof useClubDetailsScreen
 >;
 const mockedUseClubFeed = useClubFeed as jest.MockedFunction<typeof useClubFeed>;
+const mockedUseClubMembers = useClubMembers as jest.MockedFunction<
+  typeof useClubMembers
+>;
 
 function makeClubDetail(overrides: Partial<ClubDetail> = {}): ClubDetail {
   return {
@@ -184,6 +198,55 @@ function makeFeedState(
   };
 }
 
+function makeMember(overrides: Partial<ClubMemberApi> = {}): ClubMemberApi {
+  return {
+    id: 'membership-1',
+    clubId: 'club-real-123',
+    userId: 'user-member-1',
+    name: 'Ana Membro',
+    username: 'ana',
+    role: 'member',
+    status: 'active',
+    joinedAt: '2026-05-20T12:00:00.000Z',
+    lastSeenAt: null,
+    mutedUntil: null,
+    createdAt: '2026-05-20T12:00:00.000Z',
+    updatedAt: '2026-05-20T12:00:00.000Z',
+    ...overrides,
+  };
+}
+
+function makeMembersState(
+  overrides: Partial<ClubMembersScreenState> = {},
+): ClubMembersScreenState {
+  return {
+    items: [makeMember()],
+    contentState: 'ready',
+    searchQuery: '',
+    roleFilter: null,
+    statusFilter: null,
+    pagination: {
+      page: 1,
+      limit: 20,
+      total: 1,
+      totalPages: 1,
+    },
+    isInitialLoading: false,
+    isRefreshing: false,
+    isLoadingMore: false,
+    errorMessage: null,
+    canRetry: true,
+    canLoadMore: false,
+    setSearchQuery: jest.fn(),
+    setRoleFilter: jest.fn(),
+    setStatusFilter: jest.fn(),
+    handleRetry: jest.fn().mockResolvedValue(undefined),
+    handleRefresh: jest.fn().mockResolvedValue(undefined),
+    handleLoadMore: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
 describe('ClubDetailScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -192,6 +255,7 @@ describe('ClubDetailScreen', () => {
     });
     mockedUseClubDetailsScreen.mockReturnValue(makeHookState());
     mockedUseClubFeed.mockReturnValue(makeFeedState());
+    mockedUseClubMembers.mockReturnValue(makeMembersState());
   });
 
   it('recebe o id real da rota e renderiza o detalhe carregado', () => {
@@ -248,11 +312,47 @@ describe('ClubDetailScreen', () => {
     expect(getByTestId('club-ranking-unavailable')).toBeTruthy();
 
     fireEvent.press(getByTestId('club-detail-tab-members'));
-    expect(getByTestId('club-members-placeholder')).toBeTruthy();
+    expect(getByTestId('club-members-panel')).toBeTruthy();
 
     fireEvent.press(getByTestId('club-detail-tab-feed'));
     expect(getByTestId('club-feed-panel')).toBeTruthy();
     expect(handleRefresh).not.toHaveBeenCalled();
+  });
+
+  it('navega para estado indisponivel de comentarios do prompt do clube', () => {
+    const { getByTestId } = render(<ClubDetailScreen />);
+
+    fireEvent.press(getByTestId('club-prompt-comments-prompt-1'));
+
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      pathname: '/feed-comments',
+      params: {
+        itemId: 'prompt-1',
+        itemType: 'club',
+        title: 'Conte uma verdade leve.',
+        clubName: 'Bons Desafios',
+        badge: 'Verdade',
+        quote: 'Conte uma verdade leve.',
+        commentsCount: '0',
+        likesCount: '2',
+      },
+    });
+  });
+
+  it('carrega membros apenas quando a aba Membros esta ativa', () => {
+    const { getByTestId } = render(<ClubDetailScreen />);
+
+    expect(mockedUseClubMembers).toHaveBeenLastCalledWith({
+      clubId: 'club-real-123',
+      isActive: false,
+    });
+
+    fireEvent.press(getByTestId('club-detail-tab-members'));
+
+    expect(mockedUseClubMembers).toHaveBeenLastCalledWith({
+      clubId: 'club-real-123',
+      isActive: true,
+    });
   });
 
   it('passa aba ativa e permissao real para o feed interno', () => {

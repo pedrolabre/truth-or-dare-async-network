@@ -102,6 +102,26 @@ export type ClubMemberApi = {
 
 export type ClubMemberSummaryApi = ClubMemberApi;
 
+export type ClubMembersPaginationApi = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+export type ClubMembersApi = {
+  items: ClubMemberApi[];
+  pagination: ClubMembersPaginationApi;
+};
+
+export type ClubMembersQueryApi = {
+  page?: number;
+  limit?: number;
+  role?: ClubMemberRoleApi | null;
+  status?: ClubMemberStatusApi | null;
+  search?: string | null;
+};
+
 export type ClubPromptAttachmentApi = {
   id?: string;
   type: 'image' | 'video' | 'audio' | 'file' | 'link';

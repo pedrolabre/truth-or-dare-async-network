@@ -1,6 +1,10 @@
 import type {
   ClubFeedItemApi,
   ClubJoinPolicyApi,
+  ClubMemberApi,
+  ClubMemberRoleApi,
+  ClubMemberStatusApi,
+  ClubMembersPaginationApi,
   ClubPermissionsApi,
   ClubPromptApi,
   ClubPromptResponseApi,
@@ -170,4 +174,33 @@ export type ClubFeedScreenState = {
     promptId: string,
     payload: CreateClubPromptResponsePayloadApi,
   ) => Promise<ClubPromptResponseApi | null>;
+};
+
+export type ClubMembersContentState =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'empty'
+  | 'error'
+  | 'access-denied';
+
+export type ClubMembersScreenState = {
+  items: ClubMemberApi[];
+  contentState: ClubMembersContentState;
+  searchQuery: string;
+  roleFilter: ClubMemberRoleApi | null;
+  statusFilter: ClubMemberStatusApi | null;
+  pagination: ClubMembersPaginationApi | null;
+  isInitialLoading: boolean;
+  isRefreshing: boolean;
+  isLoadingMore: boolean;
+  errorMessage: string | null;
+  canRetry: boolean;
+  canLoadMore: boolean;
+  setSearchQuery: (value: string) => void;
+  setRoleFilter: (value: ClubMemberRoleApi | null) => void;
+  setStatusFilter: (value: ClubMemberStatusApi | null) => void;
+  handleRetry: () => Promise<void>;
+  handleRefresh: () => Promise<void>;
+  handleLoadMore: () => Promise<void>;
 };
