@@ -2,6 +2,7 @@ export type ClubErrorCode =
   | 'CLUB_NOT_FOUND'
   | 'CLUB_FORBIDDEN'
   | 'CLUB_DUPLICATE_SLUG'
+  | 'CLUB_DUPLICATE_REPORT'
   | 'CLUB_VALIDATION_ERROR';
 
 export class ClubServiceError extends Error {
@@ -32,6 +33,14 @@ export function forbiddenError(): never {
 
 export function duplicateSlugError(): never {
   throw new ClubServiceError('CLUB_DUPLICATE_SLUG', 'Slug de clube ja existe', 409);
+}
+
+export function duplicateReportError(): never {
+  throw new ClubServiceError(
+    'CLUB_DUPLICATE_REPORT',
+    'Denuncia ja registrada',
+    409,
+  );
 }
 
 export function requireAuthenticatedUser(userId: string) {

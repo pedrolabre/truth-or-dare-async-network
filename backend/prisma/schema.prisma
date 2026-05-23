@@ -20,6 +20,7 @@ model User {
   clubInvitesSent     ClubInvite[] @relation("ClubInviteInviter")
   clubJoinRequests    ClubJoinRequest[]
   clubMemberships ClubMember[]
+  clubReports     ClubReport[] @relation("ClubReportReporter")
   clubPromptComments ClubPromptComment[]
   clubPrompts     ClubPrompt[]
   clubPromptResponses ClubPromptResponse[]
@@ -184,6 +185,7 @@ model Club {
   joinRequests   ClubJoinRequest[]
   members        ClubMember[]
   prompts        ClubPrompt[]
+  reports        ClubReport[]
   promptComments ClubPromptComment[]
   promptResponses ClubPromptResponse[]
 
@@ -365,6 +367,26 @@ model ClubPromptComment {
   @@index([removedAt])
 }
 
+model ClubReport {
+  id         String               @id @default(uuid())
+  clubId     String
+  reporterId String
+  targetType ClubReportTargetType
+  targetId   String
+  reason     String
+  details    String?
+  createdAt  DateTime             @default(now())
+  club       Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  reporter   User                 @relation("ClubReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([reporterId, targetType, targetId])
+  @@index([clubId])
+  @@index([reporterId])
+  @@index([targetType, targetId])
+  @@index([clubId, targetType])
+  @@index([createdAt])
+}
+
 model ClubAuditLog {
   id           String   @id @default(uuid())
   clubId       String
@@ -433,6 +455,13 @@ enum ClubPromptStatus {
   published
   archived
   removed
+}
+
+enum ClubReportTargetType {
+  club
+  club_prompt
+  club_prompt_response
+  club_prompt_comment
 }
 
 enum ClubJoinPolicy {

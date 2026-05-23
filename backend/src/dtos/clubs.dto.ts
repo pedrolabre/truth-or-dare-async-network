@@ -18,6 +18,12 @@ export type ClubPromptStatusDto =
   | 'archived'
   | 'removed';
 
+export type ClubReportTargetTypeDto =
+  | 'club'
+  | 'club_prompt'
+  | 'club_prompt_response'
+  | 'club_prompt_comment';
+
 export type ClubJoinPolicyDto = 'open' | 'approval_required' | 'invite_only';
 
 export type ClubViewerMembershipDto = {
@@ -211,4 +217,14 @@ export type ClubsAggregatedFeedItemDto =
 
 export type ClubsAggregatedFeedDto = {
   items: ClubsAggregatedFeedItemDto[];
+};
+
+export type ClubReportDto = {
+  id: string;
+  clubId: string;
+  targetType: ClubReportTargetTypeDto;
+  targetId: string;
+  reason: string;
+  details: string | null;
+  createdAt: string;
 };

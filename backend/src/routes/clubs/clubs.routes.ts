@@ -26,6 +26,7 @@ import {
   searchClubsController,
   updateClubController,
 } from '../../controllers/clubs/clubs.controller';
+import { createClubReportController } from '../../controllers/clubs/reports.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 
 const router = Router();
@@ -50,6 +51,7 @@ router.get('/search', authMiddleware, searchClubsController);
 router.get('/:id/members', authMiddleware, listClubMembersController);
 router.post('/:id/invites', authMiddleware, createClubInviteController);
 router.post('/:id/join', authMiddleware, joinClubController);
+router.post('/:id/report', authMiddleware, createClubReportController);
 router.post(
   '/:id/transfer-ownership',
   authMiddleware,
