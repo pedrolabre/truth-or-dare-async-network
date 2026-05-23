@@ -33,6 +33,13 @@ export type ClubViewerMembershipDto = {
   status: ClubMemberStatusDto | null;
 };
 
+export type ClubViewerActivityDto = {
+  unreadCount: number;
+  lastSeenAt: string | null;
+  mutedUntil: string | null;
+  isMuted: boolean;
+};
+
 export type ClubPermissionsDto = {
   canViewFeed: boolean;
   canPostPrompt: boolean;
@@ -56,6 +63,7 @@ export type ClubSummaryDto = {
   promptCount: number;
   lastActivityAt: string | null;
   viewerMembership: ClubViewerMembershipDto;
+  viewerActivity: ClubViewerActivityDto;
 };
 
 export type ClubDetailsDto = ClubSummaryDto & {
@@ -194,6 +202,12 @@ export type ClubFeedOrderDto =
 export type ClubFeedDto = {
   club: ClubSummaryDto;
   items: ClubFeedPromptItemDto[];
+};
+
+export type ClubFeedSeenDto = {
+  lastSeenAt: string;
+  unreadCount: number;
+  readCount: number;
 };
 
 export type ClubsAggregatedFeedPromptActivityDto = {

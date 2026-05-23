@@ -38,6 +38,13 @@ export type CreateNotificationPayload = {
   dedupeKey?: string | null;
 };
 
+export const CLUB_FEED_ACTIVITY_NOTIFICATION_TYPES: NotificationType[] = [
+  NotificationType.club_new_prompt,
+  NotificationType.club_prompt_response,
+  NotificationType.club_prompt_comment,
+  NotificationType.club_mention,
+];
+
 function requireUserId(userId: string) {
   if (!userId) {
     throw new NotificationServiceError(
@@ -212,6 +219,78 @@ export async function countUnreadNotifications(
   return {
     unreadCount,
   };
+}
+
+export async function countUnreadNotificationsByClub({
+  userId,
+  clubIds,
+}: {
+  userId: string;
+  clubIds: string[];
+}): Promise<Map<string, number>> {
+  requireUserId(userId);
+
+  const uniqueClubIds = [...new Set(clubIds.filter(Boolean))];
+
+  if (uniqueClubIds.length === 0) {
+    return new Map();
+  }
+
+  const groupedCounts = await prisma.notification.groupBy({
+    by: ['clubId'],
+    where: {
+      userId,
+      readAt: null,
+      clubId: {
+        in: uniqueClubIds,
+      },
+    },
+    _count: {
+      _all: true,
+    },
+  });
+
+  const countsByClubId = new Map<string, number>();
+
+  groupedCounts.forEach((group) => {
+    if (group.clubId) {
+      countsByClubId.set(group.clubId, group._count._all);
+    }
+  });
+
+  return countsByClubId;
+}
+
+export async function markClubFeedActivityNotificationsRead({
+  userId,
+  clubId,
+  readAt,
+}: {
+  userId: string;
+  clubId: string;
+  readAt: Date;
+}): Promise<number> {
+  requireUserId(userId);
+
+  if (!clubId) {
+    return 0;
+  }
+
+  const result = await prisma.notification.updateMany({
+    where: {
+      userId,
+      clubId,
+      readAt: null,
+      type: {
+        in: CLUB_FEED_ACTIVITY_NOTIFICATION_TYPES,
+      },
+    },
+    data: {
+      readAt,
+    },
+  });
+
+  return result.count;
 }
 
 export async function markNotificationRead({

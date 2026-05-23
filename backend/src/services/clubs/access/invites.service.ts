@@ -14,6 +14,10 @@ import {
 } from '../core/errors';
 import { getClubPermissions } from '../core/permissions';
 import { enforceClubRateLimit } from '../rate-limit.service';
+import {
+  emitClubInviteAcceptedEvent,
+  emitClubInviteReceivedEvent,
+} from '../club-events.service';
 
 const CLUB_INVITE_MESSAGE_MAX_LENGTH = 500;
 const CLUB_INVITE_REPEAT_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -314,6 +318,13 @@ export async function createClubInvite(
         status: ClubMemberStatus.invited,
         message,
       },
+      include: {
+        club: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     await tx.clubMember.upsert({
@@ -355,6 +366,14 @@ export async function createClubInvite(
     });
 
     return invite;
+  });
+
+  await emitClubInviteReceivedEvent({
+    clubId: input.clubId,
+    clubName: createdInvite.club.name,
+    inviteId: createdInvite.id,
+    inviteeId,
+    inviterId: input.inviterId,
   });
 
   return mapInvite(createdInvite);
@@ -483,6 +502,14 @@ export async function acceptClubInvite(
     });
 
     return updatedInvite;
+  });
+
+  await emitClubInviteAcceptedEvent({
+    clubId: invite.clubId,
+    clubName: invite.club.name,
+    inviteId: invite.id,
+    acceptedById: input.userId,
+    recipientIds: [invite.inviterId],
   });
 
   return mapInvite(acceptedInvite);

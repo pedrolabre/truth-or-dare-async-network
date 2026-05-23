@@ -28,6 +28,8 @@ import {
   getActivePromptMembership,
   isPromptManagerRole,
 } from './permissions';
+import { emitClubNewPromptEvent } from '../club-events.service';
+import { listEligibleClubRecipientIds } from '../notification-recipients';
 import {
   normalizeAttachments,
   normalizeBoolean,
@@ -181,6 +183,21 @@ export async function createClubPrompt(
         },
       },
     },
+  });
+
+  const recipientIds = await listEligibleClubRecipientIds({
+    clubId: input.clubId,
+    excludeUserIds: [input.authorId],
+    respectMute: true,
+  });
+
+  await emitClubNewPromptEvent({
+    clubId: input.clubId,
+    clubName: club.name,
+    actorId: input.authorId,
+    recipientIds,
+    promptId,
+    authorId: input.authorId,
   });
 
   return mapPromptSummary(prompt);

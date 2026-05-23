@@ -39,6 +39,7 @@ import {
   normalizeVisibility,
 } from './validators';
 import { enforceClubRateLimit } from '../rate-limit.service';
+import { countUnreadNotificationsByClub } from '../../notifications.service';
 
 export { ClubServiceError } from './errors';
 export type { ClubErrorCode } from './errors';
@@ -205,8 +206,17 @@ export async function listMyClubs(userId: string): Promise<ClubSummaryDto[]> {
     },
   });
 
+  const unreadCountsByClubId = await countUnreadNotificationsByClub({
+    userId,
+    clubIds: memberships.map((membership) => membership.clubId),
+  });
+
   return memberships.map((membership: ClubMemberWithClub) =>
-    mapSummary(membership.club, userId),
+    mapSummary(
+      membership.club,
+      userId,
+      unreadCountsByClubId.get(membership.clubId) ?? 0,
+    ),
   );
 }
 
@@ -353,7 +363,12 @@ export async function getClubDetails({
 
   ensureCanViewClub(club, userId);
 
-  return mapDetails(club, userId);
+  const unreadCountsByClubId = await countUnreadNotificationsByClub({
+    userId,
+    clubIds: [clubId],
+  });
+
+  return mapDetails(club, userId, unreadCountsByClubId.get(clubId) ?? 0);
 }
 
 export async function updateClub(input: UpdateClubInput): Promise<ClubDetailsDto> {

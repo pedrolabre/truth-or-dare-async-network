@@ -11,8 +11,9 @@ import {
   validationError,
 } from '../core/errors';
 import { mapClubMember } from './mappers';
-import { isManagedRole, isRoleBelow } from './roles';
+import { clubMemberRoleRank, isManagedRole, isRoleBelow } from './roles';
 import { getClubWithMembers } from '../core/repository';
+import { emitClubMemberPromotedEvent } from '../club-events.service';
 
 export type UpdateClubMemberRoleInput = {
   clubId: string;
@@ -122,7 +123,7 @@ export async function updateClubMemberRole(
     newRole,
   });
 
-  await prisma.$transaction(async (tx) => {
+  const auditLog = await prisma.$transaction(async (tx) => {
     await tx.clubMember.update({
       where: {
         clubId_userId: {
@@ -135,7 +136,7 @@ export async function updateClubMemberRole(
       },
     });
 
-    await tx.clubAuditLog.create({
+    return tx.clubAuditLog.create({
       data: {
         clubId: input.clubId,
         actorId: input.actorId,
@@ -150,6 +151,19 @@ export async function updateClubMemberRole(
       },
     });
   });
+
+  if (clubMemberRoleRank[newRole] > clubMemberRoleRank[targetMembership.role]) {
+    await emitClubMemberPromotedEvent({
+      clubId: input.clubId,
+      clubName: club.name,
+      actorId: input.actorId,
+      promotedUserId: input.targetUserId,
+      promotedById: input.actorId,
+      memberId: targetMembership.id,
+      eventId: auditLog.id,
+      role: newRole,
+    });
+  }
 
   return getClubMemberSummary(input.clubId, input.targetUserId);
 }

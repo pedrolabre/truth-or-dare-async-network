@@ -1,9 +1,11 @@
 import { ClubMemberStatus, ClubVisibility } from '../../../generated/prisma/client';
 import {
+  ClubViewerActivityDto,
   ClubDetailsDto,
   ClubSummaryDto,
   ClubViewerMembershipDto,
 } from '../../../dtos/clubs.dto';
+import { isClubMembershipMuted } from '../notification-recipients';
 import { getPermissions } from './permissions';
 import { ClubWithViewerMembers } from './types';
 
@@ -17,6 +19,21 @@ function toViewerMembership(
     isMember: membership?.status === ClubMemberStatus.active,
     role: membership?.role ?? null,
     status: membership?.status ?? null,
+  };
+}
+
+function toViewerActivity(
+  club: ClubWithViewerMembers,
+  viewerId: string,
+  unreadCount = 0,
+): ClubViewerActivityDto {
+  const membership = club.members.find((member) => member.userId === viewerId);
+
+  return {
+    unreadCount,
+    lastSeenAt: membership?.lastSeenAt?.toISOString() ?? null,
+    mutedUntil: membership?.mutedUntil?.toISOString() ?? null,
+    isMuted: isClubMembershipMuted(membership?.mutedUntil),
   };
 }
 
@@ -35,6 +52,7 @@ function visibilityToJoinPolicy(visibility: ClubVisibility) {
 export function mapSummary(
   club: ClubWithViewerMembers,
   viewerId: string,
+  unreadCount = 0,
 ): ClubSummaryDto {
   return {
     id: club.id,
@@ -49,15 +67,17 @@ export function mapSummary(
     promptCount: club.promptCount,
     lastActivityAt: club.lastActivityAt?.toISOString() ?? null,
     viewerMembership: toViewerMembership(club, viewerId),
+    viewerActivity: toViewerActivity(club, viewerId, unreadCount),
   };
 }
 
 export function mapDetails(
   club: ClubWithViewerMembers,
   viewerId: string,
+  unreadCount = 0,
 ): ClubDetailsDto {
   return {
-    ...mapSummary(club, viewerId),
+    ...mapSummary(club, viewerId, unreadCount),
     coverUrl: club.coverUrl,
     rules: club.rules,
     tags: club.tags,

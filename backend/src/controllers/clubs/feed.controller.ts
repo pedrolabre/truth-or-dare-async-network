@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { ClubServiceError } from '../../services/clubs/core/clubs.service';
-import { getClubFeed } from '../../services/clubs/feed/feed.service';
+import {
+  getClubFeed,
+  markClubFeedSeen,
+} from '../../services/clubs/feed/feed.service';
 import { getClubsAggregatedFeed } from '../../services/clubs/feed/aggregated-feed.service';
 
 function getAuthenticatedUserId(req: Request) {
@@ -63,6 +66,23 @@ export async function getClubsAggregatedFeedController(
       res,
       error,
       'Erro interno ao carregar feed dos clubes',
+    );
+  }
+}
+
+export async function markClubFeedSeenController(req: Request, res: Response) {
+  try {
+    const result = await markClubFeedSeen({
+      clubId: getClubId(req),
+      viewerId: getAuthenticatedUserId(req),
+    });
+
+    return res.status(200).json(result);
+  } catch (error) {
+    return handleClubFeedControllerError(
+      res,
+      error,
+      'Erro interno ao marcar feed do clube como visto',
     );
   }
 }

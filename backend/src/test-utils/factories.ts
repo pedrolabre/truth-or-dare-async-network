@@ -22,6 +22,7 @@ type CreateTestUserInput = BaseDateInput & {
   name?: string;
   email?: string;
   password?: string;
+  username?: string | null;
 };
 
 type CreateTestPasswordResetTokenInput = BaseDateInput & {
@@ -65,6 +66,8 @@ type AddUserToClubInput = {
   role?: ClubMemberRole;
   status?: ClubMemberStatus;
   joinedAt?: Date | null;
+  lastSeenAt?: Date | null;
+  mutedUntil?: Date | null;
   postingSuspendedUntil?: Date | null;
 };
 
@@ -211,6 +214,7 @@ export async function createTestUser(input: CreateTestUserInput = {}) {
       data: {
         name,
         passwordHash,
+        username: input.username,
       },
     });
   }
@@ -221,6 +225,7 @@ export async function createTestUser(input: CreateTestUserInput = {}) {
         name,
         email,
         passwordHash,
+        username: input.username,
       },
       input.createdAt,
     ),
@@ -329,6 +334,8 @@ export async function addUserToClub(
       role: input.role,
       status: input.status,
       joinedAt: input.joinedAt,
+      lastSeenAt: input.lastSeenAt,
+      mutedUntil: input.mutedUntil,
       postingSuspendedUntil: input.postingSuspendedUntil,
     },
     create: {
@@ -337,6 +344,8 @@ export async function addUserToClub(
       role: input.role ?? ClubMemberRole.member,
       status: input.status ?? ClubMemberStatus.active,
       joinedAt: input.joinedAt === undefined ? new Date() : input.joinedAt,
+      lastSeenAt: input.lastSeenAt,
+      mutedUntil: input.mutedUntil,
       postingSuspendedUntil: input.postingSuspendedUntil,
     },
   });

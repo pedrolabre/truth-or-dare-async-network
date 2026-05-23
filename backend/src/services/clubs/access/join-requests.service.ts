@@ -14,6 +14,12 @@ import {
 } from '../core/errors';
 import { getClubPermissions } from '../core/permissions';
 import { getClubWithMembers } from '../core/repository';
+import {
+  emitClubJoinRequestApprovedEvent,
+  emitClubJoinRequestReceivedEvent,
+  emitClubJoinRequestRejectedEvent,
+} from '../club-events.service';
+import { listEligibleClubRecipientIds } from '../notification-recipients';
 
 const JOIN_REQUEST_MESSAGE_MAX_LENGTH = 500;
 
@@ -257,6 +263,22 @@ export async function requestToJoinClub(
     return request;
   });
 
+  const recipientIds = await listEligibleClubRecipientIds({
+    clubId: input.clubId,
+    excludeUserIds: [input.userId],
+    roles: [ClubMemberRole.owner, ClubMemberRole.admin],
+    respectMute: false,
+  });
+
+  await emitClubJoinRequestReceivedEvent({
+    clubId: input.clubId,
+    clubName: club.name,
+    actorId: input.userId,
+    recipientIds,
+    requestId: createdRequest.id,
+    requesterId: input.userId,
+  });
+
   return mapJoinRequest(createdRequest);
 }
 
@@ -354,6 +376,14 @@ export async function approveClubJoinRequest(
     return updatedRequest;
   });
 
+  await emitClubJoinRequestApprovedEvent({
+    clubId: joinRequest.clubId,
+    clubName: joinRequest.club.name,
+    requestId: joinRequest.id,
+    requesterId: joinRequest.userId,
+    reviewerId: input.reviewerId,
+  });
+
   return mapJoinRequest(approvedRequest);
 }
 
@@ -403,6 +433,14 @@ export async function rejectClubJoinRequest(
     });
 
     return updatedRequest;
+  });
+
+  await emitClubJoinRequestRejectedEvent({
+    clubId: joinRequest.clubId,
+    clubName: joinRequest.club.name,
+    requestId: joinRequest.id,
+    requesterId: joinRequest.userId,
+    reviewerId: input.reviewerId,
   });
 
   return mapJoinRequest(rejectedRequest);

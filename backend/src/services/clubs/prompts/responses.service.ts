@@ -19,6 +19,8 @@ import {
   canAnswerPrompt,
   getActivePromptMembership,
 } from './permissions';
+import { emitClubPromptResponseEvent } from '../club-events.service';
+import { isEligibleClubRecipient } from '../notification-recipients';
 import {
   normalizePromptResponseMediaType,
   normalizePromptResponseMediaUrl,
@@ -197,6 +199,26 @@ export async function createClubPromptResponse({
       },
     },
   });
+
+  const shouldNotifyPromptAuthor =
+    prompt.authorId !== userId &&
+    (await isEligibleClubRecipient({
+      clubId,
+      userId: prompt.authorId,
+      respectMute: true,
+    }));
+
+  if (shouldNotifyPromptAuthor) {
+    await emitClubPromptResponseEvent({
+      clubId,
+      clubName: club.name,
+      actorId: userId,
+      recipientIds: [prompt.authorId],
+      promptId: prompt.id,
+      responseId,
+      responderId: userId,
+    });
+  }
 
   return mapPromptResponseSummary(response);
 }

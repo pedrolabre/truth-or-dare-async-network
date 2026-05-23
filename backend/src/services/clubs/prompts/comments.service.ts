@@ -15,6 +15,14 @@ import {
   canAnswerPrompt,
   getActivePromptMembership,
 } from './permissions';
+import {
+  emitClubMentionEvent,
+  emitClubPromptCommentEvent,
+} from '../club-events.service';
+import {
+  isEligibleClubRecipient,
+  resolveMentionedClubRecipientIds,
+} from '../notification-recipients';
 
 type CreateClubPromptCommentInput = {
   clubId: string;
@@ -172,6 +180,53 @@ export async function createClubPromptComment({
       },
     },
   });
+
+  const commentRecipientIds: string[] = [];
+  const shouldNotifyPromptAuthor =
+    prompt.authorId !== userId &&
+    (await isEligibleClubRecipient({
+      clubId,
+      userId: prompt.authorId,
+      respectMute: true,
+    }));
+
+  if (shouldNotifyPromptAuthor) {
+    commentRecipientIds.push(prompt.authorId);
+  }
+
+  if (commentRecipientIds.length > 0) {
+    await emitClubPromptCommentEvent({
+      clubId,
+      clubName: club.name,
+      actorId: userId,
+      recipientIds: commentRecipientIds,
+      promptId: prompt.id,
+      commentId,
+      commenterId: userId,
+      responseId: null,
+    });
+  }
+
+  const mentionedUserIds = await resolveMentionedClubRecipientIds({
+    clubId,
+    text: normalizedText,
+    excludeUserIds: [userId, ...commentRecipientIds],
+    respectMute: true,
+  });
+
+  if (mentionedUserIds.length > 0) {
+    await emitClubMentionEvent({
+      clubId,
+      clubName: club.name,
+      actorId: userId,
+      mentionedUserIds,
+      mentionId: commentId,
+      referenceType: 'club_prompt_comment',
+      referenceId: commentId,
+      mentionedById: userId,
+      promptId: prompt.id,
+    });
+  }
 
   return mapPromptCommentSummary(comment);
 }

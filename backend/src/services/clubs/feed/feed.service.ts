@@ -1,4 +1,5 @@
 import {
+  ClubFeedSeenDto,
   ClubFeedDto,
   ClubFeedPromptItemDto,
 } from '../../../dtos/clubs.dto';
@@ -15,6 +16,10 @@ import {
   requireAuthenticatedUser,
 } from '../core/errors';
 import { mapSummary } from '../core/mappers';
+import {
+  CLUB_FEED_ACTIVITY_NOTIFICATION_TYPES,
+  countUnreadNotificationsByClub,
+} from '../../notifications.service';
 import {
   canAnswerPrompt,
   getActivePromptMembership,
@@ -35,6 +40,11 @@ type GetClubFeedInput = {
   clubId: string;
   viewerId: string;
   order?: unknown;
+};
+
+type MarkClubFeedSeenInput = {
+  clubId: string;
+  viewerId: string;
 };
 
 type ClubFeedPromptPermissionTarget = Parameters<
@@ -211,8 +221,89 @@ export async function getClubFeed({
     recentResponses: prompt.responses.map(mapPromptResponseSummary),
   }));
 
+  const unreadCountsByClubId = await countUnreadNotificationsByClub({
+    userId: viewerId,
+    clubIds: [clubId],
+  });
+
   return {
-    club: mapSummary(club, viewerId),
+    club: mapSummary(club, viewerId, unreadCountsByClubId.get(clubId) ?? 0),
     items,
+  };
+}
+
+export async function markClubFeedSeen({
+  clubId,
+  viewerId,
+}: MarkClubFeedSeenInput): Promise<ClubFeedSeenDto> {
+  requireAuthenticatedUser(viewerId);
+
+  if (!clubId) {
+    notFoundError();
+  }
+
+  const club = await prisma.club.findUnique({
+    where: {
+      id: clubId,
+    },
+    include: {
+      members: {
+        where: {
+          userId: viewerId,
+        },
+      },
+    },
+  });
+
+  if (!club || club.status === ClubStatus.deleted || club.deletedAt) {
+    notFoundError();
+  }
+
+  const membership = getActivePromptMembership(club.members, viewerId);
+
+  if (club.status !== ClubStatus.active || !membership) {
+    forbiddenError();
+  }
+
+  const lastSeenAt = new Date();
+  const [updatedMembership, readCount] = await prisma.$transaction(async (tx) => {
+    const member = await tx.clubMember.update({
+      where: {
+        clubId_userId: {
+          clubId,
+          userId: viewerId,
+        },
+      },
+      data: {
+        lastSeenAt,
+      },
+    });
+
+    const result = await tx.notification.updateMany({
+      where: {
+        userId: viewerId,
+        clubId,
+        readAt: null,
+        type: {
+          in: CLUB_FEED_ACTIVITY_NOTIFICATION_TYPES,
+        },
+      },
+      data: {
+        readAt: lastSeenAt,
+      },
+    });
+
+    return [member, result.count] as const;
+  });
+
+  const unreadCountsByClubId = await countUnreadNotificationsByClub({
+    userId: viewerId,
+    clubIds: [clubId],
+  });
+
+  return {
+    lastSeenAt: updatedMembership.lastSeenAt?.toISOString() ?? lastSeenAt.toISOString(),
+    unreadCount: unreadCountsByClubId.get(clubId) ?? 0,
+    readCount,
   };
 }

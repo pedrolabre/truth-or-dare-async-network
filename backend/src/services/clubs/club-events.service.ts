@@ -65,11 +65,14 @@ type ClubMentionEvent = ClubEventBase & {
   referenceType: string;
   referenceId: string;
   mentionedById: string;
+  promptId?: string | null;
 };
 
 type ClubMemberPromotedEvent = ClubEventBase & {
   promotedUserId: string;
   promotedById: string;
+  memberId: string;
+  eventId: string;
   role: string;
 };
 
@@ -292,7 +295,9 @@ export async function emitClubMentionEvent(event: ClubMentionEvent) {
       type: 'club_mention',
       title: 'Voce foi mencionado',
       body: `Voce foi mencionado em ${event.clubName}.`,
-      deepLink: clubDeepLink(event.clubId),
+      deepLink: event.promptId
+        ? promptDeepLink(event.clubId, event.promptId)
+        : clubDeepLink(event.clubId),
       clubId: event.clubId,
       referenceType: event.referenceType,
       referenceId: event.referenceId,
@@ -313,11 +318,11 @@ export async function emitClubMemberPromotedEvent(
     deepLink: clubDeepLink(event.clubId),
     clubId: event.clubId,
     referenceType: 'club_member',
-    referenceId: event.promotedUserId,
+    referenceId: event.memberId,
     dedupeKey: dedupeKey(
       'club_member_promoted',
       event.promotedUserId,
-      `${event.clubId}:${event.role}`,
+      event.eventId,
     ),
   });
 }
