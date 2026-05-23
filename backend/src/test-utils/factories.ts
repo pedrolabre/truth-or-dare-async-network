@@ -5,6 +5,7 @@ import {
   ClubPromptType,
   ClubStatus,
   ClubVisibility,
+  NotificationType,
 } from '../generated/prisma/client';
 import { prisma } from '../lib/prisma';
 import {
@@ -74,6 +75,20 @@ type CreateTestClubPromptInput = BaseDateInput & {
   content?: string;
   maxAttempts?: number | null;
   expiresAt?: Date | null;
+};
+
+type CreateTestNotificationInput = BaseDateInput & {
+  userId: string;
+  actorId?: string | null;
+  type?: NotificationType;
+  title?: string;
+  body?: string;
+  deepLink?: string;
+  clubId?: string | null;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  dedupeKey?: string | null;
+  readAt?: Date | null;
 };
 
 type ResetFeedDataOptions = {
@@ -148,6 +163,7 @@ function minutesAfter(baseDate: Date, minutes: number) {
 export async function resetFeedData(options: ResetFeedDataOptions = {}) {
   const { deleteUsers = false, preserveUserEmails = [] } = options;
 
+  await prisma.notification.deleteMany();
   await prisma.clubMember.deleteMany();
   await prisma.clubPrompt.deleteMany();
   await prisma.club.deleteMany();
@@ -338,6 +354,27 @@ export async function createTestClubPrompt(input: CreateTestClubPromptInput) {
           'Qual foi a decisão mais impulsiva que você já tomou?',
         maxAttempts: input.maxAttempts ?? null,
         expiresAt: input.expiresAt ?? null,
+      },
+      input.createdAt,
+    ),
+  });
+}
+
+export async function createTestNotification(input: CreateTestNotificationInput) {
+  return prisma.notification.create({
+    data: withOptionalCreatedAt(
+      {
+        userId: input.userId,
+        actorId: input.actorId ?? null,
+        type: input.type ?? NotificationType.club_new_prompt,
+        title: input.title ?? 'Nova notificacao',
+        body: input.body ?? 'Voce recebeu uma notificacao de teste.',
+        deepLink: input.deepLink ?? '/clubs/test',
+        clubId: input.clubId ?? null,
+        referenceType: input.referenceType ?? null,
+        referenceId: input.referenceId ?? null,
+        dedupeKey: input.dedupeKey ?? null,
+        readAt: input.readAt ?? null,
       },
       input.createdAt,
     ),

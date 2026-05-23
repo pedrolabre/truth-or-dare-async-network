@@ -34,6 +34,8 @@ model User {
   truths              Truth[]              @relation("TruthAuthor")
   targetedTruths      Truth[]              @relation("TruthTarget")
   passwordResetTokens PasswordResetToken[]
+  notifications       Notification[]       @relation("NotificationRecipient")
+  notificationsActed  Notification[]       @relation("NotificationActor")
 }
 
 model PasswordResetToken {
@@ -189,6 +191,7 @@ model Club {
   reports        ClubReport[]
   promptComments ClubPromptComment[]
   promptResponses ClubPromptResponse[]
+  notifications   Notification[]
 
   @@index([visibility, status])
   @@index([visibility, status, lastActivityAt])
@@ -196,6 +199,32 @@ model Club {
   @@index([lastActivityAt])
   @@index([memberCount])
   @@index([createdById])
+}
+
+model Notification {
+  id            String           @id @default(uuid())
+  userId        String
+  actorId       String?
+  type          NotificationType
+  title         String
+  body          String
+  deepLink      String
+  clubId        String?
+  referenceType String?
+  referenceId   String?
+  dedupeKey     String?          @unique
+  readAt        DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  user          User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor         User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+  club          Club?            @relation(fields: [clubId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@index([clubId])
+  @@index([referenceType, referenceId])
 }
 
 model ClubMember {
@@ -486,4 +515,18 @@ enum ProofMediaType {
   video
   audio
   file
+}
+
+enum NotificationType {
+  club_created
+  club_invite_received
+  club_invite_accepted
+  club_join_request_received
+  club_join_request_approved
+  club_join_request_rejected
+  club_new_prompt
+  club_prompt_response
+  club_prompt_comment
+  club_mention
+  club_member_promoted
 }
