@@ -13,6 +13,8 @@
 #
 # ============================================
 
+$ErrorActionPreference = "Stop"
+
 
 # --------------------------------------------
 # DATABASE
@@ -44,6 +46,20 @@ $env:PORT="3333"
 
 # Segredo do JWT (trocar por algo seguro)
 $env:JWT_SECRET="your-secret-key"
+
+
+# --------------------------------------------
+# DATABASE MIGRATIONS
+# --------------------------------------------
+
+# Aplica migrations pendentes antes de iniciar o servidor.
+# Isso evita erros quando o Prisma Client ja espera colunas
+# que ainda nao existem no banco local.
+
+npx prisma migrate deploy
+if ($LASTEXITCODE -ne 0) {
+  exit $LASTEXITCODE
+}
 
 
 # --------------------------------------------
