@@ -10,6 +10,10 @@ import {
   requireAuthenticatedUser,
   validationError,
 } from '../core/errors';
+import {
+  assertContentAllowedByClub,
+  assertMemberCanPost,
+} from '../moderation.service';
 import { mapPromptResponseSummary } from './mappers';
 import {
   canAnswerPrompt,
@@ -94,12 +98,15 @@ export async function createClubPromptResponse({
     forbiddenError();
   }
 
+  assertMemberCanPost(membership);
+
   if (prompt.expiresAt && prompt.expiresAt.getTime() <= Date.now()) {
     forbiddenError();
   }
 
   const isDare = prompt.type === ClubPromptType.dare;
   const normalizedText = normalizePromptResponseText(text, !isDare);
+  assertContentAllowedByClub(normalizedText, club.blockedWords);
   const normalizedMediaUrl = normalizePromptResponseMediaUrl(mediaUrl, isDare);
   const normalizedMediaType = normalizePromptResponseMediaType(mediaType, isDare);
   const normalizedDareProofId = normalizeDareProofId(dareProofId);

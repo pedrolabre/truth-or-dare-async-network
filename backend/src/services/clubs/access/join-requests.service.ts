@@ -6,6 +6,7 @@ import {
 } from '../../../generated/prisma/client';
 import { prisma } from '../../../lib/prisma';
 import {
+  blockedMemberError,
   forbiddenError,
   notFoundError,
   requireAuthenticatedUser,
@@ -153,6 +154,10 @@ export async function requestToJoinClub(
     validationError('Usuario ja e membro ativo do clube');
   }
 
+  if (existingMembership?.status === ClubMemberStatus.blocked) {
+    blockedMemberError();
+  }
+
   if (existingMembership?.status === ClubMemberStatus.requested) {
     validationError('Usuario ja possui solicitacao pendente para este clube');
   }
@@ -274,6 +279,11 @@ export async function approveClubJoinRequest(
         },
       },
     });
+
+    if (existingMembership?.status === ClubMemberStatus.blocked) {
+      blockedMemberError();
+    }
+
     const shouldIncrementMemberCount =
       existingMembership?.status !== ClubMemberStatus.active;
 

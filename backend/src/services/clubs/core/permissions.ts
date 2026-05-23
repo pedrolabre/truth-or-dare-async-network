@@ -5,7 +5,7 @@ import {
   ClubVisibility,
 } from '../../../generated/prisma/client';
 import { ClubPermissionsDto } from '../../../dtos/clubs.dto';
-import { forbiddenError } from './errors';
+import { blockedMemberError, forbiddenError } from './errors';
 import { ClubWithViewerMembers } from './types';
 import { getClubWithMembers } from './repository';
 
@@ -24,12 +24,18 @@ function calculateClubPermissions(
   const membership = club.members.find((member) => member.userId === viewerId);
   const isActive = club.status === ClubStatus.active;
   const isActiveMember = membership?.status === ClubMemberStatus.active;
+  const postingSuspendedUntil = membership?.postingSuspendedUntil ?? null;
+  const isPostingSuspended = Boolean(
+    postingSuspendedUntil && postingSuspendedUntil.getTime() > Date.now(),
+  );
   const isOwner = membership?.role === ClubMemberRole.owner && isActiveMember;
   const isAdmin = membership?.role === ClubMemberRole.admin && isActiveMember;
   const isModerator =
     membership?.role === ClubMemberRole.moderator && isActiveMember;
   const canPostOrRespond =
-    isActive && (isOwner || isAdmin || isModerator || Boolean(isActiveMember));
+    isActive &&
+    !isPostingSuspended &&
+    (isOwner || isAdmin || isModerator || Boolean(isActiveMember));
 
   return {
     podeEditar: isActive && (isOwner || isAdmin),
@@ -74,6 +80,12 @@ export function getPermissions(
 }
 
 export function ensureCanViewClub(club: ClubWithViewerMembers, userId: string) {
+  const membership = club.members.find((member) => member.userId === userId);
+
+  if (membership?.status === ClubMemberStatus.blocked) {
+    blockedMemberError();
+  }
+
   if (
     club.visibility === ClubVisibility.public &&
     club.status === ClubStatus.active
@@ -81,9 +93,7 @@ export function ensureCanViewClub(club: ClubWithViewerMembers, userId: string) {
     return;
   }
 
-  const membership = club.members.find((member) => member.userId === userId);
-
-  if (!membership || membership.status === ClubMemberStatus.removed) {
+  if (!membership || membership.status !== ClubMemberStatus.active) {
     forbiddenError();
   }
 }

@@ -57,12 +57,14 @@ type CreateTestClubInput = BaseDateInput & {
   status?: ClubStatus;
   memberCount?: number;
   tags?: string[];
+  blockedWords?: string[];
 };
 
 type AddUserToClubInput = {
   role?: ClubMemberRole;
   status?: ClubMemberStatus;
   joinedAt?: Date | null;
+  postingSuspendedUntil?: Date | null;
 };
 
 type CreateTestClubPromptInput = BaseDateInput & {
@@ -288,6 +290,7 @@ export async function createTestClub(input: CreateTestClubInput) {
         status: input.status ?? ClubStatus.active,
         memberCount: input.memberCount ?? 0,
         tags: input.tags ?? [],
+        blockedWords: input.blockedWords ?? [],
       },
       input.createdAt,
     ),
@@ -310,6 +313,7 @@ export async function addUserToClub(
       role: input.role,
       status: input.status,
       joinedAt: input.joinedAt,
+      postingSuspendedUntil: input.postingSuspendedUntil,
     },
     create: {
       clubId,
@@ -317,6 +321,7 @@ export async function addUserToClub(
       role: input.role ?? ClubMemberRole.member,
       status: input.status ?? ClubMemberStatus.active,
       joinedAt: input.joinedAt === undefined ? new Date() : input.joinedAt,
+      postingSuspendedUntil: input.postingSuspendedUntil,
     },
   });
 }

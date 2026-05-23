@@ -20,6 +20,7 @@ export type UpdateClubInput = {
   iconName?: unknown;
   visibility?: unknown;
   rules?: unknown;
+  blockedWords?: unknown;
   tags?: unknown;
 };
 

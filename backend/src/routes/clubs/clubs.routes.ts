@@ -1,8 +1,10 @@
 import { Router } from 'express';
 import {
+  blockClubMemberController,
   leaveClubController,
   muteClubController,
   removeClubMemberController,
+  suspendClubMemberPostingController,
   transferClubOwnershipController,
   unmuteClubController,
   updateClubMemberRoleController,
@@ -61,6 +63,16 @@ router.post(
   '/:id/members/:userId/remove',
   authMiddleware,
   removeClubMemberController,
+);
+router.post(
+  '/:id/members/:userId/block',
+  authMiddleware,
+  blockClubMemberController,
+);
+router.post(
+  '/:id/members/:userId/suspend-posting',
+  authMiddleware,
+  suspendClubMemberPostingController,
 );
 router.patch(
   '/:id/members/:userId/role',

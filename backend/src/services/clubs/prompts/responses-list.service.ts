@@ -6,6 +6,7 @@ import {
   notFoundError,
   requireAuthenticatedUser,
 } from '../core/errors';
+import { assertMemberCanUseClub } from '../moderation.service';
 import { mapPromptResponseSummary } from './mappers';
 import {
   canAnswerPrompt,
@@ -97,6 +98,7 @@ export async function listClubPromptResponses({
   }
 
   const membership = getActivePromptMembership(club.members, viewerId);
+  assertMemberCanUseClub(club.members[0]);
 
   if (!canAnswerPrompt({ club, prompt, membership })) {
     forbiddenError();

@@ -95,7 +95,8 @@ function normalizeStatus(value: unknown) {
     status !== ClubMemberStatus.active &&
     status !== ClubMemberStatus.invited &&
     status !== ClubMemberStatus.requested &&
-    status !== ClubMemberStatus.removed
+    status !== ClubMemberStatus.removed &&
+    status !== ClubMemberStatus.blocked
   ) {
     validationError('Status de membro invalido');
   }

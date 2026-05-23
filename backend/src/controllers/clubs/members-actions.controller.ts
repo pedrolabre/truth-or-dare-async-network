@@ -8,6 +8,10 @@ import {
 import { removeClubMember } from '../../services/clubs/members/remove.service';
 import { updateClubMemberRole } from '../../services/clubs/members/role.service';
 import { transferClubOwnership } from '../../services/clubs/members/ownership-transfer.service';
+import {
+  blockClubMember,
+  suspendClubMemberPosting,
+} from '../../services/clubs/members/restrictions.service';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';
@@ -125,6 +129,48 @@ export async function updateClubMemberRoleController(
       res,
       error,
       'Erro interno ao alterar papel do membro',
+    );
+  }
+}
+
+export async function blockClubMemberController(req: Request, res: Response) {
+  try {
+    const membership = await blockClubMember({
+      clubId: getParamId(req),
+      actorId: getAuthenticatedUserId(req),
+      targetUserId:
+        typeof req.params.userId === 'string' ? req.params.userId : '',
+    });
+
+    return res.status(200).json(membership);
+  } catch (error) {
+    return handleClubMembersActionError(
+      res,
+      error,
+      'Erro interno ao bloquear membro do clube',
+    );
+  }
+}
+
+export async function suspendClubMemberPostingController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const membership = await suspendClubMemberPosting({
+      clubId: getParamId(req),
+      actorId: getAuthenticatedUserId(req),
+      targetUserId:
+        typeof req.params.userId === 'string' ? req.params.userId : '',
+      suspendedUntil: req.body?.suspendedUntil,
+    });
+
+    return res.status(200).json(membership);
+  } catch (error) {
+    return handleClubMembersActionError(
+      res,
+      error,
+      'Erro interno ao suspender postagem do membro',
     );
   }
 }

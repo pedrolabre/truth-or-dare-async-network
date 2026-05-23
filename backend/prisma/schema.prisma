@@ -170,6 +170,7 @@ model Club {
   visibility     ClubVisibility @default(public)
   status         ClubStatus     @default(active)
   rules          String?
+  blockedWords   String[]       @default([])
   tags           String[]       @default([])
   memberCount    Int            @default(0)
   promptCount    Int            @default(0)
@@ -207,6 +208,7 @@ model ClubMember {
   joinedAt    DateTime?
   lastSeenAt  DateTime?
   mutedUntil  DateTime?
+  postingSuspendedUntil DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   club        Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
@@ -448,6 +450,7 @@ enum ClubMemberStatus {
   invited
   requested
   removed
+  blocked
 }
 
 enum ClubPromptStatus {

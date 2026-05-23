@@ -30,6 +30,7 @@ import {
 import {
   CLUB_DESCRIPTION_MAX_LENGTH,
   CLUB_RULES_MAX_LENGTH,
+  normalizeBlockedWords,
   normalizeIconName,
   normalizeInitialMemberIds,
   normalizeName,
@@ -37,6 +38,7 @@ import {
   normalizeTags,
   normalizeVisibility,
 } from './validators';
+import { enforceClubRateLimit } from '../rate-limit.service';
 
 export { ClubServiceError } from './errors';
 export type { ClubErrorCode } from './errors';
@@ -69,6 +71,10 @@ async function assertInitialMembersExist(memberIds: string[]) {
 
 export async function createClub(input: CreateClubInput): Promise<ClubDetailsDto> {
   requireAuthenticatedUser(input.creatorId);
+  await enforceClubRateLimit({
+    action: 'create_club',
+    actorId: input.creatorId,
+  });
 
   const name = normalizeName(input.name);
   const description = normalizeOptionalText(
@@ -211,18 +217,28 @@ export async function discoverClubs(userId: string): Promise<DiscoverClubsResult
     visibility: ClubVisibility.public,
     status: ClubStatus.active,
     deletedAt: null,
+    members: {
+      none: {
+        userId,
+        status: ClubMemberStatus.blocked,
+      },
+    },
   };
 
   const [suggested, popular, recent] = await Promise.all([
     prisma.club.findMany({
       where: {
         ...where,
-        members: {
-          none: {
-            userId,
-            status: ClubMemberStatus.active,
+        AND: [
+          {
+            members: {
+              none: {
+                userId,
+                status: ClubMemberStatus.active,
+              },
+            },
           },
-        },
+        ],
       },
       include: {
         members: true,
@@ -278,6 +294,12 @@ export async function searchClubs({
       visibility: ClubVisibility.public,
       status: ClubStatus.active,
       deletedAt: null,
+      members: {
+        none: {
+          userId,
+          status: ClubMemberStatus.blocked,
+        },
+      },
       OR: [
         {
           name: {
@@ -368,6 +390,10 @@ export async function updateClub(input: UpdateClubInput): Promise<ClubDetailsDto
       'Regras',
       CLUB_RULES_MAX_LENGTH,
     );
+  }
+
+  if (input.blockedWords !== undefined) {
+    data.blockedWords = normalizeBlockedWords(input.blockedWords);
   }
 
   if (input.tags !== undefined) {

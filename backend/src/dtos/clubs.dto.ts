@@ -8,7 +8,8 @@ export type ClubMemberStatusDto =
   | 'active'
   | 'invited'
   | 'requested'
-  | 'removed';
+  | 'removed'
+  | 'blocked';
 
 export type ClubPromptTypeDto = 'truth' | 'dare';
 
@@ -80,6 +81,7 @@ export type ClubMemberSummaryDto = {
   joinedAt: string | null;
   lastSeenAt: string | null;
   mutedUntil: string | null;
+  postingSuspendedUntil: string | null;
   createdAt: string;
   updatedAt: string;
 };

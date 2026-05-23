@@ -6,6 +6,10 @@ import {
   notFoundError,
   requireAuthenticatedUser,
 } from '../core/errors';
+import {
+  assertContentAllowedByClub,
+  assertMemberCanPost,
+} from '../moderation.service';
 import { normalizePromptCommentText } from './interactions.validators';
 import {
   canAnswerPrompt,
@@ -101,6 +105,9 @@ export async function createClubPromptComment({
   if (!canAnswerPrompt({ club, prompt, membership })) {
     forbiddenError();
   }
+
+  assertMemberCanPost(membership);
+  assertContentAllowedByClub(normalizedText, club.blockedWords);
 
   if (prompt.expiresAt && prompt.expiresAt.getTime() <= Date.now()) {
     forbiddenError();

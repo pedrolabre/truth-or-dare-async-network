@@ -301,6 +301,7 @@ export async function updateClubController(req: Request, res: Response) {
       iconName: req.body.iconName,
       visibility: req.body.visibility,
       rules: req.body.rules,
+      blockedWords: req.body.blockedWords,
       tags: req.body.tags,
     });
 

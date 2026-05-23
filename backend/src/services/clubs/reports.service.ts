@@ -15,6 +15,9 @@ import {
 import { ensureCanViewClub } from './core/permissions';
 import { getClubWithMembers } from './core/repository';
 import {
+  assertMemberCanUseClub,
+} from './moderation.service';
+import {
   canViewPromptClub,
   getActivePromptMembership,
 } from './prompts/permissions';
@@ -237,6 +240,7 @@ async function getReportablePromptContext({
   }
 
   const membership = getActivePromptMembership(club.members, reporterId);
+  assertMemberCanUseClub(club.members[0]);
 
   if (!canViewPromptClub(club, membership)) {
     forbiddenError();

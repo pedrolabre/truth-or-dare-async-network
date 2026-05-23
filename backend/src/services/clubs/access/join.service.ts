@@ -6,7 +6,11 @@ import {
 } from '../../../generated/prisma/client';
 import { ClubMemberSummaryDto } from '../../../dtos/clubs.dto';
 import { prisma } from '../../../lib/prisma';
-import { requireAuthenticatedUser, validationError } from '../core/errors';
+import {
+  blockedMemberError,
+  requireAuthenticatedUser,
+  validationError,
+} from '../core/errors';
 import { mapClubMember } from '../members/mappers';
 import { getClubWithMembers } from '../core/repository';
 
@@ -52,6 +56,10 @@ export async function joinPublicClub(
 
   if (existingMembership?.status === ClubMemberStatus.active) {
     validationError('Usuario ja e membro ativo do clube');
+  }
+
+  if (existingMembership?.status === ClubMemberStatus.blocked) {
+    blockedMemberError();
   }
 
   const now = new Date();

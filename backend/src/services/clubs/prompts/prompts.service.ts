@@ -15,6 +15,12 @@ import {
   notFoundError,
   requireAuthenticatedUser,
 } from '../core/errors';
+import {
+  assertMemberCanUseClub,
+  assertContentAllowedByClub,
+  assertMemberCanPost,
+} from '../moderation.service';
+import { enforceClubRateLimit } from '../rate-limit.service';
 import { mapPromptDetail, mapPromptSummary } from './mappers';
 import {
   buildPromptViewerState,
@@ -84,8 +90,11 @@ export async function createClubPrompt(
     forbiddenError();
   }
 
+  assertMemberCanPost(membership);
+
   const type = normalizePromptType(input.type);
   const content = normalizeContent(input.content);
+  assertContentAllowedByClub(content, club.blockedWords);
   const maxAttempts = normalizeMaxAttempts(input.maxAttempts, type);
   const expiresAt = normalizeOptionalDate(input.expiresAt);
   const difficulty = normalizeDifficulty(input.difficulty);
@@ -98,6 +107,12 @@ export async function createClubPrompt(
   if (isPinned && !canPin) {
     forbiddenError();
   }
+
+  await enforceClubRateLimit({
+    action: 'create_club_prompt',
+    actorId: input.authorId,
+    clubId: input.clubId,
+  });
 
   const now = new Date();
 
@@ -204,6 +219,7 @@ export async function getClubPromptDetail({
   }
 
   const membership = getActivePromptMembership(club.members, viewerId);
+  assertMemberCanUseClub(club.members[0]);
 
   if (!canViewPromptClub(club, membership)) {
     forbiddenError();

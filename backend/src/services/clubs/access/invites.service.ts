@@ -5,14 +5,18 @@ import {
 } from '../../../generated/prisma/client';
 import { prisma } from '../../../lib/prisma';
 import {
+  blockedMemberError,
+  duplicateInviteError,
   forbiddenError,
   notFoundError,
   requireAuthenticatedUser,
   validationError,
 } from '../core/errors';
 import { getClubPermissions } from '../core/permissions';
+import { enforceClubRateLimit } from '../rate-limit.service';
 
 const CLUB_INVITE_MESSAGE_MAX_LENGTH = 500;
+const CLUB_INVITE_REPEAT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 export type CreateClubInviteInput = {
   clubId: string;
@@ -256,6 +260,10 @@ export async function createClubInvite(
     validationError('Usuario ja e membro ativo do clube');
   }
 
+  if (existingMembership?.status === ClubMemberStatus.blocked) {
+    blockedMemberError();
+  }
+
   if (existingMembership?.status === ClubMemberStatus.invited) {
     validationError('Usuario ja possui convite pendente para este clube');
   }
@@ -273,6 +281,29 @@ export async function createClubInvite(
   if (existingInvite) {
     validationError('Usuario ja possui convite pendente para este clube');
   }
+
+  const recentExistingInvite = await prisma.clubInvite.findFirst({
+    where: {
+      clubId: input.clubId,
+      inviteeId,
+      createdAt: {
+        gte: new Date(Date.now() - CLUB_INVITE_REPEAT_WINDOW_MS),
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
+  if (recentExistingInvite) {
+    duplicateInviteError();
+  }
+
+  await enforceClubRateLimit({
+    action: 'create_club_invite',
+    actorId: input.inviterId,
+    clubId: input.clubId,
+  });
 
   const createdInvite = await prisma.$transaction(async (tx) => {
     const invite = await tx.clubInvite.create({
@@ -378,6 +409,11 @@ export async function acceptClubInvite(
         },
       },
     });
+
+    if (existingMembership?.status === ClubMemberStatus.blocked) {
+      blockedMemberError();
+    }
+
     const shouldIncrementMemberCount =
       existingMembership?.status !== ClubMemberStatus.active;
 

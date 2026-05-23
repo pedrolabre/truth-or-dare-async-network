@@ -19,6 +19,8 @@ export function mapClubMember(member: ClubMemberWithUser): ClubMemberSummaryDto 
     joinedAt: member.joinedAt?.toISOString() ?? null,
     lastSeenAt: member.lastSeenAt?.toISOString() ?? null,
     mutedUntil: member.mutedUntil?.toISOString() ?? null,
+    postingSuspendedUntil:
+      member.postingSuspendedUntil?.toISOString() ?? null,
     createdAt: member.createdAt.toISOString(),
     updatedAt: member.updatedAt.toISOString(),
   };

@@ -7,7 +7,9 @@ export const CLUB_RULES_MAX_LENGTH = 2000;
 const CLUB_NAME_MIN_LENGTH = 3;
 const CLUB_NAME_MAX_LENGTH = 80;
 const CLUB_TAG_MAX_LENGTH = 32;
+const CLUB_BLOCKED_WORD_MAX_LENGTH = 40;
 const CLUB_MAX_TAGS = 10;
+const CLUB_MAX_BLOCKED_WORDS = 100;
 const CLUB_MAX_INITIAL_MEMBERS = 50;
 
 const ALLOWED_ICON_NAMES = new Set([
@@ -156,4 +158,47 @@ export function normalizeTags(value: unknown) {
   }
 
   return uniqueTags;
+}
+
+export function normalizeBlockedWords(value: unknown) {
+  if (value === undefined || value === null) {
+    return [];
+  }
+
+  if (!Array.isArray(value)) {
+    validationError('Palavras bloqueadas do clube invalidas');
+  }
+
+  const blockedWords = value.map((word) => {
+    if (typeof word !== 'string') {
+      validationError('Palavras bloqueadas do clube invalidas');
+    }
+
+    const normalizedWord = word.trim().toLowerCase();
+
+    if (
+      !normalizedWord ||
+      normalizedWord.length > CLUB_BLOCKED_WORD_MAX_LENGTH
+    ) {
+      validationError(
+        `Palavras bloqueadas devem ter entre 1 e ${CLUB_BLOCKED_WORD_MAX_LENGTH} caracteres`,
+      );
+    }
+
+    return normalizedWord;
+  });
+
+  const uniqueBlockedWords = Array.from(new Set(blockedWords));
+
+  if (uniqueBlockedWords.length !== blockedWords.length) {
+    validationError('Palavras bloqueadas do clube possuem duplicatas');
+  }
+
+  if (uniqueBlockedWords.length > CLUB_MAX_BLOCKED_WORDS) {
+    validationError(
+      `Clube deve ter no maximo ${CLUB_MAX_BLOCKED_WORDS} palavras bloqueadas`,
+    );
+  }
+
+  return uniqueBlockedWords;
 }
