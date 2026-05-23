@@ -3,6 +3,7 @@ export type FeedCommentsItemType = 'truth' | 'dare' | 'club';
 export type FeedCommentsRouteParams = {
   itemId?: string;
   itemType?: string;
+  clubId?: string;
   title?: string;
   clubName?: string;
   badge?: string;

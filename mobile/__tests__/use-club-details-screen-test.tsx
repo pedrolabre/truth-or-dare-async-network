@@ -203,6 +203,42 @@ describe('useClubDetailsScreen', () => {
     expect(result.current.club).toBeNull();
   });
 
+  it('traduz mensagens de usuario bloqueado ou removido sem esconder o motivo', async () => {
+    const blockedLoad = jest
+      .fn()
+      .mockRejectedValue(makeApiError(403, 'Usuario bloqueado neste clube'));
+    const removedLoad = jest
+      .fn()
+      .mockRejectedValue(makeApiError(403, 'Usuario removido deste clube'));
+
+    const blockedHook = renderHook(() =>
+      useClubDetailsScreen({
+        clubId: 'club-blocked',
+        loadClubDetails: blockedLoad,
+      }),
+    );
+    const removedHook = renderHook(() =>
+      useClubDetailsScreen({
+        clubId: 'club-removed',
+        loadClubDetails: removedLoad,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(blockedHook.result.current.contentState).toBe('access-denied');
+    });
+    await waitFor(() => {
+      expect(removedHook.result.current.contentState).toBe('access-denied');
+    });
+
+    expect(blockedHook.result.current.errorMessage).toBe(
+      'Voce foi bloqueado neste clube e nao pode acessar os detalhes internos.',
+    );
+    expect(removedHook.result.current.errorMessage).toBe(
+      'Sua participacao foi removida deste clube.',
+    );
+  });
+
   it('mapeia 404 para clube removido ou inexistente', async () => {
     const loadClubDetails = jest
       .fn()

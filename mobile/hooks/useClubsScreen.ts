@@ -49,6 +49,7 @@ const MEMBER_STATUS_LABELS: Record<ClubMemberStatusApi, string> = {
   invited: 'Convite',
   requested: 'Pendente',
   removed: 'Removido',
+  blocked: 'Bloqueado',
 };
 
 const MEMBER_ROLE_LABELS: Record<ClubMemberRoleApi, string> = {

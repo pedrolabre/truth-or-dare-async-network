@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ClubsApiError, getClubMembers } from '../services/clubsApi';
 import type {
+  ClubMemberApi,
   ClubMemberRoleApi,
   ClubMemberStatusApi,
   ClubMembersApi,
@@ -234,6 +235,14 @@ export function useClubMembers({
     });
   }, [canLoadMore, isLoadingMore, loadMembers, pagination]);
 
+  const replaceMember = useCallback((member: ClubMemberApi) => {
+    setItems((currentItems) =>
+      currentItems.map((currentMember) =>
+        currentMember.userId === member.userId ? member : currentMember,
+      ),
+    );
+  }, []);
+
   return {
     items,
     contentState,
@@ -253,5 +262,6 @@ export function useClubMembers({
     handleRetry,
     handleRefresh,
     handleLoadMore,
+    replaceMember,
   };
 }

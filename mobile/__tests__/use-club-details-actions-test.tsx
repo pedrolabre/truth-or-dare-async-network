@@ -61,6 +61,7 @@ function makeClubMember(overrides: Partial<ClubMemberApi> = {}): ClubMemberApi {
     joinedAt: '2026-05-21T12:00:00.000Z',
     lastSeenAt: null,
     mutedUntil: null,
+    postingSuspendedUntil: null,
     createdAt: '2026-05-21T12:00:00.000Z',
     updatedAt: '2026-05-21T12:00:00.000Z',
     ...overrides,

@@ -18,7 +18,8 @@ export type ClubMemberStatusApi =
   | 'active'
   | 'invited'
   | 'requested'
-  | 'removed';
+  | 'removed'
+  | 'blocked';
 
 export type ClubPromptTypeApi = 'truth' | 'dare';
 
@@ -96,6 +97,7 @@ export type ClubMemberApi = {
   joinedAt: string | null;
   lastSeenAt: string | null;
   mutedUntil: string | null;
+  postingSuspendedUntil: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -181,6 +183,39 @@ export type CreateClubPromptResponsePayloadApi = {
   mediaUrl?: string | null;
   mediaType?: 'video' | 'audio' | 'file' | null;
   dareProofId?: string | null;
+};
+
+export type ClubReportTargetTypeApi =
+  | 'club'
+  | 'club_prompt'
+  | 'club_prompt_response'
+  | 'club_prompt_comment';
+
+export type ClubReportReasonApi =
+  | 'spam'
+  | 'hate'
+  | 'sexual'
+  | 'harassment'
+  | 'violence'
+  | 'other';
+
+export type CreateClubReportPayloadApi = {
+  reason: ClubReportReasonApi;
+  details?: string | null;
+};
+
+export type ClubReportApi = {
+  id: string;
+  clubId: string;
+  targetType: ClubReportTargetTypeApi;
+  targetId: string;
+  reason: string;
+  details: string | null;
+  createdAt: string;
+};
+
+export type SuspendClubMemberPostingPayloadApi = {
+  suspendedUntil: string;
 };
 
 export type ClubPromptViewerStateApi = {

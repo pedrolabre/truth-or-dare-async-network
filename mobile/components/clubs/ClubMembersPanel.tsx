@@ -12,6 +12,7 @@ import {
 import type { ClubsThemeColors } from '../../constants/clubsTheme';
 import type { ClubMembersScreenState } from '../../types/clubs';
 import type {
+  ClubMemberApi,
   ClubMemberRoleApi,
   ClubMemberStatusApi,
 } from '../../types/clubsApi';
@@ -20,6 +21,11 @@ import ClubMemberRow from './ClubMemberRow';
 type Props = {
   colors: ClubsThemeColors;
   members: ClubMembersScreenState;
+  canManageMembers?: boolean;
+  viewerRole?: ClubMemberRoleApi | null;
+  restrictingUserId?: string | null;
+  onBlockMember?: (member: ClubMemberApi) => void;
+  onSuspendMemberPosting?: (member: ClubMemberApi) => void;
 };
 
 const ROLE_OPTIONS: { label: string; value: ClubMemberRoleApi | null }[] = [
@@ -39,9 +45,50 @@ const STATUS_OPTIONS: {
   { label: 'Convites', value: 'invited' },
   { label: 'Pedidos', value: 'requested' },
   { label: 'Removidos', value: 'removed' },
+  { label: 'Bloqueados', value: 'blocked' },
 ];
 
-export default function ClubMembersPanel({ colors, members }: Props) {
+function getRoleRank(role: ClubMemberRoleApi | null | undefined) {
+  if (role === 'owner') return 4;
+  if (role === 'admin') return 3;
+  if (role === 'moderator') return 2;
+  if (role === 'member') return 1;
+  return 0;
+}
+
+function canModerateMember({
+  canManageMembers,
+  viewerRole,
+  member,
+}: {
+  canManageMembers: boolean;
+  viewerRole: ClubMemberRoleApi | null | undefined;
+  member: ClubMemberApi;
+}) {
+  if (!canManageMembers || member.status !== 'active') {
+    return false;
+  }
+
+  if (viewerRole !== 'owner' && viewerRole !== 'admin') {
+    return false;
+  }
+
+  if (member.role === 'owner') {
+    return false;
+  }
+
+  return getRoleRank(member.role) < getRoleRank(viewerRole);
+}
+
+export default function ClubMembersPanel({
+  colors,
+  members,
+  canManageMembers = false,
+  viewerRole = null,
+  restrictingUserId = null,
+  onBlockMember,
+  onSuspendMemberPosting,
+}: Props) {
   if (members.contentState === 'access-denied') {
     return (
       <StatePanel
@@ -124,6 +171,29 @@ export default function ClubMembersPanel({ colors, members }: Props) {
         </Pressable>
       </View>
 
+      {canManageMembers ? (
+        <View
+          testID="club-moderation-panel"
+          style={[
+            styles.moderationPanel,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.cardBorder,
+            },
+          ]}
+        >
+          <MaterialIcons name="admin-panel-settings" size={20} color={colors.green} />
+          <View style={styles.moderationTextStack}>
+            <Text style={[styles.moderationTitle, { color: colors.text }]}>
+              Moderacao simples
+            </Text>
+            <Text style={[styles.moderationDescription, { color: colors.subText }]}>
+              Acoes aparecem apenas para membros que seu papel pode restringir.
+            </Text>
+          </View>
+        </View>
+      ) : null}
+
       <View
         style={[
           styles.searchBox,
@@ -190,7 +260,19 @@ export default function ClubMembersPanel({ colors, members }: Props) {
         />
       ) : (
         members.items.map((member) => (
-          <ClubMemberRow key={member.id} member={member} colors={colors} />
+          <ClubMemberRow
+            key={member.id}
+            member={member}
+            colors={colors}
+            canModerate={canModerateMember({
+              canManageMembers,
+              viewerRole,
+              member,
+            })}
+            isRestricting={restrictingUserId === member.userId}
+            onBlock={onBlockMember}
+            onSuspendPosting={onSuspendMemberPosting}
+          />
         ))
       )}
 
@@ -422,6 +504,29 @@ const styles = StyleSheet.create({
   },
   filterGroup: {
     gap: 8,
+  },
+  moderationPanel: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 13,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+  },
+  moderationTextStack: {
+    flex: 1,
+    minWidth: 0,
+    gap: 3,
+  },
+  moderationTitle: {
+    fontSize: 14,
+    lineHeight: 18,
+    fontWeight: '900',
+  },
+  moderationDescription: {
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
   },
   filterLabel: {
     fontSize: 12,

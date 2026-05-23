@@ -16,6 +16,11 @@ type Props = {
   onAnswerTruth?: (item: ClubFeedItemApi) => void;
   onOpenComments?: (item: ClubFeedItemApi) => void;
   onSubmitDareProof?: (item: ClubFeedItemApi) => void;
+  onReportPrompt?: (item: ClubFeedItemApi) => void;
+  onReportResponse?: (
+    item: ClubFeedItemApi,
+    response: ClubPromptResponseApi,
+  ) => void;
 };
 
 type BadgeTone = 'green' | 'red' | 'neutral';
@@ -158,6 +163,8 @@ export default function ClubPromptCard({
   onAnswerTruth,
   onOpenComments,
   onSubmitDareProof,
+  onReportPrompt,
+  onReportResponse,
 }: Props) {
   const typeIconName = item.type === 'truth' ? 'help-outline' : 'bolt';
   const typeColors = getBadgeColors(
@@ -219,6 +226,27 @@ export default function ClubPromptCard({
           </Text>
         </View>
       </View>
+
+      {onReportPrompt ? (
+        <Pressable
+          accessibilityRole="button"
+          testID={`club-prompt-report-${item.id}`}
+          onPress={() => onReportPrompt(item)}
+          style={({ pressed }) => [
+            styles.reportButton,
+            {
+              backgroundColor: colors.surfaceSoft,
+              borderColor: colors.cardBorder,
+            },
+            pressed && styles.pressed,
+          ]}
+        >
+          <MaterialIcons name="flag" size={14} color={colors.red} />
+          <Text style={[styles.reportText, { color: colors.red }]}>
+            Denunciar prompt
+          </Text>
+        </Pressable>
+      ) : null}
 
       <Text
         testID={`club-prompt-content-${item.id}`}
@@ -310,12 +338,28 @@ export default function ClubPromptCard({
 
           {recentResponses.map((response) => (
             <View key={response.id} style={styles.responseItem}>
-              <Text
-                numberOfLines={1}
-                style={[styles.responseAuthor, { color: colors.green }]}
-              >
-                {response.userName}
-              </Text>
+              <View style={styles.responseHeader}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.responseAuthor, { color: colors.green }]}
+                >
+                  {response.userName}
+                </Text>
+                {onReportResponse ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    hitSlop={8}
+                    testID={`club-response-report-${response.id}`}
+                    onPress={() => onReportResponse(item, response)}
+                    style={({ pressed }) => [
+                      styles.responseReportButton,
+                      pressed && styles.pressed,
+                    ]}
+                  >
+                    <MaterialIcons name="flag" size={15} color={colors.red} />
+                  </Pressable>
+                ) : null}
+              </View>
               <Text
                 numberOfLines={2}
                 style={[styles.responseText, { color: colors.subText }]}
@@ -512,7 +556,13 @@ const styles = StyleSheet.create({
   responseItem: {
     gap: 3,
   },
+  responseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   responseAuthor: {
+    flex: 1,
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '900',
@@ -535,6 +585,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 17,
     fontWeight: '900',
+  },
+  reportButton: {
+    alignSelf: 'flex-start',
+    minHeight: 32,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  reportText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '900',
+  },
+  responseReportButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   disabledAction: {
     opacity: 0.68,

@@ -210,6 +210,7 @@ function makeMember(overrides: Partial<ClubMemberApi> = {}): ClubMemberApi {
     joinedAt: '2026-05-20T12:00:00.000Z',
     lastSeenAt: null,
     mutedUntil: null,
+    postingSuspendedUntil: null,
     createdAt: '2026-05-20T12:00:00.000Z',
     updatedAt: '2026-05-20T12:00:00.000Z',
     ...overrides,
@@ -243,6 +244,7 @@ function makeMembersState(
     handleRetry: jest.fn().mockResolvedValue(undefined),
     handleRefresh: jest.fn().mockResolvedValue(undefined),
     handleLoadMore: jest.fn().mockResolvedValue(undefined),
+    replaceMember: jest.fn(),
     ...overrides,
   };
 }
@@ -329,6 +331,7 @@ describe('ClubDetailScreen', () => {
       params: {
         itemId: 'prompt-1',
         itemType: 'club',
+        clubId: 'club-real-123',
         title: 'Conte uma verdade leve.',
         clubName: 'Bons Desafios',
         badge: 'Verdade',

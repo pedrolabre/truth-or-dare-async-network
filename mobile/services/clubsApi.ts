@@ -10,12 +10,15 @@ import type {
   ClubMembersQueryApi,
   ClubPromptApi,
   ClubPromptResponseApi,
+  ClubReportApi,
   ClubSummaryApi,
+  CreateClubReportPayloadApi,
   CreateClubPromptPayloadApi,
   CreateClubPromptResponsePayloadApi,
   CreateClubPayloadApi,
   CreateClubResponseApi,
   DiscoverClubsApi,
+  SuspendClubMemberPostingPayloadApi,
   UpdateClubPayloadApi,
 } from '../types/clubsApi';
 
@@ -439,6 +442,163 @@ export async function createClubPromptResponse(
 
   const response = await fetch(
     `${baseUrl}/clubs/${clubId}/prompts/${promptId}/responses`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return parseResponse(response);
+}
+
+export async function reportClub(
+  clubId: string,
+  payload: CreateClubReportPayloadApi,
+): Promise<ClubReportApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs/${clubId}/report`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function reportClubPrompt(
+  clubId: string,
+  promptId: string,
+  payload: CreateClubReportPayloadApi,
+): Promise<ClubReportApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(
+    `${baseUrl}/clubs/${clubId}/prompts/${promptId}/report`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return parseResponse(response);
+}
+
+export async function reportClubPromptResponse(
+  clubId: string,
+  promptId: string,
+  responseId: string,
+  payload: CreateClubReportPayloadApi,
+): Promise<ClubReportApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(
+    `${baseUrl}/clubs/${clubId}/prompts/${promptId}/responses/${responseId}/report`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return parseResponse(response);
+}
+
+export async function reportClubPromptComment(
+  clubId: string,
+  promptId: string,
+  commentId: string,
+  payload: CreateClubReportPayloadApi,
+): Promise<ClubReportApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(
+    `${baseUrl}/clubs/${clubId}/prompts/${promptId}/comments/${commentId}/report`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return parseResponse(response);
+}
+
+export async function blockClubMember(
+  clubId: string,
+  userId: string,
+): Promise<ClubMemberApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(
+    `${baseUrl}/clubs/${clubId}/members/${userId}/block`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  return parseResponse(response);
+}
+
+export async function suspendClubMemberPosting(
+  clubId: string,
+  userId: string,
+  payload: SuspendClubMemberPostingPayloadApi,
+): Promise<ClubMemberApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(
+    `${baseUrl}/clubs/${clubId}/members/${userId}/suspend-posting`,
     {
       method: 'POST',
       headers: {

@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ClubsThemeColors } from '../../constants/clubsTheme';
 import type {
@@ -21,6 +21,7 @@ const STATUS_LABELS: Record<ClubMemberStatusApi, string> = {
   invited: 'Convidado',
   requested: 'Pendente',
   removed: 'Removido',
+  blocked: 'Bloqueado',
 };
 
 function getDateLabel(value: string | null) {
@@ -50,10 +51,24 @@ function getInitials(name: string) {
 type Props = {
   member: ClubMemberApi;
   colors: ClubsThemeColors;
+  canModerate?: boolean;
+  isRestricting?: boolean;
+  onBlock?: (member: ClubMemberApi) => void;
+  onSuspendPosting?: (member: ClubMemberApi) => void;
 };
 
-export default function ClubMemberRow({ member, colors }: Props) {
+export default function ClubMemberRow({
+  member,
+  colors,
+  canModerate = false,
+  isRestricting = false,
+  onBlock,
+  onSuspendPosting,
+}: Props) {
   const username = member.username ? `@${member.username}` : 'Sem username';
+  const hasPostingSuspension = Boolean(member.postingSuspendedUntil);
+  const canShowModerationActions =
+    canModerate && member.status === 'active' && member.role !== 'owner';
 
   return (
     <View
@@ -101,7 +116,56 @@ export default function ClubMemberRow({ member, colors }: Props) {
             {STATUS_LABELS[member.status]}
           </Text>
         </View>
+        {hasPostingSuspension ? (
+          <View style={[styles.badge, { backgroundColor: colors.redSoft }]}>
+            <Text numberOfLines={1} style={[styles.badgeText, { color: colors.red }]}>
+              Suspenso
+            </Text>
+          </View>
+        ) : null}
       </View>
+
+      {canShowModerationActions ? (
+        <View style={styles.moderationActions}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isRestricting }}
+            disabled={isRestricting}
+            testID={`club-member-suspend-${member.userId}`}
+            onPress={() => onSuspendPosting?.(member)}
+            style={({ pressed }) => [
+              styles.moderationButton,
+              {
+                backgroundColor: colors.surfaceSoft,
+                borderColor: colors.cardBorder,
+              },
+              pressed && !isRestricting && styles.pressed,
+              isRestricting && styles.disabled,
+            ]}
+          >
+            <MaterialIcons name="timer-off" size={15} color={colors.green} />
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: isRestricting }}
+            disabled={isRestricting}
+            testID={`club-member-block-${member.userId}`}
+            onPress={() => onBlock?.(member)}
+            style={({ pressed }) => [
+              styles.moderationButton,
+              {
+                backgroundColor: colors.redSoft,
+                borderColor: colors.cardBorder,
+              },
+              pressed && !isRestricting && styles.pressed,
+              isRestricting && styles.disabled,
+            ]}
+          >
+            <MaterialIcons name="block" size={15} color={colors.red} />
+          </Pressable>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -158,6 +222,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 6,
   },
+  moderationActions: {
+    gap: 6,
+  },
+  moderationButton: {
+    width: 34,
+    height: 34,
+    borderWidth: 1,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   badge: {
     minHeight: 26,
     borderRadius: 999,
@@ -170,5 +245,11 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     fontWeight: '900',
     textTransform: 'uppercase',
+  },
+  disabled: {
+    opacity: 0.55,
+  },
+  pressed: {
+    opacity: 0.86,
   },
 });

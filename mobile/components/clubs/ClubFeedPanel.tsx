@@ -19,6 +19,11 @@ type Props = {
   onAnswerTruth?: (item: ClubFeedItemApi) => void;
   onOpenComments?: (item: ClubFeedItemApi) => void;
   onSubmitDareProof?: (item: ClubFeedItemApi) => void;
+  onReportPrompt?: (item: ClubFeedItemApi) => void;
+  onReportResponse?: (
+    item: ClubFeedItemApi,
+    response: ClubFeedItemApi['recentResponses'][number],
+  ) => void;
 };
 
 export default function ClubFeedPanel({
@@ -27,6 +32,8 @@ export default function ClubFeedPanel({
   onAnswerTruth,
   onOpenComments,
   onSubmitDareProof,
+  onReportPrompt,
+  onReportResponse,
 }: Props) {
   if (feed.contentState === 'access-denied') {
     return (
@@ -179,6 +186,8 @@ export default function ClubFeedPanel({
           onAnswerTruth={onAnswerTruth}
           onOpenComments={onOpenComments}
           onSubmitDareProof={onSubmitDareProof}
+          onReportPrompt={onReportPrompt}
+          onReportResponse={onReportResponse}
         />
       ))}
 

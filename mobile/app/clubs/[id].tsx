@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
+  Alert,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -23,6 +24,7 @@ import ClubInvitesModal from '../../components/clubs/ClubInvitesModal';
 import ClubMembersPanel from '../../components/clubs/ClubMembersPanel';
 import ClubPromptComposerModal from '../../components/clubs/ClubPromptComposerModal';
 import ClubRankingPanel from '../../components/clubs/ClubRankingPanel';
+import ClubReportModal from '../../components/clubs/ClubReportModal';
 import ClubSettingsModal from '../../components/clubs/ClubSettingsModal';
 import ClubTruthResponseModal from '../../components/clubs/ClubTruthResponseModal';
 import {
@@ -34,8 +36,9 @@ import { useTheme } from '../../context/ThemeContext';
 import { useClubDetailsScreen } from '../../hooks/useClubDetailsScreen';
 import { useClubFeed } from '../../hooks/useClubFeed';
 import { useClubMembers } from '../../hooks/useClubMembers';
+import { useClubModeration } from '../../hooks/useClubModeration';
 import type { ClubDetail, ClubDetailTabKey } from '../../types/clubs';
-import type { ClubFeedItemApi } from '../../types/clubsApi';
+import type { ClubFeedItemApi, ClubMemberApi } from '../../types/clubsApi';
 
 type ClubDetailRouteParams = {
   id?: string | string[];
@@ -59,6 +62,7 @@ export default function ClubDetailScreen() {
   );
   const [activeTab, setActiveTab] =
     React.useState<ClubDetailTabKey>('feed');
+  const moderation = useClubModeration();
   const {
     club,
     clubId,
@@ -97,6 +101,68 @@ export default function ClubDetailScreen() {
     setActiveTab('feed');
   }, [clubId]);
 
+  async function handleBlockMember(member: ClubMemberApi) {
+    if (!clubId) {
+      return;
+    }
+
+    const updatedMember = await moderation.blockMember(clubId, member.userId);
+
+    if (updatedMember) {
+      clubMembers.replaceMember(updatedMember);
+      void handleRefresh();
+    }
+  }
+
+  async function handleSuspendMemberPosting(member: ClubMemberApi) {
+    if (!clubId) {
+      return;
+    }
+
+    const updatedMember = await moderation.suspendMemberPosting(
+      clubId,
+      member.userId,
+    );
+
+    if (updatedMember) {
+      clubMembers.replaceMember(updatedMember);
+    }
+  }
+
+  function confirmBlockMember(member: ClubMemberApi) {
+    Alert.alert(
+      'Bloquear membro',
+      `Bloquear ${member.name} remove o acesso ativo ao clube.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Bloquear',
+          style: 'destructive',
+          onPress: () => {
+            void handleBlockMember(member);
+          },
+        },
+      ],
+    );
+  }
+
+  function confirmSuspendMemberPosting(member: ClubMemberApi) {
+    Alert.alert(
+      'Suspender postagem',
+      `Suspender ${member.name} por 24 horas impede prompts, respostas e comentarios.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Suspender',
+          style: 'destructive',
+          onPress: () => {
+            void handleSuspendMemberPosting(member);
+          },
+        },
+      ],
+    );
+  }
+
   function renderActiveTabPanel(readyClub: ClubDetail) {
     switch (activeTab) {
       case 'about':
@@ -104,7 +170,17 @@ export default function ClubDetailScreen() {
       case 'ranking':
         return <ClubRankingPanel colors={colors} />;
       case 'members':
-        return <ClubMembersPanel colors={colors} members={clubMembers} />;
+        return (
+          <ClubMembersPanel
+            colors={colors}
+            members={clubMembers}
+            canManageMembers={Boolean(readyClub.permissions.canManageMembers)}
+            viewerRole={readyClub.viewerMembership.role}
+            restrictingUserId={moderation.restrictingUserId}
+            onBlockMember={confirmBlockMember}
+            onSuspendMemberPosting={confirmSuspendMemberPosting}
+          />
+        );
       case 'feed':
       default:
         return (
@@ -121,6 +197,7 @@ export default function ClubDetailScreen() {
                 params: {
                   itemId: item.id,
                   itemType: 'club',
+                  clubId: readyClub.id,
                   title: item.content,
                   clubName: readyClub.name,
                   badge: item.type === 'truth' ? 'Verdade' : 'Desafio',
@@ -134,9 +211,52 @@ export default function ClubDetailScreen() {
               clubFeed.clearResponseError();
               setDarePrompt(item);
             }}
+            onReportPrompt={(item) => {
+              moderation.openReport({
+                type: 'prompt',
+                clubId: readyClub.id,
+                promptId: item.id,
+                title: item.content,
+              });
+            }}
+            onReportResponse={(item, response) => {
+              moderation.openReport({
+                type: 'response',
+                clubId: readyClub.id,
+                promptId: item.id,
+                responseId: response.id,
+                title: response.text?.trim() || `Resposta de ${response.userName}`,
+              });
+            }}
           />
         );
     }
+  }
+
+  function getAccessNotice(readyClub: ClubDetail) {
+    const status = readyClub.viewerMembership.status;
+
+    if (status === 'blocked') {
+      return 'Voce foi bloqueado neste clube. Feed, postagem e interacoes ficam indisponiveis.';
+    }
+
+    if (status === 'removed') {
+      return 'Sua participacao foi removida deste clube. As acoes internas ficam indisponiveis.';
+    }
+
+    if (status === 'requested') {
+      return 'Sua solicitacao de entrada esta pendente. Algumas areas continuam bloqueadas ate aprovacao.';
+    }
+
+    if (!readyClub.permissions.canPostPrompt && readyClub.viewerMembership.isMember) {
+      return 'Voce nao pode postar agora. Se houver suspensao temporaria, tente novamente quando ela terminar.';
+    }
+
+    if (!readyClub.permissions.canViewFeed) {
+      return 'Voce nao tem permissao para ver o feed deste clube.';
+    }
+
+    return null;
   }
 
   function renderDetailContent() {
@@ -161,6 +281,14 @@ export default function ClubDetailScreen() {
       <View testID="club-detail-summary-card" style={styles.readyStack}>
         <ClubHeaderCard club={club} colors={colors} />
 
+        {getAccessNotice(club) ? (
+          <FeedbackBanner
+            colors={colors}
+            message={getAccessNotice(club) ?? ''}
+            tone="warning"
+          />
+        ) : null}
+
         {errorMessage ? (
           <FeedbackBanner colors={colors} message={errorMessage} tone="danger" />
         ) : null}
@@ -177,6 +305,22 @@ export default function ClubDetailScreen() {
           <FeedbackBanner
             colors={colors}
             message={actionSuccessMessage}
+            tone="success"
+          />
+        ) : null}
+
+        {moderation.restrictionErrorMessage ? (
+          <FeedbackBanner
+            colors={colors}
+            message={moderation.restrictionErrorMessage}
+            tone="danger"
+          />
+        ) : null}
+
+        {moderation.restrictionSuccessMessage ? (
+          <FeedbackBanner
+            colors={colors}
+            message={moderation.restrictionSuccessMessage}
             tone="success"
           />
         ) : null}
@@ -206,6 +350,18 @@ export default function ClubDetailScreen() {
           onOpenSettings={() => {
             clearActionFeedback();
             setSettingsVisible(true);
+          }}
+          onReportClub={() => {
+            if (!club) {
+              return;
+            }
+
+            clearActionFeedback();
+            moderation.openReport({
+              type: 'club',
+              clubId: club.id,
+              title: club.name,
+            });
           }}
         />
 
@@ -344,6 +500,18 @@ export default function ClubDetailScreen() {
           onClose={() => setSettingsVisible(false)}
           onUpdated={handleClubUpdated}
         />
+
+        <ClubReportModal
+          visible={Boolean(moderation.activeReportTarget)}
+          target={moderation.activeReportTarget}
+          colors={colors}
+          isSubmitting={moderation.isSubmittingReport}
+          errorMessage={moderation.reportErrorMessage}
+          successMessage={moderation.reportSuccessMessage}
+          onClose={moderation.closeReport}
+          onSubmit={moderation.submitReport}
+          onFinish={moderation.finishReport}
+        />
       </View>
     </View>
   );
@@ -352,11 +520,12 @@ export default function ClubDetailScreen() {
 type FeedbackBannerProps = {
   colors: ClubsThemeColors;
   message: string;
-  tone: 'danger' | 'success';
+  tone: 'danger' | 'success' | 'warning';
 };
 
 function FeedbackBanner({ colors, message, tone }: FeedbackBannerProps) {
   const isDanger = tone === 'danger';
+  const isWarning = tone === 'warning';
 
   return (
     <View
@@ -371,7 +540,7 @@ function FeedbackBanner({ colors, message, tone }: FeedbackBannerProps) {
       <Text
         style={[
           styles.feedbackText,
-          { color: isDanger ? colors.red : colors.green },
+          { color: isDanger ? colors.red : isWarning ? colors.text : colors.green },
         ]}
       >
         {message}

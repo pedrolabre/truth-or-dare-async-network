@@ -84,6 +84,36 @@ function getErrorMessage(error: unknown): string {
     : GENERIC_DETAIL_ERROR_MESSAGE;
 }
 
+function getFriendlyClubAccessMessage(message: string): string {
+  const normalizedMessage = message.toLowerCase();
+
+  if (normalizedMessage.includes('bloqueado')) {
+    return 'Voce foi bloqueado neste clube e nao pode acessar os detalhes internos.';
+  }
+
+  if (normalizedMessage.includes('removido')) {
+    return 'Sua participacao foi removida deste clube.';
+  }
+
+  if (normalizedMessage.includes('pendente')) {
+    return 'Sua solicitacao ainda esta pendente de aprovacao.';
+  }
+
+  if (normalizedMessage.includes('privado')) {
+    return 'Este clube e privado e exige permissao para acessar.';
+  }
+
+  if (normalizedMessage.includes('permissao')) {
+    return 'Voce nao tem permissao para acessar este clube no momento.';
+  }
+
+  if (normalizedMessage.includes('acesso negado')) {
+    return 'Este clube e privado ou voce nao tem permissao para acessa-lo.';
+  }
+
+  return message;
+}
+
 export function getClubDetailContentState(
   club: ClubDetail,
 ): ClubDetailContentState {
@@ -123,7 +153,7 @@ export function getClubDetailErrorMessage(
   state: ClubDetailContentState,
 ): string {
   if (state === 'access-denied') {
-    return 'Este clube e privado ou voce nao tem permissao para acessa-lo.';
+    return getFriendlyClubAccessMessage(getErrorMessage(error));
   }
 
   if (state === 'not-found') {

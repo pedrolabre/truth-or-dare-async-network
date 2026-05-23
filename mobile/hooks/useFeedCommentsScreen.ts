@@ -10,6 +10,7 @@ import {
   toggleTruthCommentLike,
   updateTruthComment,
 } from '../services/api';
+import { reportClubPrompt } from '../services/clubsApi';
 import type {
   FeedComment,
   FeedCommentActionModalType,
@@ -176,7 +177,10 @@ export function useFeedCommentsScreen({
     : 'truth';
 
   const itemId = normalizeParam(params.itemId);
+  const clubId = normalizeParam(params.clubId);
   const isTruthCommentsAvailable = itemType === 'truth' && Boolean(itemId);
+  const isClubPromptContext =
+    itemType === 'club' && Boolean(itemId) && Boolean(clubId);
 
   const context: FeedCommentsContext = useMemo(() => {
     if (itemType === 'club') {
@@ -359,7 +363,7 @@ export function useFeedCommentsScreen({
   }
 
   async function handleSubmitReport() {
-    if (!isTruthCommentsAvailable || !selectedReportReason) {
+    if ((!isTruthCommentsAvailable && !isClubPromptContext) || !selectedReportReason) {
       return;
     }
 
@@ -367,9 +371,15 @@ export function useFeedCommentsScreen({
       setIsSubmittingReport(true);
       setReportErrorMessage(null);
 
-      await reportTruth(itemId, {
-        reason: mapReportReasonToApiReason(selectedReportReason),
-      });
+      if (isClubPromptContext) {
+        await reportClubPrompt(clubId, itemId, {
+          reason: mapReportReasonToApiReason(selectedReportReason),
+        });
+      } else {
+        await reportTruth(itemId, {
+          reason: mapReportReasonToApiReason(selectedReportReason),
+        });
+      }
 
       setReportStep(3);
     } catch (error) {

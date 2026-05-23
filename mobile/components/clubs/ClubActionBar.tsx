@@ -16,6 +16,7 @@ type Props = {
   onPostPrompt: () => void;
   onToggleMute: () => void;
   onOpenSettings: () => void;
+  onReportClub: () => void;
 };
 
 type ActionButtonProps = {
@@ -44,6 +45,14 @@ function getJoinLabel(club: ClubDetail, isPending: boolean) {
     return 'Convite recebido';
   }
 
+  if (club.viewerMembership.status === 'removed') {
+    return 'Acesso removido';
+  }
+
+  if (club.viewerMembership.status === 'blocked') {
+    return 'Bloqueado';
+  }
+
   if (club.joinPolicy === 'approval_required') {
     return 'Solicitar entrada';
   }
@@ -66,6 +75,7 @@ export default function ClubActionBar({
   onPostPrompt,
   onToggleMute,
   onOpenSettings,
+  onReportClub,
 }: Props) {
   const isActive = club.status === 'active';
   const isMember = club.viewerMembership.isMember;
@@ -77,6 +87,8 @@ export default function ClubActionBar({
     isMember ||
     club.viewerMembership.status === 'requested' ||
     club.viewerMembership.status === 'invited' ||
+    club.viewerMembership.status === 'removed' ||
+    club.viewerMembership.status === 'blocked' ||
     club.joinPolicy === 'invite_only';
 
   return (
@@ -173,6 +185,19 @@ export default function ClubActionBar({
             secondary
             testID="club-action-settings"
             onPress={onOpenSettings}
+          />
+        ) : null}
+
+        {isActive ? (
+          <ActionButton
+            colors={colors}
+            iconName="flag"
+            label="Denunciar"
+            disabled={pendingAction === 'report'}
+            danger
+            secondary
+            testID="club-action-report"
+            onPress={onReportClub}
           />
         ) : null}
       </View>

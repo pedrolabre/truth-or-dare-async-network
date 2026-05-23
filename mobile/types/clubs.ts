@@ -9,6 +9,7 @@ import type {
   ClubPromptApi,
   ClubPromptResponseApi,
   ClubPromptTypeApi,
+  ClubReportReasonApi,
   ClubStatusApi,
   ClubViewerMembershipApi,
   ClubVisibilityApi,
@@ -48,7 +49,13 @@ export type ClubDiscoverItem = {
   iconName?: string;
   isTrending?: boolean;
   isMember: boolean;
-  membershipStatus?: 'active' | 'invited' | 'requested' | 'removed' | null;
+  membershipStatus?:
+    | 'active'
+    | 'invited'
+    | 'requested'
+    | 'removed'
+    | 'blocked'
+    | null;
 };
 
 export type ClubsScreenState = {
@@ -133,7 +140,10 @@ export type ClubDetailActionKey =
   | 'leave'
   | 'mute'
   | 'unmute'
-  | 'prompt';
+  | 'prompt'
+  | 'report'
+  | 'block-member'
+  | 'suspend-member';
 
 export type ClubPromptComposerPayload = {
   type: ClubPromptTypeApi;
@@ -143,6 +153,38 @@ export type ClubPromptComposerPayload = {
   expiresAt: string | null;
   isMembersOnly: boolean;
 };
+
+export type ClubReportReasonOption = {
+  label: string;
+  reason: ClubReportReasonApi;
+};
+
+export type ClubReportTarget =
+  | {
+      type: 'club';
+      clubId: string;
+      title: string;
+    }
+  | {
+      type: 'prompt';
+      clubId: string;
+      promptId: string;
+      title: string;
+    }
+  | {
+      type: 'response';
+      clubId: string;
+      promptId: string;
+      responseId: string;
+      title: string;
+    }
+  | {
+      type: 'comment';
+      clubId: string;
+      promptId: string;
+      commentId: string;
+      title: string;
+    };
 
 export type ClubPromptComposerSubmit = (
   payload: ClubPromptComposerPayload,
@@ -203,4 +245,5 @@ export type ClubMembersScreenState = {
   handleRetry: () => Promise<void>;
   handleRefresh: () => Promise<void>;
   handleLoadMore: () => Promise<void>;
+  replaceMember: (member: ClubMemberApi) => void;
 };

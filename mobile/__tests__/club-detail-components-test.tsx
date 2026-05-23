@@ -9,6 +9,7 @@ import ClubHeaderCard from '../components/clubs/ClubHeaderCard';
 import ClubMembersPanel from '../components/clubs/ClubMembersPanel';
 import ClubPromptCard from '../components/clubs/ClubPromptCard';
 import ClubRankingPanel from '../components/clubs/ClubRankingPanel';
+import ClubReportModal from '../components/clubs/ClubReportModal';
 import ClubTruthResponseModal from '../components/clubs/ClubTruthResponseModal';
 import { LIGHT_CLUBS_COLORS } from '../constants/clubsTheme';
 import type {
@@ -156,6 +157,7 @@ function makeMember(overrides: Partial<ClubMemberApi> = {}): ClubMemberApi {
     joinedAt: '2026-05-20T12:00:00.000Z',
     lastSeenAt: null,
     mutedUntil: null,
+    postingSuspendedUntil: null,
     createdAt: '2026-05-20T12:00:00.000Z',
     updatedAt: '2026-05-20T12:00:00.000Z',
     ...overrides,
@@ -189,6 +191,7 @@ function makeMembersState(
     handleRetry: jest.fn().mockResolvedValue(undefined),
     handleRefresh: jest.fn().mockResolvedValue(undefined),
     handleLoadMore: jest.fn().mockResolvedValue(undefined),
+    replaceMember: jest.fn(),
     ...overrides,
   };
 }
@@ -261,6 +264,7 @@ describe('club detail components', () => {
         onPostPrompt={jest.fn()}
         onToggleMute={jest.fn()}
         onOpenSettings={jest.fn()}
+        onReportClub={jest.fn()}
       />,
     );
 
@@ -278,6 +282,7 @@ describe('club detail components', () => {
     const onOpenSettings = jest.fn();
     const onLeave = jest.fn();
     const onToggleMute = jest.fn();
+    const onReportClub = jest.fn();
     const { getByTestId } = render(
       <ClubActionBar
         club={makeClubDetail()}
@@ -290,6 +295,7 @@ describe('club detail components', () => {
         onPostPrompt={onPostPrompt}
         onToggleMute={onToggleMute}
         onOpenSettings={onOpenSettings}
+        onReportClub={onReportClub}
       />,
     );
 
@@ -298,12 +304,53 @@ describe('club detail components', () => {
     fireEvent.press(getByTestId('club-action-settings'));
     fireEvent.press(getByTestId('club-action-leave'));
     fireEvent.press(getByTestId('club-action-mute'));
+    fireEvent.press(getByTestId('club-action-report'));
 
     expect(onPostPrompt).toHaveBeenCalledTimes(1);
     expect(onInvite).toHaveBeenCalledTimes(1);
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
     expect(onLeave).toHaveBeenCalledTimes(1);
     expect(onToggleMute).toHaveBeenCalledTimes(1);
+    expect(onReportClub).toHaveBeenCalledTimes(1);
+  });
+
+  it('mostra mensagem de bloqueado sem expor entrada falsa', () => {
+    const { getByTestId, getByText } = render(
+      <ClubActionBar
+        club={makeClubDetail({
+          viewerMembership: {
+            isMember: false,
+            role: null,
+            status: 'blocked',
+          },
+          membershipLabel: 'Bloqueado',
+          permissions: {
+            canViewFeed: false,
+            canPostPrompt: false,
+            canInviteMembers: false,
+            canManageMembers: false,
+            canEditClub: false,
+            canArchiveClub: false,
+            canTransferOwnership: false,
+          },
+        })}
+        colors={LIGHT_CLUBS_COLORS}
+        pendingAction={null}
+        isMuted={false}
+        onJoin={jest.fn()}
+        onLeave={jest.fn()}
+        onInvite={jest.fn()}
+        onPostPrompt={jest.fn()}
+        onToggleMute={jest.fn()}
+        onOpenSettings={jest.fn()}
+        onReportClub={jest.fn()}
+      />,
+    );
+
+    expect(getByText('Bloqueado')).toBeTruthy();
+    expect(getByTestId('club-action-join').props.accessibilityState).toEqual({
+      disabled: true,
+    });
   });
 
   it('renderiza Sobre com dados reais do detalhe do clube', () => {
@@ -359,12 +406,16 @@ describe('club detail components', () => {
   it('renderiza card de prompt de verdade com dados reais e respostas recentes', () => {
     const onAnswerTruth = jest.fn();
     const onOpenComments = jest.fn();
+    const onReportPrompt = jest.fn();
+    const onReportResponse = jest.fn();
     const { getByTestId, getByText } = render(
       <ClubPromptCard
         item={makeFeedItem()}
         colors={LIGHT_CLUBS_COLORS}
         onAnswerTruth={onAnswerTruth}
         onOpenComments={onOpenComments}
+        onReportPrompt={onReportPrompt}
+        onReportResponse={onReportResponse}
       />,
     );
 
@@ -387,6 +438,14 @@ describe('club detail components', () => {
 
     fireEvent.press(getByTestId('club-prompt-comments-prompt-truth-1'));
     expect(onOpenComments).toHaveBeenCalledWith(makeFeedItem());
+
+    fireEvent.press(getByTestId('club-prompt-report-prompt-truth-1'));
+    fireEvent.press(getByTestId('club-response-report-response-1'));
+    expect(onReportPrompt).toHaveBeenCalledWith(makeFeedItem());
+    expect(onReportResponse).toHaveBeenCalledWith(
+      makeFeedItem(),
+      makeFeedItem().recentResponses[0],
+    );
   });
 
   it('renderiza card de desafio expirado e respondido sem criar resposta falsa', () => {
@@ -542,6 +601,153 @@ describe('club detail components', () => {
     expect(setRoleFilter).toHaveBeenCalledWith('admin');
     expect(setStatusFilter).toHaveBeenCalledWith('active');
     expect(handleLoadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it('restringe acoes de moderacao a owner/admin conforme papel real', () => {
+    const onBlockMember = jest.fn();
+    const onSuspendMemberPosting = jest.fn();
+    const members = makeMembersState({
+      items: [
+        makeMember({
+          id: 'membership-owner',
+          userId: 'owner-1',
+          name: 'Dono',
+          role: 'owner',
+        }),
+        makeMember({
+          id: 'membership-member',
+          userId: 'member-1',
+          name: 'Membro Ativo',
+          role: 'member',
+        }),
+      ],
+    });
+
+    const { getByTestId, queryByTestId, rerender } = render(
+      <ClubMembersPanel
+        colors={LIGHT_CLUBS_COLORS}
+        members={members}
+        canManageMembers
+        viewerRole="admin"
+        onBlockMember={onBlockMember}
+        onSuspendMemberPosting={onSuspendMemberPosting}
+      />,
+    );
+
+    expect(getByTestId('club-moderation-panel')).toBeTruthy();
+    expect(queryByTestId('club-member-block-owner-1')).toBeNull();
+
+    fireEvent.press(getByTestId('club-member-suspend-member-1'));
+    fireEvent.press(getByTestId('club-member-block-member-1'));
+
+    expect(onSuspendMemberPosting).toHaveBeenCalledWith(members.items[1]);
+    expect(onBlockMember).toHaveBeenCalledWith(members.items[1]);
+
+    rerender(
+      <ClubMembersPanel
+        colors={LIGHT_CLUBS_COLORS}
+        members={members}
+        canManageMembers={false}
+        viewerRole="member"
+        onBlockMember={onBlockMember}
+        onSuspendMemberPosting={onSuspendMemberPosting}
+      />,
+    );
+
+    expect(queryByTestId('club-moderation-panel')).toBeNull();
+    expect(queryByTestId('club-member-block-member-1')).toBeNull();
+  });
+
+  it('renderiza membro bloqueado e suspenso com mensagem clara', () => {
+    const members = makeMembersState({
+      items: [
+        makeMember({
+          status: 'blocked',
+          postingSuspendedUntil: '2026-05-24T12:00:00.000Z',
+        }),
+      ],
+    });
+
+    const { getByText } = render(
+      <ClubMembersPanel colors={LIGHT_CLUBS_COLORS} members={members} />,
+    );
+
+    expect(getByText('Bloqueado')).toBeTruthy();
+    expect(getByText('Suspenso')).toBeTruthy();
+  });
+
+  it('envia denuncia com estado de sucesso e erro previsiveis', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(null);
+    const { getByTestId, getByText, rerender } = render(
+      <ClubReportModal
+        visible
+        colors={LIGHT_CLUBS_COLORS}
+        target={{
+          type: 'club',
+          clubId: 'club-1',
+          title: 'Bons Desafios',
+        }}
+        isSubmitting={false}
+        errorMessage={null}
+        successMessage={null}
+        onClose={jest.fn()}
+        onSubmit={onSubmit}
+        onFinish={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(getByTestId('club-report-reason-spam'));
+    fireEvent.changeText(getByTestId('club-report-details'), 'Spam repetido.');
+    fireEvent.press(getByTestId('club-report-submit'));
+
+    await waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        reason: 'spam',
+        details: 'Spam repetido.',
+      });
+    });
+
+    rerender(
+      <ClubReportModal
+        visible
+        colors={LIGHT_CLUBS_COLORS}
+        target={{
+          type: 'prompt',
+          clubId: 'club-1',
+          promptId: 'prompt-1',
+          title: 'Prompt ofensivo',
+        }}
+        isSubmitting={false}
+        errorMessage="Denuncia duplicada"
+        successMessage={null}
+        onClose={jest.fn()}
+        onSubmit={onSubmit}
+        onFinish={jest.fn()}
+      />,
+    );
+    expect(getByText('Denuncia duplicada')).toBeTruthy();
+
+    rerender(
+      <ClubReportModal
+        visible
+        colors={LIGHT_CLUBS_COLORS}
+        target={{
+          type: 'response',
+          clubId: 'club-1',
+          promptId: 'prompt-1',
+          responseId: 'response-1',
+          title: 'Resposta ofensiva',
+        }}
+        isSubmitting={false}
+        errorMessage={null}
+        successMessage="Denuncia enviada para analise."
+        onClose={jest.fn()}
+        onSubmit={onSubmit}
+        onFinish={jest.fn()}
+      />,
+    );
+    expect(getByTestId('club-report-success')).toBeTruthy();
+    expect(getByText('Denuncia enviada para analise.')).toBeTruthy();
   });
 
   it('renderiza estados de membros vazio, erro e acesso negado', () => {
