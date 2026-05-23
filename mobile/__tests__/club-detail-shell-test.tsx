@@ -261,7 +261,7 @@ describe('ClubDetailScreen', () => {
   });
 
   it('recebe o id real da rota e renderiza o detalhe carregado', () => {
-    const { getAllByText, getByTestId } = render(
+    const { getAllByText, getByLabelText, getByTestId } = render(
       <ClubDetailScreen />,
     );
 
@@ -276,7 +276,10 @@ describe('ClubDetailScreen', () => {
     expect(getAllByText('Bons Desafios')).toHaveLength(2);
     expect(getByTestId('club-detail-summary-card')).toBeTruthy();
     expect(getByTestId('club-header-card')).toBeTruthy();
-    expect(getByTestId('club-action-bar')).toBeTruthy();
+    expect(getByTestId('club-header-invite')).toBeTruthy();
+    expect(getByTestId('club-action-post-floating')).toBeTruthy();
+    fireEvent.press(getByLabelText('Abrir ações do clube'));
+    expect(getByTestId('club-overflow-menu')).toBeTruthy();
     expect(getByTestId('club-detail-tabs')).toBeTruthy();
     expect(getByTestId('club-feed-panel')).toBeTruthy();
     expect(getByTestId('club-prompt-card-prompt-1')).toBeTruthy();

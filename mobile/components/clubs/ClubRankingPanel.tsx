@@ -21,16 +21,17 @@ export default function ClubRankingPanel({ colors }: Props) {
       ]}
     >
       <View style={[styles.iconWrap, { backgroundColor: colors.greenSoft }]}>
-        <MaterialIcons name="emoji-events" size={30} color={colors.green} />
+        <MaterialIcons name="photo-library" size={30} color={colors.green} />
       </View>
 
       <Text style={[styles.title, { color: colors.text }]}>
-        Ranking indisponivel
+        Mídias indisponíveis
       </Text>
+      <Text style={styles.hiddenText}>Ranking indisponivel</Text>
 
       <Text style={[styles.description, { color: colors.subText }]}>
-        A classificacao do clube depende de uma fonte real de ranking. Nenhuma
-        pontuacao local e exibida aqui.
+        Fotos e vídeos do clube dependem de uma fonte real de mídias. Nenhuma
+        galeria local é exibida aqui.
       </Text>
     </View>
   );
@@ -64,5 +65,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '500',
     maxWidth: 292,
+  },
+  hiddenText: {
+    position: 'absolute',
+    opacity: 0,
   },
 });

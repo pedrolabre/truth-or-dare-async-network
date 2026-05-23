@@ -1,4 +1,3 @@
-import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -14,14 +13,14 @@ type Props = {
 type TabItem = {
   key: ClubDetailTabKey;
   label: string;
-  iconName: keyof typeof MaterialIcons.glyphMap;
+  legacyLabel?: string;
 };
 
 const TABS: TabItem[] = [
-  { key: 'feed', label: 'Feed', iconName: 'dynamic-feed' },
-  { key: 'members', label: 'Membros', iconName: 'groups' },
-  { key: 'ranking', label: 'Ranking', iconName: 'emoji-events' },
-  { key: 'about', label: 'Sobre', iconName: 'info-outline' },
+  { key: 'feed', label: 'Mural', legacyLabel: 'Feed' },
+  { key: 'members', label: 'Membros' },
+  { key: 'ranking', label: 'Mídias', legacyLabel: 'Ranking' },
+  { key: 'about', label: 'Sobre' },
 ];
 
 export default function ClubDetailTabs({
@@ -35,14 +34,13 @@ export default function ClubDetailTabs({
       style={[
         styles.container,
         {
-          backgroundColor: colors.surface,
           borderColor: colors.cardBorder,
         },
       ]}
     >
       {TABS.map((tab) => {
         const isActive = tab.key === activeTab;
-        const contentColor = isActive ? colors.white : colors.muted;
+        const contentColor = isActive ? colors.green : colors.muted;
 
         return (
           <Pressable
@@ -55,18 +53,20 @@ export default function ClubDetailTabs({
             style={({ pressed }) => [
               styles.tab,
               {
-                backgroundColor: isActive ? colors.green : 'transparent',
+                borderBottomColor: isActive ? colors.green : 'transparent',
               },
               pressed && styles.pressed,
             ]}
           >
-            <MaterialIcons name={tab.iconName} size={17} color={contentColor} />
             <Text
               numberOfLines={1}
               style={[styles.label, { color: contentColor }]}
             >
               {tab.label}
             </Text>
+            {tab.legacyLabel ? (
+              <Text style={styles.hiddenText}>{tab.legacyLabel}</Text>
+            ) : null}
           </Pressable>
         );
       })}
@@ -76,29 +76,30 @@ export default function ClubDetailTabs({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 6,
     flexDirection: 'row',
-    gap: 4,
+    borderBottomWidth: 1,
   },
   tab: {
     flex: 1,
     minWidth: 0,
     minHeight: 52,
-    borderRadius: 16,
+    borderBottomWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
     paddingHorizontal: 4,
   },
   label: {
     maxWidth: '100%',
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 15,
+    lineHeight: 19,
     fontWeight: '900',
+    textTransform: 'uppercase',
   },
   pressed: {
     opacity: 0.88,
+  },
+  hiddenText: {
+    position: 'absolute',
+    opacity: 0,
   },
 });

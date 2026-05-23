@@ -20,9 +20,9 @@ export type ClubsThemeColors = {
 
 export const LIGHT_CLUBS_COLORS: ClubsThemeColors = {
   background: '#f5fbf6',
-  surface: '#eaefea',
+  surface: '#ffffff',
   surfaceSoft: '#eff5f0',
-  surfaceStrong: '#dee4df',
+  surfaceStrong: '#e7eee9',
 
   text: '#171d1a',
   subText: '#3d4944',

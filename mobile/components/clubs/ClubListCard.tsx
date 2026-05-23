@@ -26,6 +26,7 @@ export default function ClubListCard({
         {
           backgroundColor: colors.surface,
           borderColor: colors.cardBorder,
+          shadowColor: '#000000',
         },
         pressed && styles.pressed,
       ]}
@@ -42,34 +43,12 @@ export default function ClubListCard({
       </View>
 
       <View style={styles.content}>
-        <View style={styles.headerRow}>
-          <Text numberOfLines={1} style={[styles.name, { color: colors.text }]}>
-            {club.name}
-          </Text>
-
-          {club.statusLabel ? (
-            <View
-              style={[
-                styles.statusBadge,
-                {
-                  backgroundColor: club.isActive ? colors.greenSoft : colors.redSoft,
-                },
-              ]}
-            >
-              <Text
-                style={[
-                  styles.statusText,
-                  { color: club.isActive ? colors.green : colors.red },
-                ]}
-              >
-                {club.statusLabel}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+        <Text numberOfLines={1} style={[styles.name, { color: colors.text }]}>
+          {club.name}
+        </Text>
 
         <Text
-          numberOfLines={2}
+          numberOfLines={1}
           style={[styles.description, { color: colors.subText }]}
         >
           {club.description}
@@ -83,88 +62,97 @@ export default function ClubListCard({
             </Text>
           </View>
 
-          <Text style={[styles.actionText, { color: colors.green }]}>
-            Abrir clube
-          </Text>
+          {club.statusLabel ? (
+            <View style={styles.statusInline}>
+              <View
+                style={[
+                  styles.statusDot,
+                  { backgroundColor: club.isActive ? colors.green : colors.muted },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: club.isActive ? colors.green : colors.muted },
+                ]}
+              >
+                {club.statusLabel}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
+
+      <MaterialIcons name="chevron-right" size={28} color={colors.green} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 96,
-    borderRadius: 20,
+    minHeight: 110,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   iconWrap: {
-    width: 60,
-    height: 60,
+    width: 68,
+    height: 68,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   content: {
     flex: 1,
-    gap: 8,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    gap: 7,
   },
   name: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '900',
-    letterSpacing: -0.2,
-  },
-  statusBadge: {
-    minHeight: 24,
-    borderRadius: 999,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statusText: {
-    fontSize: 10,
+    fontSize: 16,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   description: {
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: '500',
   },
   footerRow: {
-    marginTop: 2,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
+    gap: 12,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    flex: 1,
   },
   membersText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  actionText: {
     fontSize: 12,
-    fontWeight: '900',
-    letterSpacing: 0.2,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  statusInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
   },
   pressed: {
     opacity: 0.9,

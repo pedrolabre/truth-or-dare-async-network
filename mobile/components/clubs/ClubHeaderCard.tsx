@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ClubsThemeColors } from '../../constants/clubsTheme';
 import type { ClubDetail } from '../../types/clubs';
@@ -8,9 +8,8 @@ import type { ClubDetail } from '../../types/clubs';
 type Props = {
   club: ClubDetail;
   colors: ClubsThemeColors;
+  onInvite?: () => void;
 };
-
-type BadgeTone = 'green' | 'red' | 'neutral';
 
 function getClubIconName(club: ClubDetail) {
   return (
@@ -19,72 +18,15 @@ function getClubIconName(club: ClubDetail) {
   );
 }
 
-function getStatusTone(club: ClubDetail): BadgeTone {
-  if (club.status === 'active') {
-    return 'green';
-  }
-
-  if (club.status === 'archived' || club.status === 'suspended') {
-    return 'red';
-  }
-
-  return 'neutral';
-}
-
-function getBadgeColors(colors: ClubsThemeColors, tone: BadgeTone) {
-  if (tone === 'green') {
-    return {
-      backgroundColor: colors.greenSoft,
-      color: colors.green,
-    };
-  }
-
-  if (tone === 'red') {
-    return {
-      backgroundColor: colors.redSoft,
-      color: colors.red,
-    };
-  }
-
-  return {
-    backgroundColor: colors.surfaceStrong,
-    color: colors.muted,
-  };
-}
-
-function getJoinPolicyLabel(club: ClubDetail) {
-  if (club.joinPolicy === 'open') {
-    return 'Entrada aberta';
-  }
-
-  if (club.joinPolicy === 'approval_required') {
-    return 'Entrada por aprovacao';
-  }
-
-  return 'Apenas convite';
-}
-
-export default function ClubHeaderCard({ club, colors }: Props) {
+export default function ClubHeaderCard({ club, colors, onInvite }: Props) {
   const iconName = getClubIconName(club);
-  const statusColors = getBadgeColors(colors, getStatusTone(club));
-  const visibilityColors = getBadgeColors(colors, 'neutral');
-  const membershipColors = getBadgeColors(
-    colors,
-    club.viewerMembership.isMember ? 'green' : 'neutral',
-  );
 
   return (
     <View
       testID="club-header-card"
-      style={[
-        styles.card,
-        {
-          backgroundColor: colors.surface,
-          borderColor: colors.cardBorder,
-        },
-      ]}
+      style={styles.card}
     >
-      <View style={[styles.cover, { backgroundColor: colors.greenSoft }]}>
+      <View style={[styles.cover, { backgroundColor: colors.green }]}>
         {club.coverUrl ? (
           <Image
             source={{ uri: club.coverUrl }}
@@ -92,16 +34,16 @@ export default function ClubHeaderCard({ club, colors }: Props) {
             style={styles.coverImage}
           />
         ) : (
-          <View style={styles.coverPattern}>
-            <MaterialIcons name="auto-awesome" size={20} color={colors.green} />
-            <Text style={[styles.coverText, { color: colors.green }]}>
-              {getJoinPolicyLabel(club)}
-            </Text>
-          </View>
+          <View
+            style={[
+              styles.coverFallback,
+              { backgroundColor: colors.green },
+            ]}
+          />
         )}
       </View>
 
-      <View style={styles.identityRow}>
+      <View style={styles.identitySection}>
         <View
           style={[
             styles.avatar,
@@ -109,7 +51,8 @@ export default function ClubHeaderCard({ club, colors }: Props) {
               backgroundColor: club.status === 'active'
                 ? colors.green
                 : colors.surfaceStrong,
-              borderColor: colors.surface,
+              borderColor: colors.background,
+              shadowColor: '#000000',
             },
           ]}
         >
@@ -124,7 +67,7 @@ export default function ClubHeaderCard({ club, colors }: Props) {
           )}
         </View>
 
-        <View style={styles.titleStack}>
+        <View style={styles.titleRow}>
           <Text
             numberOfLines={2}
             testID="club-header-name"
@@ -133,116 +76,90 @@ export default function ClubHeaderCard({ club, colors }: Props) {
             {club.name}
           </Text>
 
-          <Text
-            numberOfLines={3}
-            style={[styles.description, { color: colors.subText }]}
-          >
-            {club.description}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.badgeGrid}>
-        <Badge
-          label={club.statusLabel}
-          backgroundColor={statusColors.backgroundColor}
-          color={statusColors.color}
-        />
-        <Badge
-          label={club.visibilityLabel}
-          backgroundColor={visibilityColors.backgroundColor}
-          color={visibilityColors.color}
-        />
-        <Badge
-          label={club.membershipLabel}
-          backgroundColor={membershipColors.backgroundColor}
-          color={membershipColors.color}
-        />
-      </View>
-
-      {club.tags.length > 0 ? (
-        <View testID="club-header-tags" style={styles.tagGrid}>
-          {club.tags.map((tag) => (
-            <View
-              key={tag}
-              style={[
-                styles.tagChip,
-                {
-                  backgroundColor: colors.surfaceSoft,
-                  borderColor: colors.cardBorder,
-                },
+          {club.permissions.canInviteMembers && onInvite ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Convidar amigos"
+              testID="club-header-invite"
+              onPress={onInvite}
+              style={({ pressed }) => [
+                styles.invitePill,
+                { backgroundColor: colors.greenSoft },
+                pressed && styles.pressed,
               ]}
             >
-              <Text
-                numberOfLines={1}
-                style={[styles.tagText, { color: colors.subText }]}
-              >
+              <Text style={[styles.inviteText, { color: colors.green }]}>
+                Convidar
+              </Text>
+            </Pressable>
+          ) : null}
+        </View>
+
+        {club.tags.length > 0 ? (
+          <View testID="club-header-tags" style={styles.locationRow}>
+            <MaterialIcons name="place" size={18} color={colors.muted} />
+            <Text
+              numberOfLines={1}
+              style={[styles.locationText, { color: colors.muted }]}
+            >
+              {club.tags.slice(0, 2).join(', ')}
+            </Text>
+            {club.tags.map((tag) => (
+              <Text key={tag} style={styles.hiddenText}>
                 #{tag}
               </Text>
-            </View>
-          ))}
+            ))}
+          </View>
+        ) : null}
+
+        <Text
+          numberOfLines={4}
+          style={[styles.description, { color: colors.text }]}
+        >
+          {club.description}
+        </Text>
+
+        <View style={[styles.statsGrid, { borderColor: colors.cardBorder }]}>
+          <StatTile
+            colors={colors}
+            label="Membros"
+            value={String(club.memberCount)}
+          />
+          <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
+          <StatTile
+            colors={colors}
+            label="Prompts"
+            value={String(club.promptCount)}
+          />
+          <View style={[styles.statDivider, { backgroundColor: colors.cardBorder }]} />
+          <StatTile
+            colors={colors}
+            label="Status"
+            value={club.statusLabel}
+          />
         </View>
-      ) : null}
 
-      <View style={styles.statsGrid}>
-        <StatTile
-          colors={colors}
-          iconName="groups"
-          label="Membros"
-          value={club.membersLabel}
-        />
-        <StatTile
-          colors={colors}
-          iconName="forum"
-          label="Prompts"
-          value={club.promptsLabel}
-        />
-        <StatTile
-          colors={colors}
-          iconName="verified-user"
-          label="Seu papel"
-          value={club.membershipLabel}
-        />
+        <View style={styles.metaPills}>
+          <MetaPill colors={colors} label={club.membersLabel} />
+          <MetaPill colors={colors} label={club.promptsLabel} />
+          <MetaPill colors={colors} label={club.membershipLabel} />
+          <Text style={styles.hiddenText}>{club.membershipLabel}</Text>
+          <MetaPill colors={colors} label={club.visibilityLabel} />
+        </View>
       </View>
-    </View>
-  );
-}
-
-type BadgeProps = {
-  label: string;
-  backgroundColor: string;
-  color: string;
-};
-
-function Badge({ label, backgroundColor, color }: BadgeProps) {
-  return (
-    <View style={[styles.badge, { backgroundColor }]}>
-      <Text numberOfLines={1} style={[styles.badgeText, { color }]}>
-        {label}
-      </Text>
     </View>
   );
 }
 
 type StatTileProps = {
   colors: ClubsThemeColors;
-  iconName: keyof typeof MaterialIcons.glyphMap;
   label: string;
   value: string;
 };
 
-function StatTile({ colors, iconName, label, value }: StatTileProps) {
+function StatTile({ colors, label, value }: StatTileProps) {
   return (
-    <View
-      style={[
-        styles.statTile,
-        {
-          backgroundColor: colors.surfaceSoft,
-          borderColor: colors.cardBorder,
-        },
-      ]}
-    >
-      <MaterialIcons name={iconName} size={18} color={colors.green} />
+    <View style={styles.statTile}>
       <Text numberOfLines={1} style={[styles.statValue, { color: colors.text }]}>
         {value}
       </Text>
@@ -253,130 +170,156 @@ function StatTile({ colors, iconName, label, value }: StatTileProps) {
   );
 }
 
+type MetaPillProps = {
+  colors: ClubsThemeColors;
+  label: string;
+};
+
+function MetaPill({ colors, label }: MetaPillProps) {
+  return (
+    <View style={[styles.metaPill, { backgroundColor: colors.greenSoft }]}>
+      <Text numberOfLines={1} style={[styles.metaPillText, { color: colors.green }]}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 22,
-    borderWidth: 1,
     overflow: 'hidden',
   },
   cover: {
-    height: 118,
+    height: 150,
   },
   coverImage: {
     width: '100%',
     height: '100%',
   },
-  coverPattern: {
+  coverFallback: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  coverText: {
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  identityRow: {
-    marginTop: -34,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'flex-end',
   },
   avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 22,
+    width: 96,
+    height: 96,
+    borderRadius: 24,
     borderWidth: 4,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    shadowOpacity: 0.13,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 5,
   },
   avatarImage: {
     width: '100%',
     height: '100%',
   },
-  titleStack: {
-    flex: 1,
-    paddingBottom: 3,
-    gap: 6,
+  identitySection: {
+    marginTop: -48,
+    paddingHorizontal: 22,
+    paddingBottom: 4,
+    gap: 16,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: 14,
   },
   name: {
-    fontSize: 22,
-    lineHeight: 27,
-    fontWeight: '900',
-  },
-  description: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '500',
-  },
-  badgeGrid: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  badge: {
-    minHeight: 28,
-    maxWidth: '100%',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  badgeText: {
-    fontSize: 11,
+    flex: 1,
+    fontSize: 28,
+    lineHeight: 34,
     fontWeight: '900',
     textTransform: 'uppercase',
   },
-  tagGrid: {
-    paddingHorizontal: 18,
-    paddingTop: 14,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  tagChip: {
-    minHeight: 30,
-    maxWidth: '48%',
-    borderWidth: 1,
+  invitePill: {
+    minHeight: 42,
     borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  tagText: {
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '800',
+  inviteText: {
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  locationRow: {
+    marginTop: -8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  locationText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '700',
+  },
+  description: {
+    fontSize: 17,
+    lineHeight: 25,
+    fontWeight: '500',
   },
   statsGrid: {
-    padding: 18,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    minHeight: 78,
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   statTile: {
     flex: 1,
-    minHeight: 86,
-    borderWidth: 1,
-    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 6,
     paddingHorizontal: 8,
   },
+  statDivider: {
+    width: 1,
+    height: 38,
+  },
   statValue: {
-    fontSize: 12,
+    fontSize: 22,
+    lineHeight: 27,
     fontWeight: '900',
     textAlign: 'center',
   },
   statLabel: {
-    fontSize: 10,
+    fontSize: 12,
+    lineHeight: 15,
     fontWeight: '800',
     textAlign: 'center',
     textTransform: 'uppercase',
+  },
+  metaPills: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  metaPill: {
+    minHeight: 28,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metaPillText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  hiddenText: {
+    position: 'absolute',
+    opacity: 0,
+  },
+  pressed: {
+    opacity: 0.82,
   },
 });

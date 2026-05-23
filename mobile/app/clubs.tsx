@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Pressable,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -8,8 +9,8 @@ import {
   View,
 } from 'react-native';
 import { Href, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import FeedHeader from '../components/feed/FeedHeader';
 import FeedBottomNav from '../components/feed/FeedBottomNav';
 
 import ClubsSegmentedTabs from '../components/clubs/ClubsSegmentedTabs';
@@ -31,6 +32,7 @@ import type { ClubDiscoverItem, ClubListItem } from '../types/clubs';
 
 export default function ClubsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const colors = isDark ? DARK_CLUBS_COLORS : LIGHT_CLUBS_COLORS;
 
@@ -182,29 +184,48 @@ export default function ClubsScreen() {
       />
 
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <FeedHeader
-          title="Truth or Dare"
-          initials=""
-          headerGreen={colors.green}
-          white={colors.white}
-          surfaceContainer={colors.surface}
-          borderBottomColor={
-            isDark ? 'rgba(255,255,255,0.10)' : 'rgba(207,247,238,0.20)'
-          }
-          avatarBorderColor={
-            isDark ? 'rgba(255,255,255,0.30)' : 'rgba(207,247,238,0.30)'
-          }
-          avatarBackgroundColor={isDark ? '#121212' : colors.surface}
-          onPressNotifications={() => {
-            router.push('/notifications');
-          }}
-        />
+        <View
+          style={[
+            styles.topHeader,
+            {
+              paddingTop: insets.top,
+              backgroundColor: colors.green,
+              borderBottomColor: isDark
+                ? 'rgba(255,255,255,0.10)'
+                : 'rgba(207,247,238,0.20)',
+            },
+          ]}
+        >
+          <Text
+            numberOfLines={1}
+            style={[styles.brandTitle, { color: isDark ? colors.white : '#cff7ee' }]}
+          >
+            Truth or Dare
+          </Text>
 
-        <ClubsSegmentedTabs
-          activeTab={activeTab}
-          onChangeTab={handleChangeTab}
-          colors={colors}
-        />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Abrir perfil"
+            hitSlop={8}
+            onPress={() => {
+              router.push('/profile');
+            }}
+            style={({ pressed }) => [
+              styles.profileAvatar,
+              {
+                backgroundColor: isDark ? colors.surfaceSoft : colors.surface,
+                borderColor: isDark
+                  ? 'rgba(255,255,255,0.30)'
+                  : 'rgba(207,247,238,0.45)',
+              },
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={[styles.profileAvatarText, { color: colors.text }]}>
+              RM
+            </Text>
+          </Pressable>
+        </View>
 
         <View style={styles.content}>
           <ScrollView
@@ -227,9 +248,15 @@ export default function ClubsScreen() {
                 Clubes
               </Text>
               <Text style={[styles.subtitle, { color: colors.subText }]}>
-                Seus grupos de desafios em um só lugar.
+                Conecte-se com grupos e jogue junto.
               </Text>
             </View>
+
+            <ClubsSegmentedTabs
+              activeTab={activeTab}
+              onChangeTab={handleChangeTab}
+              colors={colors}
+            />
 
             {activeTab === 'discover' ? (
               <ClubsSearchInput
@@ -301,26 +328,58 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingTop: 20,
+    paddingTop: 26,
     paddingBottom: 156,
-    gap: 20,
+    gap: 24,
+  },
+  topHeader: {
+    minHeight: 72,
+    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  brandTitle: {
+    flex: 1,
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '900',
+  },
+  profileAvatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  profileAvatarText: {
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '800',
   },
   headerSection: {
     gap: 6,
   },
   title: {
-    fontSize: 30,
-    lineHeight: 34,
+    fontSize: 34,
+    lineHeight: 39,
     fontWeight: '900',
-    letterSpacing: -1.1,
   },
   subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '500',
   },
   cardsList: {
-    gap: 14,
+    gap: 18,
   },
   actionErrorBox: {
     borderWidth: 1,
@@ -332,5 +391,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
+  },
+  pressed: {
+    opacity: 0.82,
   },
 });

@@ -56,6 +56,7 @@ export default function ClubDiscoverCard({
         {
           backgroundColor: colors.surface,
           borderColor: colors.cardBorder,
+          shadowColor: '#000000',
         },
         pressed && styles.pressed,
       ]}
@@ -130,7 +131,7 @@ export default function ClubDiscoverCard({
               {
                 backgroundColor: isJoinDisabled
                   ? colors.surfaceStrong
-                  : colors.green,
+                  : colors.greenSoft,
               },
               pressed && !isJoinDisabled && styles.actionButtonPressed,
             ]}
@@ -138,7 +139,7 @@ export default function ClubDiscoverCard({
             <Text
               style={[
                 styles.actionText,
-                { color: isJoinDisabled ? colors.muted : colors.white },
+                { color: isJoinDisabled ? colors.muted : colors.green },
               ]}
             >
               {joinActionLabel}
@@ -152,18 +153,22 @@ export default function ClubDiscoverCard({
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 96,
-    borderRadius: 20,
+    minHeight: 110,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 16,
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
   iconWrap: {
-    width: 60,
-    height: 60,
+    width: 68,
+    height: 68,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
@@ -221,7 +226,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     minHeight: 36,
-    minWidth: 104,
+    minWidth: 86,
     borderRadius: 999,
     paddingHorizontal: 14,
     alignItems: 'center',

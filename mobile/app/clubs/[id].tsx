@@ -13,6 +13,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import FeedBottomNav from '../../components/feed/FeedBottomNav';
 import ClubActionBar from '../../components/clubs/ClubActionBar';
 import ClubAboutPanel from '../../components/clubs/ClubAboutPanel';
 import ClubDareProofModal from '../../components/clubs/ClubDareProofModal';
@@ -33,6 +34,7 @@ import {
   type ClubsThemeColors,
 } from '../../constants/clubsTheme';
 import { useTheme } from '../../context/ThemeContext';
+import { FEED_BOTTOM_NAV_ITEMS } from '../../data/feedMock';
 import { useClubDetailsScreen } from '../../hooks/useClubDetailsScreen';
 import { useClubFeed } from '../../hooks/useClubFeed';
 import { useClubMembers } from '../../hooks/useClubMembers';
@@ -52,6 +54,7 @@ export default function ClubDetailScreen() {
   const colors = isDark ? DARK_CLUBS_COLORS : LIGHT_CLUBS_COLORS;
   const [invitesVisible, setInvitesVisible] = React.useState(false);
   const [settingsVisible, setSettingsVisible] = React.useState(false);
+  const [actionMenuVisible, setActionMenuVisible] = React.useState(false);
   const [promptComposerVisible, setPromptComposerVisible] =
     React.useState(false);
   const [truthPrompt, setTruthPrompt] = React.useState<ClubFeedItemApi | null>(
@@ -95,8 +98,6 @@ export default function ClubDetailScreen() {
     clubId,
     isActive: contentState === 'ready' && activeTab === 'members',
   });
-  const headerTitle = club?.name ?? 'Clube';
-
   React.useEffect(() => {
     setActiveTab('feed');
   }, [clubId]);
@@ -279,99 +280,197 @@ export default function ClubDetailScreen() {
 
     return (
       <View testID="club-detail-summary-card" style={styles.readyStack}>
-        <ClubHeaderCard club={club} colors={colors} />
-
-        {getAccessNotice(club) ? (
-          <FeedbackBanner
-            colors={colors}
-            message={getAccessNotice(club) ?? ''}
-            tone="warning"
-          />
-        ) : null}
-
-        {errorMessage ? (
-          <FeedbackBanner colors={colors} message={errorMessage} tone="danger" />
-        ) : null}
-
-        {actionErrorMessage ? (
-          <FeedbackBanner
-            colors={colors}
-            message={actionErrorMessage}
-            tone="danger"
-          />
-        ) : null}
-
-        {actionSuccessMessage ? (
-          <FeedbackBanner
-            colors={colors}
-            message={actionSuccessMessage}
-            tone="success"
-          />
-        ) : null}
-
-        {moderation.restrictionErrorMessage ? (
-          <FeedbackBanner
-            colors={colors}
-            message={moderation.restrictionErrorMessage}
-            tone="danger"
-          />
-        ) : null}
-
-        {moderation.restrictionSuccessMessage ? (
-          <FeedbackBanner
-            colors={colors}
-            message={moderation.restrictionSuccessMessage}
-            tone="success"
-          />
-        ) : null}
-
-        <ClubActionBar
+        <ClubHeaderCard
           club={club}
           colors={colors}
-          pendingAction={pendingAction}
-          isMuted={isMuted}
-          onJoin={() => {
-            void handleJoinClub();
-          }}
-          onLeave={() => {
-            void handleLeaveClub();
-          }}
           onInvite={() => {
             clearActionFeedback();
             setInvitesVisible(true);
           }}
-          onPostPrompt={() => {
+        />
+
+        <View style={styles.bodyStack}>
+          {getAccessNotice(club) ? (
+            <FeedbackBanner
+              colors={colors}
+              message={getAccessNotice(club) ?? ''}
+              tone="warning"
+            />
+          ) : null}
+
+          {errorMessage ? (
+            <FeedbackBanner colors={colors} message={errorMessage} tone="danger" />
+          ) : null}
+
+          {actionErrorMessage ? (
+            <FeedbackBanner
+              colors={colors}
+              message={actionErrorMessage}
+              tone="danger"
+            />
+          ) : null}
+
+          {actionSuccessMessage ? (
+            <FeedbackBanner
+              colors={colors}
+              message={actionSuccessMessage}
+              tone="success"
+            />
+          ) : null}
+
+          {moderation.restrictionErrorMessage ? (
+            <FeedbackBanner
+              colors={colors}
+              message={moderation.restrictionErrorMessage}
+              tone="danger"
+            />
+          ) : null}
+
+          {moderation.restrictionSuccessMessage ? (
+            <FeedbackBanner
+              colors={colors}
+              message={moderation.restrictionSuccessMessage}
+              tone="success"
+            />
+          ) : null}
+
+          {!club.viewerMembership.isMember ? (
+            <ClubActionBar
+              club={club}
+              colors={colors}
+              pendingAction={pendingAction}
+              isMuted={isMuted}
+              onJoin={() => {
+                void handleJoinClub();
+              }}
+              onLeave={() => {
+                void handleLeaveClub();
+              }}
+              onInvite={() => {
+                clearActionFeedback();
+                setInvitesVisible(true);
+              }}
+              onPostPrompt={() => {
+                clearActionFeedback();
+                setPromptComposerVisible(true);
+              }}
+              onToggleMute={() => {
+                void handleToggleMute();
+              }}
+              onOpenSettings={() => {
+                clearActionFeedback();
+                setSettingsVisible(true);
+              }}
+              onReportClub={() => {
+                handleMenuReport();
+              }}
+            />
+          ) : null}
+
+          <ClubDetailTabs
+            activeTab={activeTab}
+            colors={colors}
+            onChangeTab={setActiveTab}
+          />
+
+          {renderActiveTabPanel(club)}
+        </View>
+      </View>
+    );
+  }
+
+  function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
+    switch (key) {
+      case 'play':
+        router.replace('/feed');
+        return;
+      case 'search':
+        router.replace('/search');
+        return;
+      case 'clubs':
+        router.replace('/clubs');
+        return;
+      case 'profile':
+        router.replace('/profile');
+        return;
+      default:
+        return;
+    }
+  }
+
+  function handleMenuAbout() {
+    setActionMenuVisible(false);
+    setActiveTab('about');
+  }
+
+  function handleMenuNotifications() {
+    setActionMenuVisible(false);
+    void handleToggleMute();
+  }
+
+  function handleMenuSettings() {
+    setActionMenuVisible(false);
+    clearActionFeedback();
+    setSettingsVisible(true);
+  }
+
+  function handleMenuReport() {
+    if (!club) {
+      return;
+    }
+
+    setActionMenuVisible(false);
+    clearActionFeedback();
+    moderation.openReport({
+      type: 'club',
+      clubId: club.id,
+      title: club.name,
+    });
+  }
+
+  function handleMenuLeave() {
+    setActionMenuVisible(false);
+    void handleLeaveClub();
+  }
+
+  function renderPostPromptFab() {
+    if (!club?.permissions.canPostPrompt) {
+      return null;
+    }
+
+    return (
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.promptFabWrapper,
+          {
+            bottom: Math.max(insets.bottom, 8) + 88,
+          },
+        ]}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Novo desafio"
+          testID="club-action-post-floating"
+          onPress={() => {
             clearActionFeedback();
             setPromptComposerVisible(true);
           }}
-          onToggleMute={() => {
-            void handleToggleMute();
-          }}
-          onOpenSettings={() => {
-            clearActionFeedback();
-            setSettingsVisible(true);
-          }}
-          onReportClub={() => {
-            if (!club) {
-              return;
-            }
-
-            clearActionFeedback();
-            moderation.openReport({
-              type: 'club',
-              clubId: club.id,
-              title: club.name,
-            });
-          }}
-        />
-
-        <ClubDetailTabs
-          activeTab={activeTab}
-          colors={colors}
-          onChangeTab={setActiveTab}
-        />
-
-        {renderActiveTabPanel(club)}
+          style={({ pressed }) => [
+            styles.promptFab,
+            { backgroundColor: colors.red, shadowColor: '#000000' },
+            pressed && styles.pressed,
+          ]}
+        >
+          <MaterialIcons
+            name="add-circle-outline"
+            size={25}
+            color={colors.white}
+          />
+          <Text style={[styles.promptFabText, { color: colors.white }]}>
+            Novo desafio
+          </Text>
+        </Pressable>
       </View>
     );
   }
@@ -411,11 +510,42 @@ export default function ClubDetailScreen() {
             numberOfLines={1}
             style={[styles.headerTitle, { color: colors.white }]}
           >
-            {headerTitle}
+            Clubes
           </Text>
+          {club ? <Text style={styles.hiddenText}>{club.name}</Text> : null}
 
-          <View style={styles.iconButton} />
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Abrir ações do clube"
+            hitSlop={10}
+            onPress={() => {
+              setActionMenuVisible((visible) => !visible);
+            }}
+            style={({ pressed }) => [
+              styles.iconButton,
+              actionMenuVisible && styles.iconButtonActive,
+              pressed && styles.pressed,
+            ]}
+          >
+            <MaterialIcons name="more-vert" size={24} color={colors.white} />
+          </Pressable>
         </View>
+
+        {actionMenuVisible && club ? (
+          <ClubOverflowMenu
+            colors={colors}
+            isMuted={isMuted}
+            canToggleNotifications={club.viewerMembership.isMember}
+            canEdit={Boolean(club.permissions.canEditClub)}
+            canReport={club.status === 'active'}
+            canLeave={club.viewerMembership.isMember}
+            onAbout={handleMenuAbout}
+            onNotifications={handleMenuNotifications}
+            onSettings={handleMenuSettings}
+            onReport={handleMenuReport}
+            onLeave={handleMenuLeave}
+          />
+        ) : null}
 
         <ScrollView
           style={styles.scroll}
@@ -439,6 +569,8 @@ export default function ClubDetailScreen() {
         >
           {renderDetailContent()}
         </ScrollView>
+
+        {renderPostPromptFab()}
 
         <ClubInvitesModal
           visible={invitesVisible}
@@ -512,6 +644,21 @@ export default function ClubDetailScreen() {
           onSubmit={moderation.submitReport}
           onFinish={moderation.finishReport}
         />
+
+        <FeedBottomNav
+          items={FEED_BOTTOM_NAV_ITEMS}
+          activeKey="clubs"
+          onSelect={handleBottomNavSelect}
+          backgroundColor={colors.green}
+          borderTopColor={
+            isDark ? 'rgba(255,255,255,0.10)' : 'rgba(207,247,238,0.10)'
+          }
+          activeBackgroundColor={colors.red}
+          activeIconColor="#ffffff"
+          activeTextColor="#ffffff"
+          inactiveIconColor="rgba(249,249,249,0.72)"
+          inactiveTextColor="rgba(249,249,249,0.72)"
+        />
       </View>
     </View>
   );
@@ -549,6 +696,124 @@ function FeedbackBanner({ colors, message, tone }: FeedbackBannerProps) {
   );
 }
 
+type ClubOverflowMenuProps = {
+  colors: ClubsThemeColors;
+  isMuted: boolean;
+  canToggleNotifications: boolean;
+  canEdit: boolean;
+  canReport: boolean;
+  canLeave: boolean;
+  onAbout: () => void;
+  onNotifications: () => void;
+  onSettings: () => void;
+  onReport: () => void;
+  onLeave: () => void;
+};
+
+function ClubOverflowMenu({
+  colors,
+  isMuted,
+  canToggleNotifications,
+  canEdit,
+  canReport,
+  canLeave,
+  onAbout,
+  onNotifications,
+  onSettings,
+  onReport,
+  onLeave,
+}: ClubOverflowMenuProps) {
+  return (
+    <View
+      testID="club-overflow-menu"
+      style={[
+        styles.overflowMenu,
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.cardBorder,
+          shadowColor: '#000000',
+        },
+      ]}
+    >
+      <MenuAction
+        colors={colors}
+        iconName="info-outline"
+        label="Sobre o Clube"
+        onPress={onAbout}
+      />
+      {canToggleNotifications ? (
+      <MenuAction
+        colors={colors}
+        iconName={isMuted ? 'notifications-active' : 'notifications-none'}
+        label="Notificações"
+        onPress={onNotifications}
+      />
+      ) : null}
+      {canEdit ? (
+        <MenuAction
+          colors={colors}
+          iconName="settings"
+          label="Configurações"
+          onPress={onSettings}
+        />
+      ) : null}
+      {canReport ? (
+        <MenuAction
+          colors={colors}
+          iconName="flag"
+          label="Denunciar"
+          danger
+          onPress={onReport}
+        />
+      ) : null}
+      {canLeave ? (
+        <>
+          <View style={[styles.menuDivider, { backgroundColor: colors.cardBorder }]} />
+          <MenuAction
+            colors={colors}
+            iconName="logout"
+            label="Sair do Clube"
+            danger
+            onPress={onLeave}
+          />
+        </>
+      ) : null}
+    </View>
+  );
+}
+
+type MenuActionProps = {
+  colors: ClubsThemeColors;
+  iconName: keyof typeof MaterialIcons.glyphMap;
+  label: string;
+  danger?: boolean;
+  onPress: () => void;
+};
+
+function MenuAction({
+  colors,
+  iconName,
+  label,
+  danger = false,
+  onPress,
+}: MenuActionProps) {
+  const contentColor = danger ? colors.red : colors.text;
+  const iconColor = danger ? colors.red : colors.green;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [styles.menuAction, pressed && styles.pressed]}
+    >
+      <MaterialIcons name={iconName} size={22} color={iconColor} />
+      <Text style={[styles.menuActionText, { color: contentColor }]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   root: {
     flex: 1,
@@ -573,6 +838,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
@@ -585,16 +853,20 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    padding: 16,
-    paddingBottom: 28,
+    paddingBottom: 148,
   },
   stateContent: {
     justifyContent: 'center',
+    padding: 16,
   },
   readyContent: {
     justifyContent: 'flex-start',
   },
   readyStack: {
+    gap: 16,
+  },
+  bodyStack: {
+    paddingHorizontal: 16,
     gap: 16,
   },
   feedbackBanner: {
@@ -610,5 +882,64 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.78,
+  },
+  overflowMenu: {
+    position: 'absolute',
+    top: 86,
+    right: 16,
+    zIndex: 20,
+    width: 220,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: 8,
+    shadowOpacity: 0.16,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
+  },
+  menuAction: {
+    minHeight: 56,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  menuActionText: {
+    flex: 1,
+    fontSize: 16,
+    lineHeight: 20,
+    fontWeight: '900',
+  },
+  menuDivider: {
+    height: 1,
+    marginVertical: 6,
+  },
+  promptFabWrapper: {
+    position: 'absolute',
+    right: 22,
+    zIndex: 12,
+  },
+  promptFab: {
+    minHeight: 58,
+    borderRadius: 999,
+    paddingHorizontal: 22,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 9,
+  },
+  promptFabText: {
+    fontSize: 13,
+    lineHeight: 17,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  hiddenText: {
+    position: 'absolute',
+    opacity: 0,
   },
 });

@@ -24,7 +24,7 @@ export default function ClubsSegmentedTabs({
       style={[
         styles.container,
         {
-          borderBottomColor: colors.outline,
+          borderBottomColor: colors.cardBorder,
         },
       ]}
     >
@@ -69,15 +69,14 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    minHeight: 46,
+    minHeight: 52,
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 2,
     paddingHorizontal: 12,
   },
   label: {
-    fontSize: 14,
-    letterSpacing: 0.1,
+    fontSize: 16,
   },
   pressed: {
     opacity: 0.88,
