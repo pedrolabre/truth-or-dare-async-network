@@ -17,6 +17,8 @@ export default function ClubListCard({
 }: Props) {
   const iconName =
     (club.iconName as keyof typeof MaterialIcons.glyphMap | undefined) ?? 'groups';
+  const hasUnreadActivity = club.unreadCount > 0;
+  const unreadLabel = club.unreadCount > 99 ? '99+' : String(club.unreadCount);
 
   return (
     <Pressable
@@ -24,10 +26,11 @@ export default function ClubListCard({
       style={({ pressed }) => [
         styles.card,
         {
-          backgroundColor: colors.surface,
-          borderColor: colors.cardBorder,
+          backgroundColor: hasUnreadActivity ? colors.greenSoft : colors.surface,
+          borderColor: hasUnreadActivity ? colors.green : colors.cardBorder,
           shadowColor: '#000000',
         },
+        hasUnreadActivity && styles.cardWithActivity,
         pressed && styles.pressed,
       ]}
     >
@@ -80,10 +83,25 @@ export default function ClubListCard({
               </Text>
             </View>
           ) : null}
+
+          {hasUnreadActivity ? (
+            <View
+              testID="club-unread-badge"
+              style={[styles.unreadBadge, { backgroundColor: colors.red }]}
+            >
+              <Text style={[styles.unreadBadgeText, { color: colors.white }]}>
+                {unreadLabel}
+              </Text>
+            </View>
+          ) : null}
         </View>
       </View>
 
-      <MaterialIcons name="chevron-right" size={28} color={colors.green} />
+      <MaterialIcons
+        name={hasUnreadActivity ? 'notifications-active' : 'chevron-right'}
+        size={hasUnreadActivity ? 24 : 28}
+        color={hasUnreadActivity ? colors.red : colors.green}
+      />
     </Pressable>
   );
 }
@@ -102,6 +120,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
+  },
+  cardWithActivity: {
+    shadowOpacity: 0.1,
   },
   iconWrap: {
     width: 68,
@@ -132,6 +153,7 @@ const styles = StyleSheet.create({
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 12,
   },
   metaRow: {
@@ -148,6 +170,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
+  },
+  unreadBadge: {
+    minWidth: 24,
+    height: 22,
+    borderRadius: 11,
+    paddingHorizontal: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  unreadBadgeText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '900',
   },
   statusDot: {
     width: 7,

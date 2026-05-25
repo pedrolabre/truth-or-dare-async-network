@@ -23,6 +23,7 @@ type Props = {
   unread?: boolean;
   unreadAccentColor?: string;
   actions?: NotificationAction[];
+  onPress?: () => void;
 };
 
 export default function NotificationActivityCard({
@@ -40,9 +41,14 @@ export default function NotificationActivityCard({
   unread = false,
   unreadAccentColor = '#D70015',
   actions,
+  onPress,
 }: Props) {
+  const CardRoot = onPress ? Pressable : View;
+
   return (
-    <View
+    <CardRoot
+      accessibilityRole={onPress ? 'button' : undefined}
+      onPress={onPress}
       style={[
         styles.card,
         {
@@ -108,7 +114,7 @@ export default function NotificationActivityCard({
           </View>
         )}
       </View>
-    </View>
+    </CardRoot>
   );
 }
 

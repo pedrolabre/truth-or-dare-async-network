@@ -22,6 +22,7 @@ import type {
   ClubJoinRequestApi,
   ClubMemberApi,
   ClubPromptApi,
+  ClubViewerActivityApi,
   CreateClubPromptPayloadApi,
 } from '../types/clubsApi';
 
@@ -114,6 +115,18 @@ function getFriendlyClubAccessMessage(message: string): string {
   return message;
 }
 
+function getViewerActivityIsMuted(activity: ClubViewerActivityApi): boolean {
+  if (activity.isMuted) {
+    return true;
+  }
+
+  if (!activity.mutedUntil) {
+    return false;
+  }
+
+  return new Date(activity.mutedUntil).getTime() > Date.now();
+}
+
 export function getClubDetailContentState(
   club: ClubDetail,
 ): ClubDetailContentState {
@@ -179,6 +192,9 @@ export function useClubDetailsScreen({
   isMuted: boolean;
   clearActionFeedback: () => void;
   handleClubUpdated: (clubDetails: ClubDetailsApi) => void;
+  handleClubActivityUpdated: (
+    activity: Partial<ClubViewerActivityApi>,
+  ) => void;
   handleJoinClub: () => Promise<void>;
   handleLeaveClub: () => Promise<void>;
   handleToggleMute: () => Promise<void>;
@@ -235,9 +251,37 @@ export function useClubDetailsScreen({
     const mappedClub = mapClubDetailsToDetail(clubDetails);
 
     setClub(mappedClub);
+    setIsMuted(getViewerActivityIsMuted(mappedClub.viewerActivity));
     setContentState(getClubDetailContentState(mappedClub));
     setErrorMessage(null);
   }, []);
+
+  const handleClubActivityUpdated = useCallback(
+    (activity: Partial<ClubViewerActivityApi>) => {
+      setClub((currentClub) => {
+        if (!currentClub) {
+          return currentClub;
+        }
+
+        const viewerActivity = {
+          ...currentClub.viewerActivity,
+          ...activity,
+          unreadCount: Math.max(
+            0,
+            activity.unreadCount ?? currentClub.viewerActivity.unreadCount,
+          ),
+        };
+
+        setIsMuted(getViewerActivityIsMuted(viewerActivity));
+
+        return {
+          ...currentClub,
+          viewerActivity,
+        };
+      });
+    },
+    [],
+  );
 
   const loadClub = useCallback(
     async ({
@@ -282,6 +326,7 @@ export function useClubDetailsScreen({
         const mappedClub = mapClubDetailsToDetail(clubDetails);
 
         setClub(mappedClub);
+        setIsMuted(getViewerActivityIsMuted(mappedClub.viewerActivity));
         setContentState(getClubDetailContentState(mappedClub));
         setErrorMessage(null);
         return clubDetails;
@@ -481,14 +526,21 @@ export function useClubDetailsScreen({
 
     try {
       if (nextMuted) {
-        await muteClubAction(normalizedClubId);
+        const membership = await muteClubAction(normalizedClubId);
+        handleClubActivityUpdated({
+          mutedUntil: membership.mutedUntil,
+          isMuted: Boolean(membership.mutedUntil),
+        });
         setActionSuccessMessage('Clube silenciado.');
       } else {
-        await unmuteClubAction(normalizedClubId);
+        const membership = await unmuteClubAction(normalizedClubId);
+        handleClubActivityUpdated({
+          mutedUntil: membership.mutedUntil,
+          isMuted: false,
+        });
         setActionSuccessMessage('Silencio removido.');
       }
 
-      setIsMuted(nextMuted);
       await reloadAfterAction();
     } catch (error) {
       setActionErrorMessage(
@@ -505,6 +557,7 @@ export function useClubDetailsScreen({
   }, [
     club,
     getActionErrorMessage,
+    handleClubActivityUpdated,
     isMuted,
     muteClubAction,
     normalizedClubId,
@@ -581,6 +634,7 @@ export function useClubDetailsScreen({
     isMuted,
     clearActionFeedback,
     handleClubUpdated,
+    handleClubActivityUpdated,
     handleJoinClub,
     handleLeaveClub,
     handleToggleMute,

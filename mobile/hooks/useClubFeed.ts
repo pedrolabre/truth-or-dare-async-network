@@ -3,13 +3,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createClubPromptResponse,
   getClubFeed,
+  markClubFeedSeen,
 } from '../services/clubsApi';
+import { publishMyClubActivityUpdate } from '../services/clubsLocalUpdates';
 import type {
   ClubFeedContentState,
   ClubFeedScreenState,
 } from '../types/clubs';
 import type {
   ClubFeedApi,
+  ClubFeedSeenApi,
   ClubFeedItemApi,
   ClubFeedOrderApi,
   ClubPromptResponseApi,
@@ -27,13 +30,17 @@ type SubmitClubPromptResponse = (
   payload: CreateClubPromptResponsePayloadApi,
 ) => Promise<ClubPromptResponseApi>;
 
+type MarkClubFeedSeen = (clubId: string) => Promise<ClubFeedSeenApi>;
+
 type UseClubFeedOptions = {
   clubId: string | null;
   isActive: boolean;
   canViewFeed: boolean;
   order?: ClubFeedOrderApi;
   loadClubFeed?: LoadClubFeed;
+  markClubFeedSeenAction?: MarkClubFeedSeen;
   submitClubPromptResponse?: SubmitClubPromptResponse;
+  onFeedSeen?: (seen: ClubFeedSeenApi) => void;
 };
 
 type LoadOptions = {
@@ -92,7 +99,9 @@ export function useClubFeed({
   canViewFeed,
   order = 'activity',
   loadClubFeed = getClubFeed,
+  markClubFeedSeenAction = markClubFeedSeen,
   submitClubPromptResponse = createClubPromptResponse,
+  onFeedSeen,
 }: UseClubFeedOptions): ClubFeedScreenState {
   const [items, setItems] = useState<ClubFeedItemApi[]>([]);
   const [contentState, setContentState] = useState<ClubFeedContentState>(
@@ -109,6 +118,7 @@ export function useClubFeed({
   >(null);
   const isMountedRef = useRef(true);
   const requestIdRef = useRef(0);
+  const seenMarkedClubIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
@@ -124,6 +134,7 @@ export function useClubFeed({
     setIsInitialLoading(false);
     setIsRefreshing(false);
     setContentState(canViewFeed ? 'idle' : 'access-denied');
+    seenMarkedClubIdRef.current = null;
   }, [canViewFeed, clubId]);
 
   const loadFeed = useCallback(
@@ -165,6 +176,26 @@ export function useClubFeed({
         setContentState(getClubFeedContentState(feed.items));
         setErrorMessage(null);
 
+        if (seenMarkedClubIdRef.current !== clubId) {
+          seenMarkedClubIdRef.current = clubId;
+
+          void markClubFeedSeenAction(clubId)
+            .then((seen) => {
+              if (!isMountedRef.current) {
+                return;
+              }
+
+              publishMyClubActivityUpdate(clubId, {
+                unreadCount: seen.unreadCount,
+                lastSeenAt: seen.lastSeenAt,
+              });
+              onFeedSeen?.(seen);
+            })
+            .catch(() => {
+              seenMarkedClubIdRef.current = null;
+            });
+        }
+
         return feed;
       } catch (error) {
         if (!isMountedRef.current || requestIdRef.current !== requestId) {
@@ -190,7 +221,15 @@ export function useClubFeed({
         }
       }
     },
-    [canViewFeed, clubId, items.length, loadClubFeed, order],
+    [
+      canViewFeed,
+      clubId,
+      items.length,
+      loadClubFeed,
+      markClubFeedSeenAction,
+      onFeedSeen,
+      order,
+    ],
   );
 
   useEffect(() => {

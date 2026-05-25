@@ -7,7 +7,13 @@ import {
 import type { ClubFeedApi, ClubFeedItemApi } from '../types/clubsApi';
 
 jest.mock('../services/clubsApi', () => ({
+  createClubPromptResponse: jest.fn(),
   getClubFeed: jest.fn(),
+  markClubFeedSeen: jest.fn().mockResolvedValue({
+    lastSeenAt: '2026-05-23T12:00:00.000Z',
+    unreadCount: 0,
+    readCount: 1,
+  }),
 }));
 
 function makeFeedItem(
@@ -89,6 +95,7 @@ describe('useClubFeed', () => {
 
   it('nao carrega feed enquanto a aba nao esta ativa', () => {
     const loadClubFeed = jest.fn().mockResolvedValue(makeFeed());
+    const markClubFeedSeenAction = jest.fn();
 
     const { result } = renderHook(() =>
       useClubFeed({
@@ -96,15 +103,23 @@ describe('useClubFeed', () => {
         isActive: false,
         canViewFeed: true,
         loadClubFeed,
+        markClubFeedSeenAction,
       }),
     );
 
     expect(result.current.contentState).toBe('idle');
     expect(loadClubFeed).not.toHaveBeenCalled();
+    expect(markClubFeedSeenAction).not.toHaveBeenCalled();
   });
 
   it('carrega feed real quando a aba esta ativa e ha permissao', async () => {
     const loadClubFeed = jest.fn().mockResolvedValue(makeFeed());
+    const markClubFeedSeenAction = jest.fn().mockResolvedValue({
+      lastSeenAt: '2026-05-23T12:00:00.000Z',
+      unreadCount: 0,
+      readCount: 2,
+    });
+    const onFeedSeen = jest.fn();
 
     const { result } = renderHook(() =>
       useClubFeed({
@@ -112,6 +127,8 @@ describe('useClubFeed', () => {
         isActive: true,
         canViewFeed: true,
         loadClubFeed,
+        markClubFeedSeenAction,
+        onFeedSeen,
       }),
     );
 
@@ -124,6 +141,78 @@ describe('useClubFeed', () => {
     expect(result.current.items).toHaveLength(1);
     expect(result.current.hasRealPromptPagination).toBe(false);
     expect(CLUB_FEED_HAS_REAL_PROMPT_PAGINATION).toBe(false);
+
+    await waitFor(() => {
+      expect(markClubFeedSeenAction).toHaveBeenCalledWith('club-1');
+    });
+    expect(markClubFeedSeenAction).toHaveBeenCalledTimes(1);
+    expect(onFeedSeen).toHaveBeenCalledWith({
+      lastSeenAt: '2026-05-23T12:00:00.000Z',
+      unreadCount: 0,
+      readCount: 2,
+    });
+  });
+
+  it('marca feed visto apenas uma vez apos a aba/feed estar ativa', async () => {
+    const loadClubFeed = jest.fn().mockResolvedValue(makeFeed());
+    const markClubFeedSeenAction = jest.fn().mockResolvedValue({
+      lastSeenAt: '2026-05-23T12:00:00.000Z',
+      unreadCount: 0,
+      readCount: 1,
+    });
+
+    const { result } = renderHook(() =>
+      useClubFeed({
+        clubId: 'club-1',
+        isActive: true,
+        canViewFeed: true,
+        loadClubFeed,
+        markClubFeedSeenAction,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    await waitFor(() => {
+      expect(markClubFeedSeenAction).toHaveBeenCalledTimes(1);
+    });
+
+    await act(async () => {
+      await result.current.handleRefresh();
+    });
+
+    expect(loadClubFeed).toHaveBeenCalledTimes(2);
+    expect(markClubFeedSeenAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('falha ao marcar feed visto nao quebra renderizacao', async () => {
+    const loadClubFeed = jest.fn().mockResolvedValue(makeFeed());
+    const markClubFeedSeenAction = jest
+      .fn()
+      .mockRejectedValue(new Error('Falha ao marcar visto'));
+
+    const { result } = renderHook(() =>
+      useClubFeed({
+        clubId: 'club-1',
+        isActive: true,
+        canViewFeed: true,
+        loadClubFeed,
+        markClubFeedSeenAction,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    await waitFor(() => {
+      expect(markClubFeedSeenAction).toHaveBeenCalledTimes(1);
+    });
+
+    expect(result.current.items).toHaveLength(1);
+    expect(result.current.errorMessage).toBeNull();
   });
 
   it('mostra estado vazio quando o endpoint retorna lista sem prompts', async () => {

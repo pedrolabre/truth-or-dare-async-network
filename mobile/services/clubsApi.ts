@@ -3,6 +3,7 @@ import type {
   ClubDetailsApi,
   ClubFeedApi,
   ClubFeedOrderApi,
+  ClubFeedSeenApi,
   ClubInviteApi,
   ClubJoinRequestApi,
   ClubMemberApi,
@@ -421,6 +422,26 @@ export async function getClubFeed(
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}
+
+export async function markClubFeedSeen(
+  clubId: string,
+): Promise<ClubFeedSeenApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(`${baseUrl}/clubs/${clubId}/feed/seen`, {
+    method: 'POST',
+    headers: {
       Authorization: `Bearer ${token}`,
     },
   });

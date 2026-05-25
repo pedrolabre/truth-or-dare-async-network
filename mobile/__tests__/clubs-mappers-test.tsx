@@ -51,6 +51,47 @@ describe('clubs mappers', () => {
       statusLabel: 'Dono',
       iconName: 'sports-esports',
       isActive: true,
+      viewerActivity: {
+        unreadCount: 0,
+        lastSeenAt: null,
+        mutedUntil: null,
+        isMuted: false,
+      },
+      unreadCount: 0,
+      hasUnreadActivity: false,
+    });
+  });
+
+  it('mapeia viewerActivity com nao lidos e mute para ClubListItem', () => {
+    const item = mapClubSummaryToListItem(
+      makeClubSummary({
+        viewerActivity: {
+          unreadCount: 3,
+          lastSeenAt: '2026-05-23T10:00:00.000Z',
+          mutedUntil: '9999-12-31T23:59:59.999Z',
+          isMuted: true,
+        },
+      }),
+    );
+
+    expect(item.viewerActivity).toEqual({
+      unreadCount: 3,
+      lastSeenAt: '2026-05-23T10:00:00.000Z',
+      mutedUntil: '9999-12-31T23:59:59.999Z',
+      isMuted: true,
+    });
+    expect(item.unreadCount).toBe(3);
+    expect(item.hasUnreadActivity).toBe(true);
+  });
+
+  it('usa fallback seguro quando viewerActivity nao vem do backend', () => {
+    const item = mapClubSummaryToListItem(makeClubSummary());
+
+    expect(item.viewerActivity).toEqual({
+      unreadCount: 0,
+      lastSeenAt: null,
+      mutedUntil: null,
+      isMuted: false,
     });
   });
 

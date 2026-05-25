@@ -9,6 +9,7 @@ import type {
   ClubMemberStatusApi,
   ClubPermissionsApi,
   ClubStatusApi,
+  ClubViewerActivityApi,
   ClubSummaryApi,
   ClubVisibilityApi,
   DiscoverClubsApi,
@@ -70,6 +71,13 @@ const BLOCKED_CLUB_DETAIL_PERMISSIONS: ClubPermissionsApi = {
   canEditClub: false,
   canArchiveClub: false,
   canTransferOwnership: false,
+};
+
+const DEFAULT_VIEWER_ACTIVITY: ClubViewerActivityApi = {
+  unreadCount: 0,
+  lastSeenAt: null,
+  mutedUntil: null,
+  isMuted: false,
 };
 
 export function formatClubMembersLabel(memberCount: number): string {
@@ -165,9 +173,26 @@ function getMembershipLabel(club: ClubSummaryApi): string {
     : MEMBER_STATUS_LABELS.active;
 }
 
+export function mapClubViewerActivity(
+  activity: ClubSummaryApi['viewerActivity'],
+): ClubViewerActivityApi {
+  if (!activity) {
+    return { ...DEFAULT_VIEWER_ACTIVITY };
+  }
+
+  return {
+    unreadCount: Math.max(0, activity.unreadCount ?? 0),
+    lastSeenAt: activity.lastSeenAt ?? null,
+    mutedUntil: activity.mutedUntil ?? null,
+    isMuted: Boolean(activity.isMuted),
+  };
+}
+
 export function mapClubSummaryToListItem(
   club: ClubSummaryApi,
 ): ClubListItem {
+  const viewerActivity = mapClubViewerActivity(club.viewerActivity);
+
   return {
     id: club.id,
     name: club.name,
@@ -177,6 +202,9 @@ export function mapClubSummaryToListItem(
     statusLabel: getClubListStatusLabel(club),
     iconName: getClubIconName(club.iconName),
     isActive: getClubListIsActive(club),
+    viewerActivity,
+    unreadCount: viewerActivity.unreadCount,
+    hasUnreadActivity: viewerActivity.unreadCount > 0,
   };
 }
 
@@ -204,6 +232,8 @@ export function getBlockedClubDetailPermissions(): ClubPermissionsApi {
 }
 
 export function mapClubDetailsToDetail(club: ClubDetailsApi): ClubDetail {
+  const viewerActivity = mapClubViewerActivity(club.viewerActivity);
+
   return {
     id: club.id,
     slug: club.slug,
@@ -230,6 +260,7 @@ export function mapClubDetailsToDetail(club: ClubDetailsApi): ClubDetail {
     deletedAt: club.deletedAt,
     joinPolicy: club.joinPolicy,
     viewerMembership: club.viewerMembership,
+    viewerActivity,
     membershipLabel: getMembershipLabel(club),
     permissions: club.permissions,
   };

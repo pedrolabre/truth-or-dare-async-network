@@ -37,6 +37,13 @@ export type ClubViewerMembershipApi = {
   status: ClubMemberStatusApi | null;
 };
 
+export type ClubViewerActivityApi = {
+  unreadCount: number;
+  lastSeenAt: string | null;
+  mutedUntil: string | null;
+  isMuted: boolean;
+};
+
 export type ClubPermissionsApi = {
   canViewFeed: boolean;
   canPostPrompt: boolean;
@@ -60,6 +67,7 @@ export type ClubSummaryApi = {
   promptCount: number;
   lastActivityAt: string | null;
   viewerMembership: ClubViewerMembershipApi;
+  viewerActivity?: ClubViewerActivityApi;
 };
 
 export type ClubDetailsApi = ClubSummaryApi & {
@@ -250,6 +258,12 @@ export type ClubFeedOrderApi =
 export type ClubFeedApi = {
   club: ClubSummaryApi;
   items: ClubFeedItemApi[];
+};
+
+export type ClubFeedSeenApi = {
+  lastSeenAt: string;
+  unreadCount: number;
+  readCount: number;
 };
 
 export type ClubJoinRequestApi = {

@@ -32,6 +32,13 @@ const mockedSearchClubs = searchClubs as jest.MockedFunction<
   typeof searchClubs
 >;
 
+const DEFAULT_VIEWER_ACTIVITY = {
+  unreadCount: 0,
+  lastSeenAt: null,
+  mutedUntil: null,
+  isMuted: false,
+};
+
 type ClubSummaryOverrides = Partial<Omit<ClubSummaryApi, 'viewerMembership'>> & {
   viewerMembership?: Partial<ClubSummaryApi['viewerMembership']>;
 };
@@ -159,6 +166,9 @@ describe('useClubsScreen', () => {
         statusLabel: 'Dono',
         iconName: 'sports-esports',
         isActive: true,
+        viewerActivity: DEFAULT_VIEWER_ACTIVITY,
+        unreadCount: 0,
+        hasUnreadActivity: false,
       },
     ]);
     expect(result.current.activeContentState).toBe('list');
@@ -868,6 +878,9 @@ describe('useClubsScreen', () => {
       statusLabel: 'Membro',
       iconName: 'sports-esports',
       isActive: true,
+      viewerActivity: DEFAULT_VIEWER_ACTIVITY,
+      unreadCount: 0,
+      hasUnreadActivity: false,
     });
     expect(result.current.clubActionErrorMessage).toBeNull();
     expect(result.current.joiningClubIds).toEqual([]);

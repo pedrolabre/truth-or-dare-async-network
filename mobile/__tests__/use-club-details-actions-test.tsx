@@ -45,6 +45,12 @@ function makeClubDetails(
       canArchiveClub: false,
       canTransferOwnership: false,
     },
+    viewerActivity: {
+      unreadCount: 0,
+      lastSeenAt: null,
+      mutedUntil: null,
+      isMuted: false,
+    },
     ...overrides,
   };
 }
@@ -244,8 +250,48 @@ describe('useClubDetailsScreen actions', () => {
     );
   });
 
+  it('inicializa silencio a partir da atividade retornada pelo backend', async () => {
+    const loadClubDetails = jest.fn().mockResolvedValue(
+      makeClubDetails({
+        viewerActivity: {
+          unreadCount: 2,
+          lastSeenAt: null,
+          mutedUntil: '9999-12-31T23:59:59.999Z',
+          isMuted: true,
+        },
+      }),
+    );
+
+    const { result } = renderHook(() =>
+      useClubDetailsScreen({
+        clubId: 'club-1',
+        loadClubDetails,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    expect(result.current.isMuted).toBe(true);
+    expect(result.current.club?.viewerActivity.unreadCount).toBe(2);
+  });
+
   it('silencia e remove silencio com endpoints reais', async () => {
-    const loadClubDetails = jest.fn().mockResolvedValue(makeClubDetails());
+    const loadClubDetails = jest
+      .fn()
+      .mockResolvedValueOnce(makeClubDetails())
+      .mockResolvedValueOnce(
+        makeClubDetails({
+          viewerActivity: {
+            unreadCount: 0,
+            lastSeenAt: null,
+            mutedUntil: '9999-12-31T23:59:59.999Z',
+            isMuted: true,
+          },
+        }),
+      )
+      .mockResolvedValueOnce(makeClubDetails());
     const muteClubAction = jest.fn().mockResolvedValue(
       makeClubMember({
         mutedUntil: '9999-12-31T23:59:59.999Z',
@@ -271,6 +317,7 @@ describe('useClubDetailsScreen actions', () => {
     });
 
     expect(muteClubAction).toHaveBeenCalledWith('club-1');
+    expect(loadClubDetails).toHaveBeenCalledTimes(2);
     expect(result.current.isMuted).toBe(true);
 
     await act(async () => {
@@ -278,6 +325,7 @@ describe('useClubDetailsScreen actions', () => {
     });
 
     expect(unmuteClubAction).toHaveBeenCalledWith('club-1');
+    expect(loadClubDetails).toHaveBeenCalledTimes(3);
     expect(result.current.isMuted).toBe(false);
   });
 

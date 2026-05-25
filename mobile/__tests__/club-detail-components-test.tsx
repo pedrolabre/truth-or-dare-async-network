@@ -60,6 +60,12 @@ function makeClubDetail(overrides: Partial<ClubDetail> = {}): ClubDetail {
       role: 'owner',
       status: 'active',
     },
+    viewerActivity: {
+      unreadCount: 0,
+      lastSeenAt: null,
+      mutedUntil: null,
+      isMuted: false,
+    },
     membershipLabel: 'Dono',
     permissions: {
       canViewFeed: true,

@@ -96,6 +96,13 @@ const mockedUseCreateGroupScreen =
 const mockedPublishMyClubsUpsert =
   publishMyClubsUpsert as jest.MockedFunction<typeof publishMyClubsUpsert>;
 
+const DEFAULT_VIEWER_ACTIVITY = {
+  unreadCount: 0,
+  lastSeenAt: null,
+  mutedUntil: null,
+  isMuted: false,
+};
+
 function makeClubDetail(overrides: Partial<ClubDetail> = {}): ClubDetail {
   return {
     id: 'club-real-123',
@@ -127,6 +134,7 @@ function makeClubDetail(overrides: Partial<ClubDetail> = {}): ClubDetail {
       role: 'owner',
       status: 'active',
     },
+    viewerActivity: DEFAULT_VIEWER_ACTIVITY,
     membershipLabel: 'Dono',
     permissions: {
       canViewFeed: true,
@@ -245,6 +253,7 @@ function makeDetailState(
     isMuted: false,
     clearActionFeedback: jest.fn(),
     handleClubUpdated: jest.fn(),
+    handleClubActivityUpdated: jest.fn(),
     handleJoinClub: jest.fn().mockResolvedValue(undefined),
     handleLeaveClub: jest.fn().mockResolvedValue(undefined),
     handleToggleMute: jest.fn().mockResolvedValue(undefined),
@@ -321,6 +330,9 @@ function makeClubsState(
     statusLabel: 'Membro',
     iconName: 'groups',
     isActive: true,
+    viewerActivity: DEFAULT_VIEWER_ACTIVITY,
+    unreadCount: 0,
+    hasUnreadActivity: false,
   };
 
   return {

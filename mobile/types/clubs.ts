@@ -11,6 +11,7 @@ import type {
   ClubPromptTypeApi,
   ClubReportReasonApi,
   ClubStatusApi,
+  ClubViewerActivityApi,
   ClubViewerMembershipApi,
   ClubVisibilityApi,
   CreateClubPromptResponsePayloadApi,
@@ -37,6 +38,9 @@ export type ClubListItem = {
   statusLabel?: string;
   iconName?: string;
   isActive?: boolean;
+  viewerActivity: ClubViewerActivityApi;
+  unreadCount: number;
+  hasUnreadActivity: boolean;
 };
 
 export type ClubDiscoverItem = {
@@ -118,6 +122,7 @@ export type ClubDetail = {
   deletedAt: string | null;
   joinPolicy: ClubJoinPolicyApi;
   viewerMembership: ClubViewerMembershipApi;
+  viewerActivity: ClubViewerActivityApi;
   membershipLabel: string;
   permissions: ClubPermissionsApi;
 };

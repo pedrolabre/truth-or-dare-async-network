@@ -79,6 +79,7 @@ export default function ClubDetailScreen() {
     isMuted,
     canRetry,
     clearActionFeedback,
+    handleClubActivityUpdated,
     handleClubUpdated,
     handleJoinClub,
     handleLeaveClub,
@@ -93,6 +94,12 @@ export default function ClubDetailScreen() {
     clubId,
     isActive: contentState === 'ready' && activeTab === 'feed',
     canViewFeed: Boolean(permissions?.canViewFeed),
+    onFeedSeen: (seen) => {
+      handleClubActivityUpdated({
+        unreadCount: seen.unreadCount,
+        lastSeenAt: seen.lastSeenAt,
+      });
+    },
   });
   const clubMembers = useClubMembers({
     clubId,

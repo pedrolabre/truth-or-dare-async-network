@@ -47,6 +47,13 @@ const mockedUseClubsScreen = useClubsScreen as jest.MockedFunction<
   typeof useClubsScreen
 >;
 
+const DEFAULT_VIEWER_ACTIVITY = {
+  unreadCount: 0,
+  lastSeenAt: null,
+  mutedUntil: null,
+  isMuted: false,
+};
+
 const baseHookState: ReturnType<typeof useClubsScreen> = {
   activeTab: 'my-clubs',
   activeContentState: 'empty',
@@ -148,6 +155,9 @@ describe('ClubsScreen', () => {
       statusLabel: 'Membro',
       iconName: 'groups',
       isActive: true,
+      viewerActivity: DEFAULT_VIEWER_ACTIVITY,
+      unreadCount: 0,
+      hasUnreadActivity: false,
     };
 
     mockedUseClubsScreen.mockReturnValue({
@@ -163,6 +173,69 @@ describe('ClubsScreen', () => {
     fireEvent.press(getByText('Clube Real do Usuario'));
 
     expect(mockRouterPush).toHaveBeenCalledWith('/clubs/my-real-club-id');
+  });
+
+  it('exibe badge discreto para clube com atividade nova', () => {
+    const myClub = {
+      id: 'club-with-unread',
+      name: 'Clube com Atividade',
+      description: 'Clube vindo da API com notificacoes nao lidas.',
+      memberCount: 3,
+      membersLabel: '3 membros',
+      statusLabel: 'Membro',
+      iconName: 'groups',
+      isActive: true,
+      viewerActivity: {
+        unreadCount: 4,
+        lastSeenAt: '2026-05-23T10:00:00.000Z',
+        mutedUntil: null,
+        isMuted: false,
+      },
+      unreadCount: 4,
+      hasUnreadActivity: true,
+    };
+
+    mockedUseClubsScreen.mockReturnValue({
+      ...baseHookState,
+      activeContentState: 'list',
+      isMyClubsEmpty: false,
+      myClubs: [myClub],
+      myClubsContentState: 'list',
+    });
+
+    const { getByTestId, getByText } = render(<ClubsScreen />);
+
+    expect(getByText('Clube com Atividade')).toBeTruthy();
+    expect(getByTestId('club-unread-badge')).toBeTruthy();
+    expect(getByText('4')).toBeTruthy();
+  });
+
+  it('nao exibe badge quando clube nao tem atividade nova', () => {
+    const myClub = {
+      id: 'club-without-unread',
+      name: 'Clube sem Atividade',
+      description: 'Clube vindo da API sem notificacoes novas.',
+      memberCount: 3,
+      membersLabel: '3 membros',
+      statusLabel: 'Membro',
+      iconName: 'groups',
+      isActive: true,
+      viewerActivity: DEFAULT_VIEWER_ACTIVITY,
+      unreadCount: 0,
+      hasUnreadActivity: false,
+    };
+
+    mockedUseClubsScreen.mockReturnValue({
+      ...baseHookState,
+      activeContentState: 'list',
+      isMyClubsEmpty: false,
+      myClubs: [myClub],
+      myClubsContentState: 'list',
+    });
+
+    const { queryByTestId } = render(<ClubsScreen />);
+
+    expect(queryByTestId('club-unread-badge')).toBeNull();
   });
 
   it('navega para a criacao ao pressionar Criar grupo', () => {

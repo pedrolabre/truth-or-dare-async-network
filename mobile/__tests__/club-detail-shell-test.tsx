@@ -100,6 +100,12 @@ function makeClubDetail(overrides: Partial<ClubDetail> = {}): ClubDetail {
       role: 'owner',
       status: 'active',
     },
+    viewerActivity: {
+      unreadCount: 0,
+      lastSeenAt: null,
+      mutedUntil: null,
+      isMuted: false,
+    },
     membershipLabel: 'Dono',
     permissions: {
       canViewFeed: true,
@@ -135,6 +141,7 @@ function makeHookState(
     isMuted: false,
     clearActionFeedback: jest.fn(),
     handleClubUpdated: jest.fn(),
+    handleClubActivityUpdated: jest.fn(),
     handleJoinClub: jest.fn().mockResolvedValue(undefined),
     handleLeaveClub: jest.fn().mockResolvedValue(undefined),
     handleToggleMute: jest.fn().mockResolvedValue(undefined),
@@ -272,6 +279,7 @@ describe('ClubDetailScreen', () => {
       clubId: 'club-real-123',
       isActive: true,
       canViewFeed: true,
+      onFeedSeen: expect.any(Function),
     });
     expect(getAllByText('Bons Desafios')).toHaveLength(2);
     expect(getByTestId('club-detail-summary-card')).toBeTruthy();
@@ -368,6 +376,7 @@ describe('ClubDetailScreen', () => {
       clubId: 'club-real-123',
       isActive: true,
       canViewFeed: true,
+      onFeedSeen: expect.any(Function),
     });
 
     fireEvent.press(getByTestId('club-detail-tab-about'));
@@ -376,6 +385,7 @@ describe('ClubDetailScreen', () => {
       clubId: 'club-real-123',
       isActive: false,
       canViewFeed: true,
+      onFeedSeen: expect.any(Function),
     });
   });
 
@@ -406,6 +416,7 @@ describe('ClubDetailScreen', () => {
       clubId: 'club-real-123',
       isActive: true,
       canViewFeed: false,
+      onFeedSeen: expect.any(Function),
     });
     expect(getByTestId('club-feed-access-unavailable')).toBeTruthy();
     expect(getByText('Feed indisponivel')).toBeTruthy();

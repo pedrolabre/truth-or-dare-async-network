@@ -11,7 +11,10 @@ import {
   mapClubSummaryToListItem,
   upsertClubListItem,
 } from '../services/clubsMappers';
-import { subscribeToMyClubsUpserts } from '../services/clubsLocalUpdates';
+import {
+  subscribeToMyClubActivityUpdates,
+  subscribeToMyClubsUpserts,
+} from '../services/clubsLocalUpdates';
 import type { ClubDiscoverySource } from '../services/clubsMappers';
 import type {
   ClubDiscoverItem,
@@ -157,6 +160,38 @@ export function useClubsScreen() {
       upsertCreatedClubInMyClubs(club);
     });
   }, [upsertCreatedClubInMyClubs]);
+
+  useEffect(() => {
+    return subscribeToMyClubActivityUpdates((clubId, activity) => {
+      if (!isMountedRef.current) {
+        return;
+      }
+
+      setMyClubs((currentClubs) =>
+        currentClubs.map((club) => {
+          if (club.id !== clubId) {
+            return club;
+          }
+
+          const viewerActivity = {
+            ...club.viewerActivity,
+            ...activity,
+            unreadCount: Math.max(
+              0,
+              activity.unreadCount ?? club.viewerActivity.unreadCount,
+            ),
+          };
+
+          return {
+            ...club,
+            viewerActivity,
+            unreadCount: viewerActivity.unreadCount,
+            hasUnreadActivity: viewerActivity.unreadCount > 0,
+          };
+        }),
+      );
+    });
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -647,6 +682,14 @@ export function useClubsScreen() {
         statusLabel,
         iconName: club.iconName,
         isActive,
+        viewerActivity: {
+          unreadCount: 0,
+          lastSeenAt: null,
+          mutedUntil: membership.mutedUntil,
+          isMuted: Boolean(membership.mutedUntil),
+        },
+        unreadCount: 0,
+        hasUnreadActivity: false,
       };
 
       return [joinedClub, ...currentClubs];
