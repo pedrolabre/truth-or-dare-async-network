@@ -7,8 +7,8 @@ import ClubDetailTabs from '../components/clubs/ClubDetailTabs';
 import ClubFeedPanel from '../components/clubs/ClubFeedPanel';
 import ClubHeaderCard from '../components/clubs/ClubHeaderCard';
 import ClubMembersPanel from '../components/clubs/ClubMembersPanel';
+import ClubMediaPanel from '../components/clubs/ClubMediaPanel';
 import ClubPromptCard from '../components/clubs/ClubPromptCard';
-import ClubRankingPanel from '../components/clubs/ClubRankingPanel';
 import ClubReportModal from '../components/clubs/ClubReportModal';
 import ClubTruthResponseModal from '../components/clubs/ClubTruthResponseModal';
 import { LIGHT_CLUBS_COLORS } from '../constants/clubsTheme';
@@ -214,9 +214,9 @@ describe('club detail components', () => {
     );
 
     expect(getByTestId('club-detail-tabs')).toBeTruthy();
-    expect(getByText('Feed')).toBeTruthy();
+    expect(getByText('Mural')).toBeTruthy();
     expect(getByText('Membros')).toBeTruthy();
-    expect(getByText('Ranking')).toBeTruthy();
+    expect(getByText('Mídias')).toBeTruthy();
     expect(getByText('Sobre')).toBeTruthy();
 
     fireEvent.press(getByTestId('club-detail-tab-about'));
@@ -398,15 +398,18 @@ describe('club detail components', () => {
     expect(getByText('Sem atividade registrada')).toBeTruthy();
   });
 
-  it('renderiza Ranking como indisponivel sem leaderboard local', () => {
+  it('renderiza Midias como indisponiveis sem lista local', () => {
     const { getByTestId, getByText, queryByTestId, queryByText } = render(
-      <ClubRankingPanel colors={LIGHT_CLUBS_COLORS} />,
+      <ClubMediaPanel colors={LIGHT_CLUBS_COLORS} />,
     );
 
-    expect(getByTestId('club-ranking-unavailable')).toBeTruthy();
-    expect(getByText('Ranking indisponivel')).toBeTruthy();
-    expect(queryByTestId('club-ranking-leaderboard')).toBeNull();
-    expect(queryByText('999 pontos')).toBeNull();
+    expect(getByTestId('club-media-unavailable')).toBeTruthy();
+    expect(getByText('Mídias indisponíveis')).toBeTruthy();
+    expect(
+      getByText('As mídias do clube ainda não estão disponíveis.'),
+    ).toBeTruthy();
+    expect(queryByTestId('club-media-list')).toBeNull();
+    expect(queryByText('Midia publicada')).toBeNull();
   });
 
   it('renderiza card de prompt de verdade com dados reais e respostas recentes', () => {

@@ -13,13 +13,12 @@ type Props = {
 type TabItem = {
   key: ClubDetailTabKey;
   label: string;
-  legacyLabel?: string;
 };
 
 const TABS: TabItem[] = [
-  { key: 'feed', label: 'Mural', legacyLabel: 'Feed' },
+  { key: 'feed', label: 'Mural' },
   { key: 'members', label: 'Membros' },
-  { key: 'ranking', label: 'Mídias', legacyLabel: 'Ranking' },
+  { key: 'media', label: 'Mídias' },
   { key: 'about', label: 'Sobre' },
 ];
 
@@ -64,9 +63,6 @@ export default function ClubDetailTabs({
             >
               {tab.label}
             </Text>
-            {tab.legacyLabel ? (
-              <Text style={styles.hiddenText}>{tab.legacyLabel}</Text>
-            ) : null}
           </Pressable>
         );
       })}
@@ -97,9 +93,5 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.88,
-  },
-  hiddenText: {
-    position: 'absolute',
-    opacity: 0,
   },
 });

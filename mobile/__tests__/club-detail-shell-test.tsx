@@ -293,7 +293,7 @@ describe('ClubDetailScreen', () => {
     expect(getByTestId('club-prompt-card-prompt-1')).toBeTruthy();
     expect(getByTestId('club-detail-tab-feed')).toBeTruthy();
     expect(getByTestId('club-detail-tab-members')).toBeTruthy();
-    expect(getByTestId('club-detail-tab-ranking')).toBeTruthy();
+    expect(getByTestId('club-detail-tab-media')).toBeTruthy();
     expect(getByTestId('club-detail-tab-about')).toBeTruthy();
   });
 
@@ -321,8 +321,8 @@ describe('ClubDetailScreen', () => {
     expect(getByTestId('club-about-panel')).toBeTruthy();
     expect(getByText('Sem regras publicadas.')).toBeTruthy();
 
-    fireEvent.press(getByTestId('club-detail-tab-ranking'));
-    expect(getByTestId('club-ranking-unavailable')).toBeTruthy();
+    fireEvent.press(getByTestId('club-detail-tab-media'));
+    expect(getByTestId('club-media-unavailable')).toBeTruthy();
 
     fireEvent.press(getByTestId('club-detail-tab-members'));
     expect(getByTestId('club-members-panel')).toBeTruthy();

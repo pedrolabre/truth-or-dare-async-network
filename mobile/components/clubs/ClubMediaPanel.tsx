@@ -8,10 +8,10 @@ type Props = {
   colors: ClubsThemeColors;
 };
 
-export default function ClubRankingPanel({ colors }: Props) {
+export default function ClubMediaPanel({ colors }: Props) {
   return (
     <View
-      testID="club-ranking-unavailable"
+      testID="club-media-unavailable"
       style={[
         styles.card,
         {
@@ -27,11 +27,9 @@ export default function ClubRankingPanel({ colors }: Props) {
       <Text style={[styles.title, { color: colors.text }]}>
         Mídias indisponíveis
       </Text>
-      <Text style={styles.hiddenText}>Ranking indisponivel</Text>
 
       <Text style={[styles.description, { color: colors.subText }]}>
-        Fotos e vídeos do clube dependem de uma fonte real de mídias. Nenhuma
-        galeria local é exibida aqui.
+        As mídias do clube ainda não estão disponíveis.
       </Text>
     </View>
   );
@@ -65,9 +63,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     fontWeight: '500',
     maxWidth: 292,
-  },
-  hiddenText: {
-    position: 'absolute',
-    opacity: 0,
   },
 });

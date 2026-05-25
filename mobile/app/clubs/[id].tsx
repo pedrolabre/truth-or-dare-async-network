@@ -23,8 +23,8 @@ import ClubFeedPanel from '../../components/clubs/ClubFeedPanel';
 import ClubHeaderCard from '../../components/clubs/ClubHeaderCard';
 import ClubInvitesModal from '../../components/clubs/ClubInvitesModal';
 import ClubMembersPanel from '../../components/clubs/ClubMembersPanel';
+import ClubMediaPanel from '../../components/clubs/ClubMediaPanel';
 import ClubPromptComposerModal from '../../components/clubs/ClubPromptComposerModal';
-import ClubRankingPanel from '../../components/clubs/ClubRankingPanel';
 import ClubReportModal from '../../components/clubs/ClubReportModal';
 import ClubSettingsModal from '../../components/clubs/ClubSettingsModal';
 import ClubTruthResponseModal from '../../components/clubs/ClubTruthResponseModal';
@@ -175,8 +175,8 @@ export default function ClubDetailScreen() {
     switch (activeTab) {
       case 'about':
         return <ClubAboutPanel club={readyClub} colors={colors} />;
-      case 'ranking':
-        return <ClubRankingPanel colors={colors} />;
+      case 'media':
+        return <ClubMediaPanel colors={colors} />;
       case 'members':
         return (
           <ClubMembersPanel

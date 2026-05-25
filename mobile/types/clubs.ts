@@ -19,7 +19,7 @@ import type {
 
 export type ClubsTabKey = 'my-clubs' | 'discover';
 
-export type ClubDetailTabKey = 'feed' | 'members' | 'ranking' | 'about';
+export type ClubDetailTabKey = 'feed' | 'members' | 'media' | 'about';
 
 export type ClubsContentState =
   | 'loading'

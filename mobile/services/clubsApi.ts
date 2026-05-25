@@ -252,7 +252,7 @@ export async function requestClubJoin(
   const token = await getToken();
 
   if (!token) {
-    throw new Error('Token nÃ£o encontrado');
+    throw new Error('Token nao encontrado');
   }
 
   const response = await fetch(`${baseUrl}/clubs/${clubId}/join-requests`, {
@@ -292,7 +292,7 @@ export async function muteClub(clubId: string): Promise<ClubMemberApi> {
   const token = await getToken();
 
   if (!token) {
-    throw new Error('Token nÃ£o encontrado');
+    throw new Error('Token nao encontrado');
   }
 
   const response = await fetch(`${baseUrl}/clubs/${clubId}/mute`, {
@@ -310,7 +310,7 @@ export async function unmuteClub(clubId: string): Promise<ClubMemberApi> {
   const token = await getToken();
 
   if (!token) {
-    throw new Error('Token nÃ£o encontrado');
+    throw new Error('Token nao encontrado');
   }
 
   const response = await fetch(`${baseUrl}/clubs/${clubId}/unmute`, {
@@ -332,7 +332,7 @@ export async function inviteClubUser(
   const token = await getToken();
 
   if (!token) {
-    throw new Error('Token nÃ£o encontrado');
+    throw new Error('Token nao encontrado');
   }
 
   const response = await fetch(`${baseUrl}/clubs/${clubId}/invites`, {
@@ -358,7 +358,7 @@ export async function updateClub(
   const token = await getToken();
 
   if (!token) {
-    throw new Error('Token nÃ£o encontrado');
+    throw new Error('Token nao encontrado');
   }
 
   const response = await fetch(`${baseUrl}/clubs/${clubId}`, {
@@ -381,7 +381,7 @@ export async function createClubPrompt(
   const token = await getToken();
 
   if (!token) {
-    throw new Error('Token nÃ£o encontrado');
+    throw new Error('Token nao encontrado');
   }
 
   const response = await fetch(`${baseUrl}/clubs/${clubId}/prompts`, {
