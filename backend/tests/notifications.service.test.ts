@@ -152,6 +152,91 @@ describe('notifications.service', () => {
     });
   });
 
+  it('trata listagem, contagem e leitura como inbox unica independente de clube', async () => {
+    const user = await createTestUser();
+    const actor = await createTestUser();
+    const otherUser = await createTestUser();
+    const club = await createTestClub({
+      createdById: actor.id,
+    });
+
+    const clubNotification = await createTestNotification({
+      userId: user.id,
+      actorId: actor.id,
+      type: NotificationType.club_new_prompt,
+      title: 'Atividade de clube',
+      deepLink: `/clubs/${club.id}`,
+      clubId: club.id,
+      referenceType: 'club_prompt',
+      referenceId: 'prompt-1',
+      createdAt: new Date('2026-05-23T12:00:00.000Z'),
+    });
+    const feedLikeNotification = await createTestNotification({
+      userId: user.id,
+      actorId: actor.id,
+      type: NotificationType.club_member_promoted,
+      title: 'Atividade fora de clube',
+      deepLink: '/feed/truth-1',
+      clubId: null,
+      referenceType: 'feed_like',
+      referenceId: 'like-1',
+      createdAt: new Date('2026-05-23T13:00:00.000Z'),
+    });
+    await createTestNotification({
+      userId: otherUser.id,
+      actorId: actor.id,
+      title: 'Atividade de outro usuario',
+      clubId: null,
+      referenceType: 'account_event',
+      referenceId: 'account-1',
+    });
+
+    const notifications = await listNotificationsForUser({
+      userId: user.id,
+    });
+
+    expect(notifications.items).toEqual([
+      expect.objectContaining({
+        id: feedLikeNotification.id,
+        clubId: null,
+        referenceType: 'feed_like',
+      }),
+      expect.objectContaining({
+        id: clubNotification.id,
+        clubId: club.id,
+        referenceType: 'club_prompt',
+      }),
+    ]);
+    await expect(countUnreadNotifications(user.id)).resolves.toEqual({
+      unreadCount: 2,
+    });
+
+    const readResult = await markNotificationRead({
+      userId: user.id,
+      notificationId: feedLikeNotification.id,
+    });
+
+    expect(readResult.notification).toMatchObject({
+      id: feedLikeNotification.id,
+      clubId: null,
+      referenceType: 'feed_like',
+      readAt: expect.any(String),
+    });
+    await expect(countUnreadNotifications(user.id)).resolves.toEqual({
+      unreadCount: 1,
+    });
+
+    await expect(markAllNotificationsRead(user.id)).resolves.toEqual({
+      updatedCount: 1,
+    });
+    await expect(countUnreadNotifications(user.id)).resolves.toEqual({
+      unreadCount: 0,
+    });
+    await expect(countUnreadNotifications(otherUser.id)).resolves.toEqual({
+      unreadCount: 1,
+    });
+  });
+
   it('marca uma notificacao como lida e bloqueia notificacao de outro usuario', async () => {
     const user = await createTestUser();
     const otherUser = await createTestUser();

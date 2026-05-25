@@ -1,8 +1,10 @@
 import express from 'express';
 import request from 'supertest';
+import { NotificationType } from '../src/generated/prisma/client';
 import notificationsRoutes from '../src/routes/notifications.routes';
 import { prisma } from '../src/lib/prisma';
 import {
+  createTestClub,
   createTestNotification,
   createTestUser,
   resetFeedData,
@@ -59,12 +61,34 @@ describe('notifications.routes', () => {
     expect(readAllResponse.status).toBe(401);
   });
 
-  it('lista notificacoes somente do usuario autenticado', async () => {
+  it('lista notificacoes do usuario autenticado como inbox unica', async () => {
     const user = await createTestUser();
+    const actor = await createTestUser();
     const otherUser = await createTestUser();
-    const notification = await createTestNotification({
+    const club = await createTestClub({
+      createdById: actor.id,
+    });
+    const clubNotification = await createTestNotification({
       userId: user.id,
-      title: 'Minha notificacao',
+      actorId: actor.id,
+      type: NotificationType.club_new_prompt,
+      title: 'Atividade de clube',
+      deepLink: `/clubs/${club.id}`,
+      clubId: club.id,
+      referenceType: 'club_prompt',
+      referenceId: 'prompt-1',
+      createdAt: new Date('2026-05-23T12:00:00.000Z'),
+    });
+    const feedLikeNotification = await createTestNotification({
+      userId: user.id,
+      actorId: actor.id,
+      type: NotificationType.club_member_promoted,
+      title: 'Atividade fora de clube',
+      deepLink: '/feed/truth-1',
+      clubId: null,
+      referenceType: 'feed_like',
+      referenceId: 'like-1',
+      createdAt: new Date('2026-05-23T13:00:00.000Z'),
     });
     await createTestNotification({
       userId: otherUser.id,
@@ -79,8 +103,14 @@ describe('notifications.routes', () => {
     expect(response.body).toEqual({
       items: [
         expect.objectContaining({
-          id: notification.id,
-          title: 'Minha notificacao',
+          id: feedLikeNotification.id,
+          clubId: null,
+          referenceType: 'feed_like',
+        }),
+        expect.objectContaining({
+          id: clubNotification.id,
+          clubId: club.id,
+          referenceType: 'club_prompt',
         }),
       ],
       nextCursor: null,
@@ -89,14 +119,32 @@ describe('notifications.routes', () => {
 
   it('filtra e conta notificacoes nao lidas', async () => {
     const user = await createTestUser();
+    const actor = await createTestUser();
+    const club = await createTestClub({
+      createdById: actor.id,
+    });
 
     await createTestNotification({
       userId: user.id,
-      title: 'Nao lida',
+      actorId: actor.id,
+      title: 'Nao lida de clube',
+      clubId: club.id,
+      referenceType: 'club_prompt',
+      createdAt: new Date('2026-05-23T12:00:00.000Z'),
     });
     await createTestNotification({
       userId: user.id,
-      title: 'Lida',
+      actorId: actor.id,
+      title: 'Nao lida fora de clube',
+      clubId: null,
+      referenceType: 'feed_like',
+      createdAt: new Date('2026-05-23T13:00:00.000Z'),
+    });
+    await createTestNotification({
+      userId: user.id,
+      title: 'Lida fora de clube',
+      clubId: null,
+      referenceType: 'account_event',
       readAt: new Date(),
     });
 
@@ -114,20 +162,31 @@ describe('notifications.routes', () => {
     expect(listResponse.status).toBe(200);
     expect(listResponse.body.items).toEqual([
       expect.objectContaining({
-        title: 'Nao lida',
+        title: 'Nao lida fora de clube',
+        clubId: null,
+        referenceType: 'feed_like',
+        readAt: null,
+      }),
+      expect.objectContaining({
+        title: 'Nao lida de clube',
+        clubId: club.id,
+        referenceType: 'club_prompt',
         readAt: null,
       }),
     ]);
     expect(countResponse.status).toBe(200);
     expect(countResponse.body).toEqual({
-      unreadCount: 1,
+      unreadCount: 2,
     });
   });
 
-  it('marca uma notificacao propria como lida', async () => {
+  it('marca qualquer notificacao propria como lida sem exigir clube', async () => {
     const user = await createTestUser();
     const notification = await createTestNotification({
       userId: user.id,
+      clubId: null,
+      referenceType: 'feed_like',
+      referenceId: 'like-1',
     });
 
     const response = await request(app)
@@ -137,6 +196,8 @@ describe('notifications.routes', () => {
     expect(response.status).toBe(200);
     expect(response.body.notification).toMatchObject({
       id: notification.id,
+      clubId: null,
+      referenceType: 'feed_like',
       readAt: expect.any(String),
     });
   });
@@ -160,16 +221,29 @@ describe('notifications.routes', () => {
 
   it('marca todas as notificacoes do usuario como lidas', async () => {
     const user = await createTestUser();
+    const actor = await createTestUser();
     const otherUser = await createTestUser();
+    const club = await createTestClub({
+      createdById: actor.id,
+    });
 
     await createTestNotification({
       userId: user.id,
+      actorId: actor.id,
+      clubId: club.id,
+      referenceType: 'club_prompt',
     });
     await createTestNotification({
       userId: user.id,
+      actorId: actor.id,
+      clubId: null,
+      referenceType: 'feed_like',
     });
     await createTestNotification({
       userId: otherUser.id,
+      actorId: actor.id,
+      clubId: null,
+      referenceType: 'account_event',
     });
 
     const response = await request(app)
