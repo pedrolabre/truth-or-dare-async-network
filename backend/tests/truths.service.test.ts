@@ -1,7 +1,11 @@
-import { createTruth } from '../src/services/truths/truths.service';
+import {
+  createTruth,
+  createTruthCommentService,
+} from '../src/services/truths/truths.service';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { prisma } from '../src/lib/prisma';
+import { NotificationType } from '../src/generated/prisma/client';
 
 describe('createTruth', () => {
   applyTestDatabaseHooks();
@@ -70,6 +74,82 @@ describe('createTruth', () => {
         name: targetUser.name,
         email: targetUser.email,
       },
+    });
+    const notification = await prisma.notification.findUnique({
+      where: {
+        dedupeKey: `feed_truth_received:${targetUser.id}:${result.id}`,
+      },
+    });
+
+    expect(notification).toMatchObject({
+      userId: targetUser.id,
+      actorId: author.id,
+      type: NotificationType.feed_truth_received,
+      deepLink: '/feed',
+      referenceType: 'truth',
+      referenceId: result.id,
+    });
+  });
+
+  it('deve suprimir notificacao de truth quando o autor for o proprio alvo', async () => {
+    const user = await createTestUser({
+      name: 'Self Truth User',
+      email: 'self-truth-user@test.com',
+      password: '123456',
+    });
+
+    const result = await createTruth({
+      authorId: user.id,
+      targetUserId: user.id,
+      content: 'Uma truth para mim mesmo.',
+    });
+
+    expect(result.id).toEqual(expect.any(String));
+    await expect(prisma.notification.count()).resolves.toBe(0);
+  });
+
+  it('deve notificar o autor da truth quando outro usuario comentar', async () => {
+    const author = await createTestUser({
+      name: 'Commented Truth Author',
+      email: 'commented-truth-author@test.com',
+      password: '123456',
+    });
+    const targetUser = await createTestUser({
+      name: 'Commented Truth Target',
+      email: 'commented-truth-target@test.com',
+      password: '123456',
+    });
+    const commenter = await createTestUser({
+      name: 'Truth Comment Producer',
+      email: 'truth-comment-producer@test.com',
+      password: '123456',
+    });
+    const truth = await prisma.truth.create({
+      data: {
+        authorId: author.id,
+        targetUserId: targetUser.id,
+        content: 'Truth com comentario notificado.',
+      },
+    });
+
+    const comment = await createTruthCommentService({
+      truthId: truth.id,
+      userId: commenter.id,
+      text: 'Comentario que gera notificacao.',
+    });
+
+    const notification = await prisma.notification.findUnique({
+      where: {
+        dedupeKey: `feed_truth_comment:${author.id}:${comment.id}`,
+      },
+    });
+
+    expect(notification).toMatchObject({
+      userId: author.id,
+      actorId: commenter.id,
+      type: NotificationType.feed_truth_comment,
+      referenceType: 'truth_comment',
+      referenceId: comment.id,
     });
   });
 

@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { createNotification } from '../notifications.service';
 
 export type CreateTruthInput = {
   authorId: string;
@@ -24,6 +25,14 @@ export type CreatedTruthResponse = {
 };
 
 const TRUTH_COMMENT_MAX_LENGTH = 500;
+
+function feedDeepLink() {
+  return '/feed';
+}
+
+function truthCommentsDeepLink(truthId: string) {
+  return `/feed-comments?itemId=${encodeURIComponent(truthId)}&itemType=truth`;
+}
 
 type TruthCommentAuthorResponse = {
   id: string;
@@ -112,6 +121,18 @@ export async function createTruth({
         },
       },
     },
+  });
+
+  await createNotification({
+    userId: truth.targetUserId,
+    actorId: truth.authorId,
+    type: 'feed_truth_received',
+    title: 'Nova verdade recebida',
+    body: 'Voce recebeu uma nova verdade para responder.',
+    deepLink: feedDeepLink(),
+    referenceType: 'truth',
+    referenceId: truth.id,
+    dedupeKey: `feed_truth_received:${truth.targetUserId}:${truth.id}`,
   });
 
   return {
@@ -245,6 +266,7 @@ export async function getTruthCommentsService({
     },
     select: {
       id: true,
+      authorId: true,
     },
   });
 
@@ -339,6 +361,7 @@ export async function createTruthCommentService({
     },
     select: {
       id: true,
+      authorId: true,
     },
   });
 
@@ -385,7 +408,19 @@ export async function createTruthCommentService({
     },
   });
 
-    return {
+  await createNotification({
+    userId: truth.authorId,
+    actorId: userId,
+    type: 'feed_truth_comment',
+    title: 'Novo comentario na sua truth',
+    body: 'Sua truth recebeu um novo comentario.',
+    deepLink: truthCommentsDeepLink(truth.id),
+    referenceType: 'truth_comment',
+    referenceId: comment.id,
+    dedupeKey: `feed_truth_comment:${truth.authorId}:${comment.id}`,
+  });
+
+  return {
     id: comment.id,
     text: comment.text,
     createdAt: comment.createdAt,

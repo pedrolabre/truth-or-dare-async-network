@@ -4,6 +4,7 @@ import {
   sendPasswordResetCodeEmail,
   sendPasswordResetConfirmationEmail,
 } from './email.service';
+import { createNotification } from '../notifications.service';
 import {
   MAX_CODE_ATTEMPTS,
   MAX_REQUESTS_PER_EMAIL_PER_HOUR,
@@ -444,6 +445,18 @@ export async function resetPassword({
   logPasswordResetEvent('info', {
     event: 'password_reset.completed',
     userId: user.id,
+  });
+
+  await createNotification({
+    userId: user.id,
+    actorId: null,
+    type: 'account_password_reset_completed',
+    title: 'Senha redefinida',
+    body: 'Sua senha foi redefinida com sucesso.',
+    deepLink: '/settings',
+    referenceType: 'password_reset_token',
+    referenceId: token.id,
+    dedupeKey: `account_password_reset_completed:${user.id}:${token.id}`,
   });
 
   const confirmationResult = await sendPasswordResetConfirmationEmail({

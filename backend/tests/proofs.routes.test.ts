@@ -5,6 +5,7 @@ import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';
 import { prisma } from '../src/lib/prisma';
+import { NotificationType } from '../src/generated/prisma/client';
 
 function createTestApp() {
   const app = express();
@@ -132,6 +133,20 @@ describe('POST /dares/:id/proof', () => {
 
     expect(completedDare).not.toBeNull();
     expect(completedDare?.completedAt).toBeInstanceOf(Date);
+
+    const notification = await prisma.notification.findUnique({
+      where: {
+        dedupeKey: `feed_dare_proof_submitted:${author.id}:${response.body.proof.id}`,
+      },
+    });
+
+    expect(notification).toMatchObject({
+      userId: author.id,
+      actorId: targetUser.id,
+      type: NotificationType.feed_dare_proof_submitted,
+      referenceType: 'dare_proof',
+      referenceId: response.body.proof.id,
+    });
   });
 
   it('deve aceitar proof com audio e texto opcional vazio', async () => {

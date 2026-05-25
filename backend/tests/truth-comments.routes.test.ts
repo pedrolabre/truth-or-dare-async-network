@@ -7,6 +7,7 @@ import { prisma } from '../src/lib/prisma';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';
 import { applyTestDatabaseHooks } from './test-db';
+import { NotificationType } from '../src/generated/prisma/client';
 
 function createTestApp() {
   const app = express();
@@ -1250,6 +1251,40 @@ describe('Truth comments routes', () => {
       });
 
       expect(persistedLike).not.toBeNull();
+    });
+
+    it('deve notificar o autor quando outro usuario curtir comentario', async () => {
+      const scenario = await createTruthScenario();
+      const liker = await createCommentViewer();
+      const likerToken = createTokenForUser(liker);
+
+      const comment = await prisma.truthComment.create({
+        data: {
+          text: 'Comentario para receber like notificado.',
+          truthId: scenario.truth.id,
+          userId: scenario.commenter.id,
+        },
+      });
+
+      const response = await request(app)
+        .post(`/truths/comments/${comment.id}/like`)
+        .set('Authorization', `Bearer ${likerToken}`);
+
+      expect(response.status).toBe(200);
+
+      const notification = await prisma.notification.findUnique({
+        where: {
+          dedupeKey: `feed_like:truth_comment:${comment.id}:${liker.id}`,
+        },
+      });
+
+      expect(notification).toMatchObject({
+        userId: scenario.commenter.id,
+        actorId: liker.id,
+        type: NotificationType.feed_like,
+        referenceType: 'truth_comment_like',
+        referenceId: comment.id,
+      });
     });
 
     it('deve remover curtida ao chamar novamente e retornar likesCount atualizado', async () => {

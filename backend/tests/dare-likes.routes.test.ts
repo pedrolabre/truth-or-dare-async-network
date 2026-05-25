@@ -5,6 +5,7 @@ import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';
 import { prisma } from '../src/lib/prisma';
+import { NotificationType } from '../src/generated/prisma/client';
 
 function createTestApp() {
   const app = express();
@@ -78,6 +79,20 @@ describe('POST /dares/:id/like', () => {
     });
 
     expect(persistedLike).not.toBeNull();
+
+    const notification = await prisma.notification.findUnique({
+      where: {
+        dedupeKey: `feed_like:dare:${dare.id}:${liker.id}`,
+      },
+    });
+
+    expect(notification).toMatchObject({
+      userId: author.id,
+      actorId: liker.id,
+      type: NotificationType.feed_like,
+      referenceType: 'dare_like',
+      referenceId: dare.id,
+    });
   });
 
   it('deve remover like quando já estiver curtido', async () => {

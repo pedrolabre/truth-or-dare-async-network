@@ -2,6 +2,7 @@ import { createDare } from '../src/services/dares/dares.service';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { prisma } from '../src/lib/prisma';
+import { NotificationType } from '../src/generated/prisma/client';
 
 describe('createDare', () => {
   applyTestDatabaseHooks();
@@ -46,6 +47,42 @@ describe('createDare', () => {
       targetUserId: user.id,
       attemptsUsed: 0,
       completedAt: null,
+    });
+
+    await expect(prisma.notification.count()).resolves.toBe(0);
+  });
+
+  it('deve notificar o usuario alvo quando recebe um dare de outro autor', async () => {
+    const author = await createTestUser({
+      name: 'Dare Notification Author',
+      email: 'dare-notification-author@test.com',
+      password: '123456',
+    });
+    const targetUser = await createTestUser({
+      name: 'Dare Notification Target',
+      email: 'dare-notification-target@test.com',
+      password: '123456',
+    });
+
+    const result = await createDare({
+      authorId: author.id,
+      targetUserId: targetUser.id,
+      content: 'Grave um video fazendo uma danca rapida.',
+    });
+
+    const notification = await prisma.notification.findUnique({
+      where: {
+        dedupeKey: `feed_dare_received:${targetUser.id}:${result.id}`,
+      },
+    });
+
+    expect(notification).toMatchObject({
+      userId: targetUser.id,
+      actorId: author.id,
+      type: NotificationType.feed_dare_received,
+      deepLink: '/feed',
+      referenceType: 'dare',
+      referenceId: result.id,
     });
   });
 

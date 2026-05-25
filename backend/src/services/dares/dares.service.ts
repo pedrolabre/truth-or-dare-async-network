@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { createNotification } from '../notifications.service';
 
 type CreateDareInput = {
   content: string;
@@ -104,6 +105,18 @@ export async function createDare({
         },
       },
     },
+  });
+
+  await createNotification({
+    userId: dare.targetUserId,
+    actorId: dare.authorId,
+    type: 'feed_dare_received',
+    title: 'Novo desafio recebido',
+    body: 'Voce recebeu um novo desafio.',
+    deepLink: '/feed',
+    referenceType: 'dare',
+    referenceId: dare.id,
+    dedupeKey: `feed_dare_received:${dare.targetUserId}:${dare.id}`,
   });
 
   return dare;

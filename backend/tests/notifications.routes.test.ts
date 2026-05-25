@@ -82,7 +82,7 @@ describe('notifications.routes', () => {
     const feedLikeNotification = await createTestNotification({
       userId: user.id,
       actorId: actor.id,
-      type: NotificationType.club_member_promoted,
+      type: NotificationType.feed_like,
       title: 'Atividade fora de clube',
       deepLink: '/feed/truth-1',
       clubId: null,
@@ -143,6 +143,7 @@ describe('notifications.routes', () => {
     await createTestNotification({
       userId: user.id,
       title: 'Lida fora de clube',
+      type: NotificationType.account_password_reset_completed,
       clubId: null,
       referenceType: 'account_event',
       readAt: new Date(),

@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { createNotification } from '../notifications.service';
 
 type ProofMediaTypeValue = 'video' | 'audio' | 'file';
 
@@ -160,6 +161,23 @@ export async function submitDareProofService({
     });
 
     return createdProof;
+  });
+
+  const deepLink =
+    `/proof-detail?proofId=${encodeURIComponent(proof.id)}` +
+    `&dareId=${encodeURIComponent(proof.dare.id)}` +
+    `&mediaType=${encodeURIComponent(proof.mediaType)}&source=backend`;
+
+  await createNotification({
+    userId: proof.dare.authorId,
+    actorId: proof.userId,
+    type: 'feed_dare_proof_submitted',
+    title: 'Prova de desafio enviada',
+    body: 'Um desafio que voce criou recebeu uma prova.',
+    deepLink,
+    referenceType: 'dare_proof',
+    referenceId: proof.id,
+    dedupeKey: `feed_dare_proof_submitted:${proof.dare.authorId}:${proof.id}`,
   });
 
   return proof;

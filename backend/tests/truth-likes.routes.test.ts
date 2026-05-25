@@ -5,6 +5,7 @@ import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';
 import { prisma } from '../src/lib/prisma';
+import { NotificationType } from '../src/generated/prisma/client';
 
 function createTestApp() {
   const app = express();
@@ -113,6 +114,20 @@ describe('POST /truths/:id/like', () => {
       userId: liker.id,
       targetId: truth.id,
       targetType: 'truth',
+    });
+
+    const notification = await prisma.notification.findUnique({
+      where: {
+        dedupeKey: `feed_like:truth:${truth.id}:${liker.id}`,
+      },
+    });
+
+    expect(notification).toMatchObject({
+      userId: author.id,
+      actorId: liker.id,
+      type: NotificationType.feed_like,
+      referenceType: 'truth_like',
+      referenceId: truth.id,
     });
   });
 

@@ -16,6 +16,7 @@ import {
 } from '../src/test-utils/factories';
 import { getSentEmails, resetSentEmails } from '../src/services/auth/email.mock';
 import { applyTestDatabaseHooks } from './test-db';
+import { NotificationType } from '../src/generated/prisma/client';
 
 type SentEmail = ReturnType<typeof getSentEmails>[number];
 
@@ -450,6 +451,21 @@ describe('password-reset.routes', () => {
       const emails = getSentEmails();
       expect(emails).toHaveLength(1);
       expect(emails[0].subject).toBe('Senha redefinida com sucesso');
+
+      const notification = await prisma.notification.findUnique({
+        where: {
+          dedupeKey: `account_password_reset_completed:${user.id}:${primary.token.id}`,
+        },
+      });
+
+      expect(notification).toMatchObject({
+        userId: user.id,
+        actorId: null,
+        type: NotificationType.account_password_reset_completed,
+        deepLink: '/settings',
+        referenceType: 'password_reset_token',
+        referenceId: primary.token.id,
+      });
     });
 
     it('rejects invalid reset token', async () => {

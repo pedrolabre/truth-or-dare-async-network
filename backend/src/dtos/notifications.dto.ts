@@ -9,7 +9,13 @@ export type NotificationTypeDto =
   | 'club_prompt_response'
   | 'club_prompt_comment'
   | 'club_mention'
-  | 'club_member_promoted';
+  | 'club_member_promoted'
+  | 'feed_truth_received'
+  | 'feed_dare_received'
+  | 'feed_truth_comment'
+  | 'feed_like'
+  | 'feed_dare_proof_submitted'
+  | 'account_password_reset_completed';
 
 export type NotificationItemDto = {
   id: string;
