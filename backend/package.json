@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "db:populate": "tsx scripts/populate-feed.ts",
+    "db:populate:club-notifications": "tsx scripts/populate-club-notifications.ts",
     "db:inspect-user": "tsx scripts/inspect-user-table.ts",
     "test:db:deploy": "tsx scripts/run-prisma-test-command.ts migrate deploy",
     "test:db:reset": "tsx scripts/run-prisma-test-command.ts migrate reset --force",
