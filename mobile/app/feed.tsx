@@ -21,6 +21,7 @@ import { getFeed, toggleLike } from '../services/api';
 import type { FeedItem } from '../types/feed';
 import { useFeedState } from '../hooks/useFeedState';
 import { useDeleteChallenge } from '../hooks/useDeleteChallenge';
+import { useNotificationsUnreadCount } from '../hooks/useNotificationsUnreadCount';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 
@@ -85,6 +86,7 @@ export default function FeedScreen() {
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
 
   const router = useRouter();
+  useNotificationsUnreadCount();
 
   const {
     activeFilter,

@@ -49,6 +49,15 @@ jest.mock('../hooks/useNotificationsScreen', () => ({
   useNotificationsScreen: jest.fn(),
 }));
 
+jest.mock('../hooks/useNotificationsUnreadCount', () => ({
+  useNotificationsUnreadCount: jest.fn(() => ({
+    unreadCount: 0,
+    isLoading: false,
+    errorMessage: null,
+    loadUnreadCount: jest.fn(),
+  })),
+}));
+
 const mockedUseNotificationsScreen =
   useNotificationsScreen as jest.MockedFunction<typeof useNotificationsScreen>;
 

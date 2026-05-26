@@ -19,6 +19,7 @@ import NotificationsGroupHeader from '../components/notifications/NotificationsG
 import NotificationsIntro from '../components/notifications/NotificationsIntro';
 import NotificationsSkeleton from '../components/notifications/NotificationsSkeleton';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
+import { useNotificationsUnreadCount } from '../hooks/useNotificationsUnreadCount';
 import { useNotificationsScreen } from '../hooks/useNotificationsScreen';
 import type { BottomNavKey } from '../types/feed';
 import type { NotificationItem, NotificationType } from '../types/notifications';
@@ -145,6 +146,7 @@ export default function NotificationsScreen() {
   const c = isDark ? DARK : LIGHT;
   const router = useRouter();
   const notifications = useNotificationsScreen();
+  useNotificationsUnreadCount();
 
   function handleBottomNavSelect(key: BottomNavKey) {
     switch (key) {

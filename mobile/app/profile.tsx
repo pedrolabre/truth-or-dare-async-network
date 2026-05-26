@@ -16,6 +16,7 @@ import ProfileClubCard from '../components/profile/ProfileClubCard';
 import ProfileModals from '../components/profile/ProfileModals';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
 import { useProfileScreen } from '../hooks/useProfileScreen';
+import { useNotificationsUnreadCount } from '../hooks/useNotificationsUnreadCount';
 import { useTheme } from '../context/ThemeContext';
 
 const LIGHT = {
@@ -45,6 +46,7 @@ export default function ProfileScreen() {
   const c = isDark ? DARK : LIGHT;
   const router = useRouter();
   const profile = useProfileScreen();
+  useNotificationsUnreadCount();
 
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
     switch (key) {

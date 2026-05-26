@@ -27,6 +27,7 @@ import {
   LIGHT_CLUBS_COLORS,
 } from '../constants/clubsTheme';
 import { useClubsScreen } from '../hooks/useClubsScreen';
+import { useNotificationsUnreadCount } from '../hooks/useNotificationsUnreadCount';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
 import type { ClubDiscoverItem, ClubListItem } from '../types/clubs';
 
@@ -35,6 +36,7 @@ export default function ClubsScreen() {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const colors = isDark ? DARK_CLUBS_COLORS : LIGHT_CLUBS_COLORS;
+  useNotificationsUnreadCount();
 
   const {
     activeTab,
