@@ -3,6 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import NotificationUnreadBadge from '../notifications/NotificationUnreadBadge';
 
 type FeedHeaderProps = {
   title: string;
@@ -14,6 +15,10 @@ type FeedHeaderProps = {
   avatarBorderColor: string;
   avatarBackgroundColor: string;
   onPressNotifications?: () => void;
+  notificationsUnreadCount?: number | null;
+  notificationBadgeBackgroundColor?: string;
+  notificationBadgeTextColor?: string;
+  notificationBadgeBorderColor?: string;
 };
 
 export default function FeedHeader({
@@ -26,6 +31,10 @@ export default function FeedHeader({
   avatarBorderColor,
   avatarBackgroundColor,
   onPressNotifications,
+  notificationsUnreadCount,
+  notificationBadgeBackgroundColor = '#D70015',
+  notificationBadgeTextColor = '#ffffff',
+  notificationBadgeBorderColor = headerGreen,
 }: FeedHeaderProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -77,6 +86,12 @@ export default function FeedHeader({
           onPress={onPressNotifications}
         >
           <MaterialIcons name="notifications-none" size={24} color={white} />
+          <NotificationUnreadBadge
+            count={notificationsUnreadCount}
+            backgroundColor={notificationBadgeBackgroundColor}
+            textColor={notificationBadgeTextColor}
+            borderColor={notificationBadgeBorderColor}
+          />
         </Pressable>
       </View>
     </View>
@@ -126,6 +141,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   pressed: {
     opacity: 0.82,

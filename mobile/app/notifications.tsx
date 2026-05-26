@@ -146,7 +146,10 @@ export default function NotificationsScreen() {
   const c = isDark ? DARK : LIGHT;
   const router = useRouter();
   const notifications = useNotificationsScreen();
-  useNotificationsUnreadCount();
+  const notificationsUnreadCount = useNotificationsUnreadCount();
+  const visibleNotificationsUnreadCount = notificationsUnreadCount.errorMessage
+    ? null
+    : notificationsUnreadCount.unreadCount;
 
   function handleBottomNavSelect(key: BottomNavKey) {
     switch (key) {
@@ -359,6 +362,10 @@ export default function NotificationsScreen() {
           leftIcon="arrow-back"
           onPressLeft={() => router.back()}
           rightIcon="notifications"
+          rightBadgeCount={visibleNotificationsUnreadCount}
+          rightBadgeBackgroundColor={c.red}
+          rightBadgeTextColor="#ffffff"
+          rightBadgeBorderColor={c.green}
         />
 
         <ScrollView

@@ -2,6 +2,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import NotificationUnreadBadge from '../notifications/NotificationUnreadBadge';
 
 type Props = {
   title: string;
@@ -12,6 +13,10 @@ type Props = {
   onPressLeft?: () => void;
   rightIcon?: keyof typeof MaterialIcons.glyphMap;
   onPressRight?: () => void;
+  rightBadgeCount?: number | null;
+  rightBadgeBackgroundColor?: string;
+  rightBadgeTextColor?: string;
+  rightBadgeBorderColor?: string;
 };
 
 export default function AccountScreenHeader({
@@ -23,6 +28,10 @@ export default function AccountScreenHeader({
   onPressLeft,
   rightIcon,
   onPressRight,
+  rightBadgeCount,
+  rightBadgeBackgroundColor = '#D70015',
+  rightBadgeTextColor = '#ffffff',
+  rightBadgeBorderColor = headerGreen,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -70,6 +79,12 @@ export default function AccountScreenHeader({
               ]}
             >
               <MaterialIcons name={rightIcon} size={22} color={titleColor} />
+              <NotificationUnreadBadge
+                count={rightBadgeCount}
+                backgroundColor={rightBadgeBackgroundColor}
+                textColor={rightBadgeTextColor}
+                borderColor={rightBadgeBorderColor}
+              />
             </Pressable>
           ) : (
             <View style={styles.iconSpacer} />
@@ -114,6 +129,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
   },
   iconSpacer: {
     width: 36,

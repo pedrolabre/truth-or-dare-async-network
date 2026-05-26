@@ -46,7 +46,10 @@ export default function ProfileScreen() {
   const c = isDark ? DARK : LIGHT;
   const router = useRouter();
   const profile = useProfileScreen();
-  useNotificationsUnreadCount();
+  const notificationsUnreadCount = useNotificationsUnreadCount();
+  const visibleNotificationsUnreadCount = notificationsUnreadCount.errorMessage
+    ? null
+    : notificationsUnreadCount.unreadCount;
 
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
     switch (key) {
@@ -98,6 +101,10 @@ export default function ProfileScreen() {
           onPressLeft={() => router.push('/settings')}
           rightIcon="notifications-none"
           onPressRight={() => router.push('/notifications')}
+          rightBadgeCount={visibleNotificationsUnreadCount}
+          rightBadgeBackgroundColor={c.red}
+          rightBadgeTextColor="#ffffff"
+          rightBadgeBorderColor={c.green}
         />
 
         <ScrollView

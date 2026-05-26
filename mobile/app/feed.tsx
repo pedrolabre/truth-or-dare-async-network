@@ -86,7 +86,10 @@ export default function FeedScreen() {
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
 
   const router = useRouter();
-  useNotificationsUnreadCount();
+  const notificationsUnreadCount = useNotificationsUnreadCount();
+  const visibleNotificationsUnreadCount = notificationsUnreadCount.errorMessage
+    ? null
+    : notificationsUnreadCount.unreadCount;
 
   const {
     activeFilter,
@@ -194,6 +197,10 @@ export default function FeedScreen() {
             isDark ? 'rgba(255,255,255,0.30)' : 'rgba(207,247,238,0.30)'
           }
           avatarBackgroundColor={isDark ? '#121212' : COLORS.surfaceContainer}
+          notificationsUnreadCount={visibleNotificationsUnreadCount}
+          notificationBadgeBackgroundColor={COLORS.tertiary}
+          notificationBadgeTextColor="#ffffff"
+          notificationBadgeBorderColor={COLORS.headerGreen}
           onPressNotifications={() => {
             router.push('/notifications');
           }}

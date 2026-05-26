@@ -3,6 +3,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import NotificationsScreen from '../app/notifications';
 import { useNotificationsScreen } from '../hooks/useNotificationsScreen';
+import { useNotificationsUnreadCount } from '../hooks/useNotificationsUnreadCount';
 import type {
   NotificationItem,
   NotificationNavigationTarget,
@@ -60,6 +61,10 @@ jest.mock('../hooks/useNotificationsUnreadCount', () => ({
 
 const mockedUseNotificationsScreen =
   useNotificationsScreen as jest.MockedFunction<typeof useNotificationsScreen>;
+const mockedUseNotificationsUnreadCount =
+  useNotificationsUnreadCount as jest.MockedFunction<
+    typeof useNotificationsUnreadCount
+  >;
 
 function makeNotification(
   overrides: Partial<NotificationItem> = {},
@@ -114,6 +119,12 @@ function makeHookState(
 describe('NotificationsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedUseNotificationsUnreadCount.mockReturnValue({
+      unreadCount: 0,
+      isLoading: false,
+      errorMessage: null,
+      loadUnreadCount: jest.fn(),
+    });
   });
 
   it('renderiza inbox universal agrupada com tipos de Clube, Feed e Conta', () => {
@@ -377,5 +388,44 @@ describe('NotificationsScreen', () => {
     const error = render(<NotificationsScreen />);
     expect(error.getByText('Nao foi possivel carregar')).toBeTruthy();
     expect(error.getByText('Falha de rede')).toBeTruthy();
+  });
+
+  it('exibe badge de nao lidas no header limitando valores altos a 99+', () => {
+    mockedUseNotificationsUnreadCount.mockReturnValue({
+      unreadCount: 104,
+      isLoading: false,
+      errorMessage: null,
+      loadUnreadCount: jest.fn(),
+    });
+    mockedUseNotificationsScreen.mockReturnValue(makeHookState());
+
+    const { getByTestId, getByText } = render(<NotificationsScreen />);
+
+    expect(getByTestId('notifications-unread-badge')).toBeTruthy();
+    expect(getByText('99+')).toBeTruthy();
+  });
+
+  it('nao exibe badge sem contador positivo ou quando ha erro no contador', () => {
+    mockedUseNotificationsUnreadCount.mockReturnValue({
+      unreadCount: null,
+      isLoading: true,
+      errorMessage: null,
+      loadUnreadCount: jest.fn(),
+    });
+    mockedUseNotificationsScreen.mockReturnValue(makeHookState());
+
+    const loading = render(<NotificationsScreen />);
+    expect(loading.queryByTestId('notifications-unread-badge')).toBeNull();
+    loading.unmount();
+
+    mockedUseNotificationsUnreadCount.mockReturnValue({
+      unreadCount: 8,
+      isLoading: false,
+      errorMessage: 'Falha de rede',
+      loadUnreadCount: jest.fn(),
+    });
+
+    const error = render(<NotificationsScreen />);
+    expect(error.queryByTestId('notifications-unread-badge')).toBeNull();
   });
 });
