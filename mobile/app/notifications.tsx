@@ -134,6 +134,12 @@ function getNotificationPresentation(type: NotificationType) {
   );
 }
 
+function getDefinedRouteParams(params: Record<string, string | undefined>) {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined),
+  ) as Record<string, string>;
+}
+
 export default function NotificationsScreen() {
   const { isDark } = useTheme();
   const c = isDark ? DARK : LIGHT;
@@ -162,8 +168,71 @@ export default function NotificationsScreen() {
   async function handlePressNotification(notification: NotificationItem) {
     const target = await notifications.handlePressNotification(notification);
 
-    if (target?.type === 'club') {
-      router.push(`/clubs/${encodeURIComponent(target.clubId)}` as Href);
+    switch (target?.type) {
+      case 'club':
+        router.push(`/clubs/${encodeURIComponent(target.clubId)}` as Href);
+        return;
+      case 'feed':
+        router.push('/feed');
+        return;
+      case 'comments':
+        router.push({
+          pathname: '/feed-comments',
+          params: getDefinedRouteParams({
+            itemId: target.itemId,
+            itemType: target.itemType,
+            clubId: target.clubId,
+            title: target.title,
+            clubName: target.clubName,
+            badge: target.badge,
+            quote: target.quote,
+            commentsCount: target.commentsCount,
+            likesCount: target.likesCount,
+            status: target.status,
+          }),
+        } as Href);
+        return;
+      case 'dare':
+        router.push({
+          pathname: '/action-screen',
+          params: getDefinedRouteParams({
+            dareId: target.dareId,
+            title: target.title,
+            challenger: target.challenger,
+            status: target.status,
+            attemptsUsed: target.attemptsUsed,
+            maxAttempts: target.maxAttempts,
+            expiresAt: target.expiresAt,
+            expiresIn: target.expiresIn,
+          }),
+        } as Href);
+        return;
+      case 'proof':
+        router.push({
+          pathname: '/proof-detail',
+          params: getDefinedRouteParams({
+            proofId: target.proofId,
+            dareId: target.dareId,
+            title: target.title,
+            challenger: target.challenger,
+            mediaType: target.mediaType,
+            localUri: target.localUri,
+            fileName: target.fileName,
+            durationSeconds: target.durationSeconds,
+            text: target.text,
+            source: target.source,
+          }),
+        } as Href);
+        return;
+      case 'profile':
+        router.push('/profile');
+        return;
+      case 'settings':
+        router.push('/settings');
+        return;
+      case 'unsupported':
+      default:
+        return;
     }
   }
 

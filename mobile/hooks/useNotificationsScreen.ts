@@ -47,6 +47,11 @@ const NOTIFICATION_PERIOD_GROUPS: {
   { id: 'older', title: 'Anteriores' },
 ];
 
+type ParsedNotificationDeepLink = {
+  pathname: string;
+  params: Record<string, string>;
+};
+
 function defaultLoadNotifications() {
   return listNotifications({ limit: 50 });
 }
@@ -118,6 +123,61 @@ export function groupNotificationsByPeriod(
   })).filter((group) => group.items.length > 0);
 }
 
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, ' '));
+  } catch {
+    return value;
+  }
+}
+
+function parseNotificationDeepLink(
+  deepLink: string,
+): ParsedNotificationDeepLink | null {
+  const trimmedDeepLink = deepLink.trim();
+
+  if (!trimmedDeepLink.startsWith('/')) {
+    return null;
+  }
+
+  const [rawPathname, rawQuery = ''] = trimmedDeepLink.split('?');
+  const pathname = rawPathname.replace(/\/+$/, '') || '/';
+  const params: Record<string, string> = {};
+
+  rawQuery
+    .split('&')
+    .filter(Boolean)
+    .forEach((param) => {
+      const [rawKey, ...rawValueParts] = param.split('=');
+      const key = safeDecode(rawKey ?? '').trim();
+
+      if (!key) {
+        return;
+      }
+
+      params[key] = safeDecode(rawValueParts.join('='));
+    });
+
+  return {
+    pathname,
+    params,
+  };
+}
+
+function getDeepLinkPathSegment(pathname: string, index: number) {
+  const segment = pathname.split('/').filter(Boolean)[index];
+
+  return segment ? safeDecode(segment) : null;
+}
+
+function getSupportedCommentsItemType(value?: string) {
+  if (value === 'truth' || value === 'dare' || value === 'club') {
+    return value;
+  }
+
+  return null;
+}
+
 export function getNotificationNavigationTarget(
   notification: NotificationItem,
 ): NotificationNavigationTarget {
@@ -128,12 +188,118 @@ export function getNotificationNavigationTarget(
     };
   }
 
-  const clubMatch = notification.deepLink?.match(/^\/clubs\/([^/]+)/);
+  const parsedDeepLink = parseNotificationDeepLink(notification.deepLink);
 
-  if (clubMatch?.[1]) {
+  if (!parsedDeepLink) {
+    return {
+      type: 'unsupported',
+    };
+  }
+
+  const clubId = getDeepLinkPathSegment(parsedDeepLink.pathname, 1);
+
+  if (parsedDeepLink.pathname.startsWith('/clubs/') && clubId) {
     return {
       type: 'club',
-      clubId: decodeURIComponent(clubMatch[1]),
+      clubId,
+    };
+  }
+
+  if (parsedDeepLink.pathname === '/feed') {
+    return {
+      type: 'feed',
+    };
+  }
+
+  if (parsedDeepLink.pathname === '/feed-comments') {
+    const itemType = getSupportedCommentsItemType(
+      parsedDeepLink.params.itemType,
+    );
+    const itemId = parsedDeepLink.params.itemId?.trim();
+
+    if (
+      !itemType ||
+      !itemId ||
+      (itemType === 'club' && !parsedDeepLink.params.clubId)
+    ) {
+      return {
+        type: 'unsupported',
+      };
+    }
+
+    return {
+      type: 'comments',
+      itemId,
+      itemType,
+      clubId: parsedDeepLink.params.clubId,
+      title: parsedDeepLink.params.title,
+      clubName: parsedDeepLink.params.clubName,
+      badge: parsedDeepLink.params.badge,
+      quote: parsedDeepLink.params.quote,
+      commentsCount: parsedDeepLink.params.commentsCount,
+      likesCount: parsedDeepLink.params.likesCount,
+      status: parsedDeepLink.params.status,
+    };
+  }
+
+  if (parsedDeepLink.pathname === '/action-screen') {
+    const dareId =
+      parsedDeepLink.params.dareId?.trim() ??
+      parsedDeepLink.params.challengeId?.trim();
+
+    if (!dareId) {
+      return {
+        type: 'unsupported',
+      };
+    }
+
+    return {
+      type: 'dare',
+      dareId,
+      title: parsedDeepLink.params.title,
+      challenger: parsedDeepLink.params.challenger,
+      status: parsedDeepLink.params.status,
+      attemptsUsed: parsedDeepLink.params.attemptsUsed,
+      maxAttempts: parsedDeepLink.params.maxAttempts,
+      expiresAt: parsedDeepLink.params.expiresAt,
+      expiresIn: parsedDeepLink.params.expiresIn,
+    };
+  }
+
+  if (parsedDeepLink.pathname === '/proof-detail') {
+    const proofId = parsedDeepLink.params.proofId?.trim();
+    const dareId = parsedDeepLink.params.dareId?.trim();
+
+    if (!proofId && !dareId) {
+      return {
+        type: 'unsupported',
+      };
+    }
+
+    return {
+      type: 'proof',
+      proofId,
+      dareId,
+      title: parsedDeepLink.params.title,
+      challenger: parsedDeepLink.params.challenger,
+      mediaType: parsedDeepLink.params.mediaType,
+      localUri: parsedDeepLink.params.localUri,
+      fileName: parsedDeepLink.params.fileName,
+      durationSeconds: parsedDeepLink.params.durationSeconds,
+      text: parsedDeepLink.params.text,
+      source: parsedDeepLink.params.source,
+    };
+  }
+
+  if (parsedDeepLink.pathname === '/profile') {
+    return {
+      type: 'profile',
+    };
+  }
+
+  if (parsedDeepLink.pathname === '/settings') {
+    return {
+      type: 'settings',
     };
   }
 

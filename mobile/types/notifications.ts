@@ -82,5 +82,51 @@ export type NotificationNavigationTarget =
       clubId: string;
     }
   | {
+      type: 'feed';
+    }
+  | {
+      type: 'comments';
+      itemId: string;
+      itemType: 'truth' | 'dare' | 'club';
+      clubId?: string;
+      title?: string;
+      clubName?: string;
+      badge?: string;
+      quote?: string;
+      commentsCount?: string;
+      likesCount?: string;
+      status?: string;
+    }
+  | {
+      type: 'dare';
+      dareId: string;
+      title?: string;
+      challenger?: string;
+      status?: string;
+      attemptsUsed?: string;
+      maxAttempts?: string;
+      expiresAt?: string;
+      expiresIn?: string;
+    }
+  | {
+      type: 'proof';
+      proofId?: string;
+      dareId?: string;
+      title?: string;
+      challenger?: string;
+      mediaType?: string;
+      localUri?: string;
+      fileName?: string;
+      durationSeconds?: string;
+      text?: string;
+      source?: string;
+    }
+  | {
+      type: 'profile';
+    }
+  | {
+      type: 'settings';
+    }
+  | {
       type: 'unsupported';
     };
