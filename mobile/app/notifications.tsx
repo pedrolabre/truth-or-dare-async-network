@@ -50,10 +50,10 @@ const DARK = {
   white: '#f9f9f9',
 };
 
-const NOTIFICATION_ICONS: Record<
+const NOTIFICATION_ICONS: Partial<Record<
   NotificationType,
   keyof typeof MaterialIcons.glyphMap
-> = {
+>> = {
   club_created: 'groups',
   club_invite_received: 'person-add',
   club_invite_accepted: 'how-to-reg',
