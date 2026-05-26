@@ -288,6 +288,30 @@ describe('NotificationsScreen', () => {
         },
       },
     ],
+    [
+      'perfil',
+      makeNotification({
+        id: 'profile',
+        type: 'account_password_reset_completed',
+        title: 'Abrir perfil',
+        deepLink: '/profile',
+        clubId: null,
+      }),
+      { type: 'profile' } as NotificationNavigationTarget,
+      '/profile',
+    ],
+    [
+      'configuracoes',
+      makeNotification({
+        id: 'settings',
+        type: 'account_password_reset_completed',
+        title: 'Abrir configuracoes',
+        deepLink: '/settings',
+        clubId: null,
+      }),
+      { type: 'settings' } as NotificationNavigationTarget,
+      '/settings',
+    ],
   ])('navega para destino seguro de %s ao tocar no card', async (_, notification, target, expectedRoute) => {
     const handlePressNotification = jest.fn().mockResolvedValue(target);
 

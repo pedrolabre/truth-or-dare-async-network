@@ -327,6 +327,20 @@ describe('useNotificationsScreen', () => {
     });
   });
 
+  it('clubId explicito tem prioridade sobre deepLink de clube diferente', () => {
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          clubId: 'club-explicit',
+          deepLink: '/clubs/club-deep-link/prompts/prompt-9',
+        }),
+      ),
+    ).toEqual({
+      type: 'club',
+      clubId: 'club-explicit',
+    });
+  });
+
   it('resolve destinos seguros para feed, comentarios de truth, dare, prova e configuracoes', () => {
     expect(
       getNotificationNavigationTarget(
@@ -415,6 +429,82 @@ describe('useNotificationsScreen', () => {
     ).toEqual({ type: 'settings' });
   });
 
+  it('resolve perfil e variantes parametrizadas suportadas sem inventar rotas novas', () => {
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          clubId: null,
+          deepLink: '/profile',
+        }),
+      ),
+    ).toEqual({ type: 'profile' });
+
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          type: 'feed_truth_comment',
+          clubId: null,
+          deepLink:
+            '/feed-comments?itemId=club-prompt-1&itemType=club&clubId=club-1&clubName=Bons%20Desafios',
+        }),
+      ),
+    ).toEqual({
+      type: 'comments',
+      itemId: 'club-prompt-1',
+      itemType: 'club',
+      clubId: 'club-1',
+      title: undefined,
+      clubName: 'Bons Desafios',
+      badge: undefined,
+      quote: undefined,
+      commentsCount: undefined,
+      likesCount: undefined,
+      status: undefined,
+    });
+
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          type: 'feed_dare_received',
+          clubId: null,
+          deepLink: '/action-screen?challengeId=challenge-1',
+        }),
+      ),
+    ).toEqual({
+      type: 'dare',
+      dareId: 'challenge-1',
+      title: undefined,
+      challenger: undefined,
+      status: undefined,
+      attemptsUsed: undefined,
+      maxAttempts: undefined,
+      expiresAt: undefined,
+      expiresIn: undefined,
+    });
+
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          type: 'feed_dare_proof_submitted',
+          clubId: null,
+          deepLink: '/proof-detail?dareId=dare-1',
+        }),
+      ),
+    ).toEqual({
+      type: 'proof',
+      proofId: undefined,
+      dareId: 'dare-1',
+      title: undefined,
+      challenger: undefined,
+      mediaType: undefined,
+      localUri: undefined,
+      fileName: undefined,
+      durationSeconds: undefined,
+      text: undefined,
+      source: undefined,
+    });
+  });
+
   it('destino nao suportado nao quebra a navegacao', () => {
     expect(
       getNotificationNavigationTarget(
@@ -425,6 +515,32 @@ describe('useNotificationsScreen', () => {
       ),
     ).toEqual({
       type: 'unsupported',
+    });
+  });
+
+  it('rejeita deepLinks invalidos, externos ou sem parametros minimos', () => {
+    const unsupportedDeepLinks = [
+      '',
+      'https://example.com/feed',
+      'truth-or-dare://feed',
+      '/feed-comments?itemType=truth',
+      '/feed-comments?itemId=truth-1',
+      '/feed-comments?itemId=club-prompt-1&itemType=club',
+      '/action-screen',
+      '/proof-detail',
+    ];
+
+    unsupportedDeepLinks.forEach((deepLink) => {
+      expect(
+        getNotificationNavigationTarget(
+          makeNotification({
+            clubId: null,
+            deepLink,
+          }),
+        ),
+      ).toEqual({
+        type: 'unsupported',
+      });
     });
   });
 
