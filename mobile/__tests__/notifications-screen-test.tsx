@@ -56,6 +56,8 @@ jest.mock('../hooks/useNotificationsUnreadCount', () => ({
     isLoading: false,
     errorMessage: null,
     loadUnreadCount: jest.fn(),
+    decrementUnreadCount: jest.fn(),
+    clearUnreadCount: jest.fn(),
   })),
 }));
 
@@ -116,15 +118,24 @@ function makeHookState(
   };
 }
 
+function makeUnreadCountHookState(
+  overrides: Partial<ReturnType<typeof useNotificationsUnreadCount>> = {},
+): ReturnType<typeof useNotificationsUnreadCount> {
+  return {
+    unreadCount: 0,
+    isLoading: false,
+    errorMessage: null,
+    loadUnreadCount: jest.fn().mockResolvedValue(undefined),
+    decrementUnreadCount: jest.fn(),
+    clearUnreadCount: jest.fn(),
+    ...overrides,
+  };
+}
+
 describe('NotificationsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseNotificationsUnreadCount.mockReturnValue({
-      unreadCount: 0,
-      isLoading: false,
-      errorMessage: null,
-      loadUnreadCount: jest.fn(),
-    });
+    mockedUseNotificationsUnreadCount.mockReturnValue(makeUnreadCountHookState());
   });
 
   it('renderiza inbox universal agrupada com tipos de Clube, Feed e Conta', () => {
@@ -391,12 +402,9 @@ describe('NotificationsScreen', () => {
   });
 
   it('exibe badge de nao lidas no header limitando valores altos a 99+', () => {
-    mockedUseNotificationsUnreadCount.mockReturnValue({
+    mockedUseNotificationsUnreadCount.mockReturnValue(makeUnreadCountHookState({
       unreadCount: 104,
-      isLoading: false,
-      errorMessage: null,
-      loadUnreadCount: jest.fn(),
-    });
+    }));
     mockedUseNotificationsScreen.mockReturnValue(makeHookState());
 
     const { getByTestId, getByText } = render(<NotificationsScreen />);
@@ -406,26 +414,42 @@ describe('NotificationsScreen', () => {
   });
 
   it('nao exibe badge sem contador positivo ou quando ha erro no contador', () => {
-    mockedUseNotificationsUnreadCount.mockReturnValue({
+    mockedUseNotificationsUnreadCount.mockReturnValue(makeUnreadCountHookState({
       unreadCount: null,
       isLoading: true,
-      errorMessage: null,
-      loadUnreadCount: jest.fn(),
-    });
+    }));
     mockedUseNotificationsScreen.mockReturnValue(makeHookState());
 
     const loading = render(<NotificationsScreen />);
     expect(loading.queryByTestId('notifications-unread-badge')).toBeNull();
     loading.unmount();
 
-    mockedUseNotificationsUnreadCount.mockReturnValue({
+    mockedUseNotificationsUnreadCount.mockReturnValue(makeUnreadCountHookState({
       unreadCount: 8,
-      isLoading: false,
       errorMessage: 'Falha de rede',
-      loadUnreadCount: jest.fn(),
-    });
+    }));
 
     const error = render(<NotificationsScreen />);
     expect(error.queryByTestId('notifications-unread-badge')).toBeNull();
+  });
+
+  it('conecta leitura da inbox a sincronizacao local do contador', () => {
+    const decrementUnreadCount = jest.fn();
+    const clearUnreadCount = jest.fn();
+
+    mockedUseNotificationsUnreadCount.mockReturnValue(
+      makeUnreadCountHookState({
+        decrementUnreadCount,
+        clearUnreadCount,
+      }),
+    );
+    mockedUseNotificationsScreen.mockReturnValue(makeHookState());
+
+    render(<NotificationsScreen />);
+
+    expect(mockedUseNotificationsScreen).toHaveBeenCalledWith({
+      onNotificationRead: decrementUnreadCount,
+      onAllNotificationsRead: clearUnreadCount,
+    });
   });
 });

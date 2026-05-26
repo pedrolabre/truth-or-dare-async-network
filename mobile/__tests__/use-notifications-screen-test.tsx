@@ -212,6 +212,7 @@ describe('useNotificationsScreen', () => {
       ...notification,
       readAt: '2026-05-23T12:30:00.000Z',
     };
+    const onNotificationRead = jest.fn();
     const markNotificationReadAction = jest.fn().mockResolvedValue({
       notification: readNotification,
     });
@@ -223,6 +224,7 @@ describe('useNotificationsScreen', () => {
       useNotificationsScreen({
         loadNotifications,
         markNotificationReadAction,
+        onNotificationRead,
       }),
     );
 
@@ -237,8 +239,78 @@ describe('useNotificationsScreen', () => {
     });
 
     expect(markNotificationReadAction).toHaveBeenCalledWith('notification-1');
+    expect(onNotificationRead).toHaveBeenCalledTimes(1);
     expect(target).toEqual({ type: 'club', clubId: 'club-1' });
     expect(result.current.items[0]?.readAt).toBe('2026-05-23T12:30:00.000Z');
+  });
+
+  it('nao sincroniza leitura local quando a chamada individual falha', async () => {
+    const notification = makeNotification();
+    const onNotificationRead = jest.fn();
+    const markNotificationReadAction = jest
+      .fn()
+      .mockRejectedValue(new Error('Falha ao ler'));
+    const loadNotifications = jest
+      .fn()
+      .mockResolvedValue(makeResponse([notification]));
+
+    const { result } = renderHook(() =>
+      useNotificationsScreen({
+        loadNotifications,
+        markNotificationReadAction,
+        onNotificationRead,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    let target: unknown = null;
+
+    await act(async () => {
+      target = await result.current.handlePressNotification(notification);
+    });
+
+    expect(markNotificationReadAction).toHaveBeenCalledWith('notification-1');
+    expect(onNotificationRead).not.toHaveBeenCalled();
+    expect(target).toEqual({ type: 'club', clubId: 'club-1' });
+    expect(result.current.items[0]?.readAt).toBeNull();
+    expect(result.current.errorMessage).toBe('Falha ao ler');
+  });
+
+  it('nao decrementa contador ao tocar em notificacao ja lida', async () => {
+    const notification = makeNotification({
+      readAt: '2026-05-23T12:30:00.000Z',
+    });
+    const onNotificationRead = jest.fn();
+    const markNotificationReadAction = jest.fn();
+    const loadNotifications = jest
+      .fn()
+      .mockResolvedValue(makeResponse([notification]));
+
+    const { result } = renderHook(() =>
+      useNotificationsScreen({
+        loadNotifications,
+        markNotificationReadAction,
+        onNotificationRead,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    let target: unknown = null;
+
+    await act(async () => {
+      target = await result.current.handlePressNotification(notification);
+    });
+
+    expect(markNotificationReadAction).not.toHaveBeenCalled();
+    expect(onNotificationRead).not.toHaveBeenCalled();
+    expect(target).toEqual({ type: 'club', clubId: 'club-1' });
+    expect(result.current.unreadCount).toBe(0);
   });
 
   it('deepLink de prompt cai no destino seguro do clube', () => {
@@ -396,6 +468,7 @@ describe('useNotificationsScreen', () => {
   });
 
   it('marca todas como lidas quando ha acao simples disponivel', async () => {
+    const onAllNotificationsRead = jest.fn();
     const markAllNotificationsReadAction = jest.fn().mockResolvedValue({
       updatedCount: 2,
     });
@@ -410,6 +483,7 @@ describe('useNotificationsScreen', () => {
       useNotificationsScreen({
         loadNotifications,
         markAllNotificationsReadAction,
+        onAllNotificationsRead,
       }),
     );
 
@@ -422,7 +496,43 @@ describe('useNotificationsScreen', () => {
     });
 
     expect(markAllNotificationsReadAction).toHaveBeenCalledTimes(1);
+    expect(onAllNotificationsRead).toHaveBeenCalledTimes(1);
     expect(result.current.allRead).toBe(true);
     expect(result.current.items.every((item) => item.readAt !== null)).toBe(true);
+  });
+
+  it('nao zera contador local quando marcar todas como lidas falha', async () => {
+    const onAllNotificationsRead = jest.fn();
+    const markAllNotificationsReadAction = jest
+      .fn()
+      .mockRejectedValue(new Error('Falha ao marcar todas'));
+    const loadNotifications = jest.fn().mockResolvedValue(
+      makeResponse([
+        makeNotification({ id: 'one' }),
+        makeNotification({ id: 'two' }),
+      ]),
+    );
+
+    const { result } = renderHook(() =>
+      useNotificationsScreen({
+        loadNotifications,
+        markAllNotificationsReadAction,
+        onAllNotificationsRead,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.unreadCount).toBe(2);
+    });
+
+    await act(async () => {
+      await result.current.handleMarkAllRead();
+    });
+
+    expect(markAllNotificationsReadAction).toHaveBeenCalledTimes(1);
+    expect(onAllNotificationsRead).not.toHaveBeenCalled();
+    expect(result.current.unreadCount).toBe(2);
+    expect(result.current.allRead).toBe(false);
+    expect(result.current.errorMessage).toBe('Falha ao marcar todas');
   });
 });

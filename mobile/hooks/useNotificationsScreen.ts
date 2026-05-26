@@ -27,6 +27,8 @@ type UseNotificationsScreenOptions = {
   loadNotifications?: ListNotificationsAction;
   markNotificationReadAction?: MarkNotificationReadAction;
   markAllNotificationsReadAction?: MarkAllNotificationsReadAction;
+  onNotificationRead?: () => void;
+  onAllNotificationsRead?: () => void;
 };
 
 type LoadOptions = {
@@ -312,6 +314,8 @@ export function useNotificationsScreen({
   loadNotifications = defaultLoadNotifications,
   markNotificationReadAction = markNotificationRead,
   markAllNotificationsReadAction = markAllNotificationsRead,
+  onNotificationRead,
+  onAllNotificationsRead,
 }: UseNotificationsScreenOptions = {}) {
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [contentState, setContentState] =
@@ -437,17 +441,15 @@ export function useNotificationsScreen({
       try {
         const response = await markNotificationReadAction(notification.id);
 
-        if (isMountedRef.current) {
-          setNotificationRead(response.notification);
-        }
-      } catch {
-        if (isMountedRef.current) {
-          setNotificationRead({
-            ...notification,
-            readAt: new Date().toISOString(),
-          });
-        }
-      } finally {
+      if (isMountedRef.current) {
+        setNotificationRead(response.notification);
+        onNotificationRead?.();
+      }
+    } catch (error) {
+      if (isMountedRef.current) {
+        setErrorMessage(getErrorMessage(error));
+      }
+    } finally {
         if (isMountedRef.current) {
           setReadingNotificationIds((currentIds) =>
             currentIds.filter((id) => id !== notification.id),
@@ -457,7 +459,7 @@ export function useNotificationsScreen({
 
       return target;
     },
-    [markNotificationReadAction, setNotificationRead],
+    [markNotificationReadAction, onNotificationRead, setNotificationRead],
   );
 
   const handleMarkAllRead = useCallback(async () => {
@@ -481,6 +483,7 @@ export function useNotificationsScreen({
           item.readAt === null ? { ...item, readAt } : item,
         ),
       );
+      onAllNotificationsRead?.();
     } catch (error) {
       if (isMountedRef.current) {
         setErrorMessage(getErrorMessage(error));
@@ -490,7 +493,12 @@ export function useNotificationsScreen({
         setIsMarkingAllRead(false);
       }
     }
-  }, [allRead, isMarkingAllRead, markAllNotificationsReadAction]);
+  }, [
+    allRead,
+    isMarkingAllRead,
+    markAllNotificationsReadAction,
+    onAllNotificationsRead,
+  ]);
 
   return {
     items,

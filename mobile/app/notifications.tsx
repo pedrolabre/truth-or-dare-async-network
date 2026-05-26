@@ -145,8 +145,11 @@ export default function NotificationsScreen() {
   const { isDark } = useTheme();
   const c = isDark ? DARK : LIGHT;
   const router = useRouter();
-  const notifications = useNotificationsScreen();
   const notificationsUnreadCount = useNotificationsUnreadCount();
+  const notifications = useNotificationsScreen({
+    onNotificationRead: notificationsUnreadCount.decrementUnreadCount,
+    onAllNotificationsRead: notificationsUnreadCount.clearUnreadCount,
+  });
   const visibleNotificationsUnreadCount = notificationsUnreadCount.errorMessage
     ? null
     : notificationsUnreadCount.unreadCount;

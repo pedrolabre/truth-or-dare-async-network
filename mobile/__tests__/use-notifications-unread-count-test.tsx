@@ -83,4 +83,43 @@ describe('useNotificationsUnreadCount', () => {
     expect(result.current.errorMessage).toBe('Falha de rede');
     expect(result.current.isLoading).toBe(false);
   });
+
+  it('sincroniza decremento local sem deixar contador negativo', async () => {
+    const loadUnreadNotificationsCount = jest.fn().mockResolvedValue({
+      unreadCount: 1,
+    });
+
+    const { result } = renderHook(() =>
+      useNotificationsUnreadCount({ loadUnreadNotificationsCount }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.unreadCount).toBe(1);
+    });
+
+    act(() => {
+      result.current.decrementUnreadCount();
+      result.current.decrementUnreadCount();
+    });
+
+    expect(result.current.unreadCount).toBe(0);
+  });
+
+  it('mantem contador desconhecido ao decrementar e zera apos leitura em massa', () => {
+    const { result } = renderHook(() =>
+      useNotificationsUnreadCount({ loadOnMount: false }),
+    );
+
+    act(() => {
+      result.current.decrementUnreadCount();
+    });
+
+    expect(result.current.unreadCount).toBeNull();
+
+    act(() => {
+      result.current.clearUnreadCount();
+    });
+
+    expect(result.current.unreadCount).toBe(0);
+  });
 });

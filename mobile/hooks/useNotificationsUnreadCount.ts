@@ -64,6 +64,20 @@ export function useNotificationsUnreadCount({
     }
   }, [loadUnreadNotificationsCount]);
 
+  const decrementUnreadCount = useCallback(() => {
+    setUnreadCount((currentCount) => {
+      if (currentCount === null) {
+        return currentCount;
+      }
+
+      return Math.max(0, currentCount - 1);
+    });
+  }, []);
+
+  const clearUnreadCount = useCallback(() => {
+    setUnreadCount(0);
+  }, []);
+
   useEffect(() => {
     if (!loadOnMount) {
       return;
@@ -77,5 +91,7 @@ export function useNotificationsUnreadCount({
     isLoading,
     errorMessage,
     loadUnreadCount,
+    decrementUnreadCount,
+    clearUnreadCount,
   };
 }
