@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import {
   getNotificationNavigationTarget,
+  groupNotificationsByPeriod,
   useNotificationsScreen,
 } from '../hooks/useNotificationsScreen';
 import type {
@@ -123,6 +124,88 @@ describe('useNotificationsScreen', () => {
     expect(result.current.errorMessage).toBe('Offline');
   });
 
+  it('agrupa notificacoes universais por Hoje, Esta semana e Anteriores', async () => {
+    const now = new Date('2026-05-26T15:00:00.000Z');
+    const today = makeNotification({
+      id: 'today',
+      type: 'feed_truth_received',
+      title: 'Nova verdade',
+      deepLink: '/feed',
+      clubId: null,
+      createdAt: '2026-05-26T12:00:00.000Z',
+    });
+    const thisWeek = makeNotification({
+      id: 'this-week',
+      type: 'feed_like',
+      title: 'Curtida no feed',
+      deepLink: '/feed',
+      clubId: null,
+      createdAt: '2026-05-25T12:00:00.000Z',
+    });
+    const older = makeNotification({
+      id: 'older',
+      type: 'account_password_reset_completed',
+      title: 'Senha atualizada',
+      deepLink: '/settings',
+      clubId: null,
+      createdAt: '2026-05-19T12:00:00.000Z',
+    });
+
+    expect(groupNotificationsByPeriod([older, today, thisWeek], now)).toEqual([
+      {
+        id: 'today',
+        title: 'Hoje',
+        items: [today],
+      },
+      {
+        id: 'this_week',
+        title: 'Esta semana',
+        items: [thisWeek],
+      },
+      {
+        id: 'older',
+        title: 'Anteriores',
+        items: [older],
+      },
+    ]);
+  });
+
+  it('exibe grupos de mais de um dominio apos carregar a inbox', async () => {
+    const loadNotifications = jest.fn().mockResolvedValue(
+      makeResponse([
+        makeNotification({
+          id: 'club',
+          type: 'club_invite_received',
+          title: 'Convite de clube',
+          clubId: 'club-1',
+          createdAt: new Date().toISOString(),
+        }),
+        makeNotification({
+          id: 'feed',
+          type: 'feed_dare_received',
+          title: 'Novo desafio',
+          deepLink: '/feed',
+          clubId: null,
+          createdAt: new Date().toISOString(),
+        }),
+      ]),
+    );
+
+    const { result } = renderHook(() =>
+      useNotificationsScreen({ loadNotifications }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    expect(result.current.groupedItems).toHaveLength(1);
+    expect(result.current.groupedItems[0]?.title).toBe('Hoje');
+    expect(result.current.groupedItems[0]?.items.map((item) => item.type)).toEqual(
+      ['club_invite_received', 'feed_dare_received'],
+    );
+  });
+
   it('tocar em notificacao marca como lida e retorna destino do clube', async () => {
     const notification = makeNotification();
     const readNotification = {
@@ -172,6 +255,94 @@ describe('useNotificationsScreen', () => {
     });
   });
 
+  it('resolve destinos seguros para feed, comentarios de truth, dare, prova e configuracoes', () => {
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          type: 'feed_truth_received',
+          clubId: null,
+          deepLink: '/feed',
+        }),
+      ),
+    ).toEqual({ type: 'feed' });
+
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          type: 'feed_truth_comment',
+          clubId: null,
+          deepLink:
+            '/feed-comments?itemId=truth-1&itemType=truth&title=Verdade',
+        }),
+      ),
+    ).toEqual({
+      type: 'comments',
+      itemId: 'truth-1',
+      itemType: 'truth',
+      clubId: undefined,
+      title: 'Verdade',
+      clubName: undefined,
+      badge: undefined,
+      quote: undefined,
+      commentsCount: undefined,
+      likesCount: undefined,
+      status: undefined,
+    });
+
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          type: 'feed_dare_received',
+          clubId: null,
+          deepLink: '/action-screen?dareId=dare-1&title=Desafio',
+        }),
+      ),
+    ).toEqual({
+      type: 'dare',
+      dareId: 'dare-1',
+      title: 'Desafio',
+      challenger: undefined,
+      status: undefined,
+      attemptsUsed: undefined,
+      maxAttempts: undefined,
+      expiresAt: undefined,
+      expiresIn: undefined,
+    });
+
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          type: 'feed_dare_proof_submitted',
+          clubId: null,
+          deepLink:
+            '/proof-detail?proofId=proof-1&dareId=dare-1&source=backend',
+        }),
+      ),
+    ).toEqual({
+      type: 'proof',
+      proofId: 'proof-1',
+      dareId: 'dare-1',
+      title: undefined,
+      challenger: undefined,
+      mediaType: undefined,
+      localUri: undefined,
+      fileName: undefined,
+      durationSeconds: undefined,
+      text: undefined,
+      source: 'backend',
+    });
+
+    expect(
+      getNotificationNavigationTarget(
+        makeNotification({
+          type: 'account_password_reset_completed',
+          clubId: null,
+          deepLink: '/settings',
+        }),
+      ),
+    ).toEqual({ type: 'settings' });
+  });
+
   it('destino nao suportado nao quebra a navegacao', () => {
     expect(
       getNotificationNavigationTarget(
@@ -183,6 +354,45 @@ describe('useNotificationsScreen', () => {
     ).toEqual({
       type: 'unsupported',
     });
+  });
+
+  it('tocar em destino nao suportado marca como lida sem destino navegavel', async () => {
+    const notification = makeNotification({
+      id: 'unsupported',
+      clubId: null,
+      deepLink: '/unknown/path',
+    });
+    const readNotification = {
+      ...notification,
+      readAt: '2026-05-23T12:30:00.000Z',
+    };
+    const markNotificationReadAction = jest.fn().mockResolvedValue({
+      notification: readNotification,
+    });
+    const loadNotifications = jest
+      .fn()
+      .mockResolvedValue(makeResponse([notification]));
+
+    const { result } = renderHook(() =>
+      useNotificationsScreen({
+        loadNotifications,
+        markNotificationReadAction,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.contentState).toBe('ready');
+    });
+
+    let target: unknown = null;
+
+    await act(async () => {
+      target = await result.current.handlePressNotification(notification);
+    });
+
+    expect(markNotificationReadAction).toHaveBeenCalledWith('unsupported');
+    expect(target).toEqual({ type: 'unsupported' });
+    expect(result.current.items[0]?.readAt).toBe('2026-05-23T12:30:00.000Z');
   });
 
   it('marca todas como lidas quando ha acao simples disponivel', async () => {
