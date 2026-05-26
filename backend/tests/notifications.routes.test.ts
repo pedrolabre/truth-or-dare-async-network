@@ -1,3 +1,7 @@
+jest.mock('../src/services/auth/email.service', () =>
+  jest.requireActual('../src/services/auth/email.mock'),
+);
+
 import express from 'express';
 import request from 'supertest';
 import { NotificationType } from '../src/generated/prisma/client';
@@ -6,11 +10,16 @@ import { prisma } from '../src/lib/prisma';
 import {
   createTestClub,
   createTestNotification,
+  createTestPasswordResetToken,
   createTestUser,
   resetFeedData,
 } from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';
 import { applyTestDatabaseHooks } from './test-db';
+import { emitClubInviteReceivedEvent } from '../src/services/clubs/club-events.service';
+import { createTruth } from '../src/services/truths/truths.service';
+import { createPasswordResetSessionToken } from '../src/services/auth/password-reset.tokens';
+import { resetPassword } from '../src/services/auth/password-reset.service';
 
 function createTestApp() {
   const app = express();
@@ -264,5 +273,141 @@ describe('notifications.routes', () => {
     });
 
     expect(remainingUnread).toBe(1);
+  });
+
+  it('retorna eventos reais de Clubes, Feed e Conta na mesma inbox e le qualquer dominio', async () => {
+    const user = await createTestUser({
+      password: 'OldPass1',
+    });
+    const clubActor = await createTestUser();
+    const feedActor = await createTestUser();
+    const club = await createTestClub({
+      createdById: clubActor.id,
+      name: 'Clube Inbox Unica',
+    });
+
+    const clubNotification = await emitClubInviteReceivedEvent({
+      clubId: club.id,
+      clubName: club.name,
+      inviteId: 'invite-inbox-unica',
+      inviteeId: user.id,
+      inviterId: clubActor.id,
+    });
+    const truth = await createTruth({
+      authorId: feedActor.id,
+      targetUserId: user.id,
+      content: 'Qual notificacao deve aparecer junto na inbox?',
+    });
+    const passwordResetToken = await createTestPasswordResetToken({
+      userId: user.id,
+    });
+    const resetToken = createPasswordResetSessionToken({
+      userId: user.id,
+      tokenId: passwordResetToken.token.id,
+    });
+
+    await resetPassword({
+      resetToken,
+      newPassword: 'NovaSenha123',
+    });
+
+    const feedNotification = await prisma.notification.findUnique({
+      where: {
+        dedupeKey: `feed_truth_received:${user.id}:${truth.id}`,
+      },
+    });
+    const accountNotification = await prisma.notification.findUnique({
+      where: {
+        dedupeKey: `account_password_reset_completed:${user.id}:${passwordResetToken.token.id}`,
+      },
+    });
+    const token = authTokenFor(user);
+
+    expect(clubNotification).toMatchObject({
+      type: NotificationType.club_invite_received,
+      actorId: clubActor.id,
+      clubId: club.id,
+      referenceType: 'club_invite',
+    });
+    expect(feedNotification).toMatchObject({
+      userId: user.id,
+      type: NotificationType.feed_truth_received,
+      clubId: null,
+      referenceType: 'truth',
+      referenceId: truth.id,
+    });
+    expect(accountNotification).toMatchObject({
+      userId: user.id,
+      type: NotificationType.account_password_reset_completed,
+      clubId: null,
+      referenceType: 'password_reset_token',
+      referenceId: passwordResetToken.token.id,
+    });
+
+    const listResponse = await request(app)
+      .get('/notifications')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: clubNotification?.id,
+          type: NotificationType.club_invite_received,
+          clubId: club.id,
+          referenceType: 'club_invite',
+        }),
+        expect.objectContaining({
+          id: feedNotification?.id,
+          type: NotificationType.feed_truth_received,
+          clubId: null,
+          referenceType: 'truth',
+        }),
+        expect.objectContaining({
+          id: accountNotification?.id,
+          type: NotificationType.account_password_reset_completed,
+          clubId: null,
+          referenceType: 'password_reset_token',
+        }),
+      ]),
+    );
+
+    const unreadCountResponse = await request(app)
+      .get('/notifications/unread-count')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(unreadCountResponse.status).toBe(200);
+    expect(unreadCountResponse.body).toEqual({
+      unreadCount: 3,
+    });
+
+    const markFeedReadResponse = await request(app)
+      .patch(`/notifications/${feedNotification?.id}/read`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(markFeedReadResponse.status).toBe(200);
+    expect(markFeedReadResponse.body.notification).toMatchObject({
+      id: feedNotification?.id,
+      type: NotificationType.feed_truth_received,
+      readAt: expect.any(String),
+    });
+
+    const readAllResponse = await request(app)
+      .post('/notifications/read-all')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(readAllResponse.status).toBe(200);
+    expect(readAllResponse.body).toEqual({
+      updatedCount: 2,
+    });
+
+    await expect(
+      prisma.notification.count({
+        where: {
+          userId: user.id,
+          readAt: null,
+        },
+      }),
+    ).resolves.toBe(0);
   });
 });
