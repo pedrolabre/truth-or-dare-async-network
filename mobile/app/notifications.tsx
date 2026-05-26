@@ -15,6 +15,7 @@ import FeedBottomNav from '../components/feed/FeedBottomNav';
 import NotificationActivityCard from '../components/notifications/NotificationActivityCard';
 import NotificationsEmptyState from '../components/notifications/NotificationsEmptyState';
 import NotificationsErrorState from '../components/notifications/NotificationsErrorState';
+import NotificationsGroupHeader from '../components/notifications/NotificationsGroupHeader';
 import NotificationsIntro from '../components/notifications/NotificationsIntro';
 import NotificationsSkeleton from '../components/notifications/NotificationsSkeleton';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
@@ -32,6 +33,10 @@ const LIGHT = {
   outline: '#bccac2',
   green: '#5A8363',
   greenSoft: '#e7f3ea',
+  blue: '#2563EB',
+  blueSoft: '#eaf1ff',
+  amber: '#9A6700',
+  amberSoft: '#fff3c4',
   red: '#D70015',
   white: '#ffffff',
 };
@@ -46,25 +51,42 @@ const DARK = {
   outline: '#444746',
   green: '#5A8363',
   greenSoft: '#203328',
+  blue: '#60A5FA',
+  blueSoft: '#17263d',
+  amber: '#F4C430',
+  amberSoft: '#332a14',
   red: '#E11D2E',
   white: '#f9f9f9',
 };
 
-const NOTIFICATION_ICONS: Partial<Record<
+type NotificationToneName = 'club' | 'feed' | 'account';
+
+type NotificationPresentation = {
+  icon: keyof typeof MaterialIcons.glyphMap;
+  tone: NotificationToneName;
+};
+
+const NOTIFICATION_PRESENTATION: Record<
   NotificationType,
-  keyof typeof MaterialIcons.glyphMap
->> = {
-  club_created: 'groups',
-  club_invite_received: 'person-add',
-  club_invite_accepted: 'how-to-reg',
-  club_join_request_received: 'person-add-alt',
-  club_join_request_approved: 'check-circle',
-  club_join_request_rejected: 'block',
-  club_new_prompt: 'auto-awesome',
-  club_prompt_response: 'forum',
-  club_prompt_comment: 'chat',
-  club_mention: 'alternate-email',
-  club_member_promoted: 'verified',
+  NotificationPresentation
+> = {
+  club_created: { icon: 'groups', tone: 'club' },
+  club_invite_received: { icon: 'person-add', tone: 'club' },
+  club_invite_accepted: { icon: 'how-to-reg', tone: 'club' },
+  club_join_request_received: { icon: 'person-add-alt', tone: 'club' },
+  club_join_request_approved: { icon: 'check-circle', tone: 'club' },
+  club_join_request_rejected: { icon: 'block', tone: 'club' },
+  club_new_prompt: { icon: 'auto-awesome', tone: 'club' },
+  club_prompt_response: { icon: 'forum', tone: 'club' },
+  club_prompt_comment: { icon: 'chat', tone: 'club' },
+  club_mention: { icon: 'alternate-email', tone: 'club' },
+  club_member_promoted: { icon: 'verified', tone: 'club' },
+  feed_truth_received: { icon: 'help-outline', tone: 'feed' },
+  feed_dare_received: { icon: 'flash-on', tone: 'feed' },
+  feed_truth_comment: { icon: 'mode-comment', tone: 'feed' },
+  feed_like: { icon: 'favorite', tone: 'feed' },
+  feed_dare_proof_submitted: { icon: 'assignment-turned-in', tone: 'feed' },
+  account_password_reset_completed: { icon: 'verified-user', tone: 'account' },
 };
 
 function formatNotificationTime(createdAt: string): string {
@@ -101,6 +123,15 @@ function formatNotificationTime(createdAt: string): string {
     day: '2-digit',
     month: '2-digit',
   });
+}
+
+function getNotificationPresentation(type: NotificationType) {
+  return (
+    NOTIFICATION_PRESENTATION[type] ?? {
+      icon: 'notifications',
+      tone: 'account',
+    }
+  );
 }
 
 export default function NotificationsScreen() {
@@ -181,31 +212,62 @@ export default function NotificationsScreen() {
 
     return (
       <View style={styles.cardsList}>
-        {notifications.items.map((notification) => {
-          const unread = notification.readAt === null;
-
-          return (
-            <NotificationActivityCard
-              key={notification.id}
-              title={notification.title}
-              description={notification.body}
-              timeLabel={formatNotificationTime(notification.createdAt)}
-              icon={NOTIFICATION_ICONS[notification.type] ?? 'notifications'}
-              iconColor={unread ? c.white : c.green}
-              iconBackgroundColor={unread ? c.green : c.cardSoft}
-              backgroundColor={unread ? c.greenSoft : c.card}
-              borderColor={unread ? c.green : c.outline}
-              titleColor={c.text}
-              textColor={c.sub}
-              timeColor={c.muted}
-              unread={unread}
-              unreadAccentColor={c.red}
-              onPress={() => {
-                void handlePressNotification(notification);
-              }}
+        {notifications.groupedItems.map((group) => (
+          <View key={group.id} style={styles.notificationGroup}>
+            <NotificationsGroupHeader
+              title={group.title}
+              count={group.items.length}
+              titleColor={c.muted}
+              countColor={c.text}
+              countBackgroundColor={c.cardSoft}
             />
-          );
-        })}
+
+            <View style={styles.groupCards}>
+              {group.items.map((notification) => {
+                const unread = notification.readAt === null;
+                const presentation = getNotificationPresentation(
+                  notification.type,
+                );
+                const tone = {
+                  club: {
+                    accent: c.green,
+                    soft: c.greenSoft,
+                  },
+                  feed: {
+                    accent: c.blue,
+                    soft: c.blueSoft,
+                  },
+                  account: {
+                    accent: c.amber,
+                    soft: c.amberSoft,
+                  },
+                }[presentation.tone];
+
+                return (
+                  <NotificationActivityCard
+                    key={notification.id}
+                    title={notification.title}
+                    description={notification.body}
+                    timeLabel={formatNotificationTime(notification.createdAt)}
+                    icon={presentation.icon}
+                    iconColor={unread ? c.white : tone.accent}
+                    iconBackgroundColor={unread ? tone.accent : tone.soft}
+                    backgroundColor={unread ? tone.soft : c.card}
+                    borderColor={unread ? tone.accent : c.outline}
+                    titleColor={c.text}
+                    textColor={c.sub}
+                    timeColor={c.muted}
+                    unread={unread}
+                    unreadAccentColor={c.red}
+                    onPress={() => {
+                      void handlePressNotification(notification);
+                    }}
+                  />
+                );
+              })}
+            </View>
+          </View>
+        ))}
       </View>
     );
   }
@@ -290,6 +352,12 @@ const styles = StyleSheet.create({
     paddingBottom: 118,
   },
   cardsList: {
+    gap: 20,
+  },
+  notificationGroup: {
+    gap: 10,
+  },
+  groupCards: {
     gap: 12,
   },
 });

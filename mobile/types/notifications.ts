@@ -68,6 +68,14 @@ export type NotificationsContentState =
   | 'empty'
   | 'error';
 
+export type NotificationPeriodGroupId = 'today' | 'this_week' | 'older';
+
+export type NotificationPeriodGroup = {
+  id: NotificationPeriodGroupId;
+  title: string;
+  items: NotificationItem[];
+};
+
 export type NotificationNavigationTarget =
   | {
       type: 'club';

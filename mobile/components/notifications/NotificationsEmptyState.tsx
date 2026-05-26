@@ -30,7 +30,7 @@ export default function NotificationsEmptyState({
       </Text>
 
       <Text style={[styles.text, { color: textColor }]}>
-        Quando houver atividade dos seus clubes, ela aparecera aqui.
+        Quando houver atividade importante no app, ela aparecera aqui.
       </Text>
     </View>
   );

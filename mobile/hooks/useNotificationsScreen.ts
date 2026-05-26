@@ -11,6 +11,8 @@ import type {
   MarkNotificationReadResponse,
   NotificationItem,
   NotificationNavigationTarget,
+  NotificationPeriodGroup,
+  NotificationPeriodGroupId,
   NotificationsContentState,
 } from '../types/notifications';
 
@@ -36,6 +38,15 @@ type LoadOptions = {
 const GENERIC_NOTIFICATIONS_ERROR =
   'Nao foi possivel carregar suas notificacoes.';
 
+const NOTIFICATION_PERIOD_GROUPS: {
+  id: NotificationPeriodGroupId;
+  title: string;
+}[] = [
+  { id: 'today', title: 'Hoje' },
+  { id: 'this_week', title: 'Esta semana' },
+  { id: 'older', title: 'Anteriores' },
+];
+
 function defaultLoadNotifications() {
   return listNotifications({ limit: 50 });
 }
@@ -44,6 +55,67 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error && error.message
     ? error.message
     : GENERIC_NOTIFICATIONS_ERROR;
+}
+
+function startOfLocalDay(date: Date): Date {
+  const localDate = new Date(date);
+  localDate.setHours(0, 0, 0, 0);
+  return localDate;
+}
+
+function startOfLocalWeek(date: Date): Date {
+  const weekStart = startOfLocalDay(date);
+  const dayOfWeek = weekStart.getDay();
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+  weekStart.setDate(weekStart.getDate() - daysFromMonday);
+  return weekStart;
+}
+
+export function getNotificationPeriodGroupId(
+  createdAt: string,
+  now = new Date(),
+): NotificationPeriodGroupId {
+  const createdDate = new Date(createdAt);
+
+  if (Number.isNaN(createdDate.getTime())) {
+    return 'older';
+  }
+
+  const todayStart = startOfLocalDay(now);
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+
+  if (createdDate >= todayStart && createdDate < tomorrowStart) {
+    return 'today';
+  }
+
+  const weekStart = startOfLocalWeek(now);
+
+  if (createdDate >= weekStart && createdDate < todayStart) {
+    return 'this_week';
+  }
+
+  return 'older';
+}
+
+export function groupNotificationsByPeriod(
+  items: NotificationItem[],
+  now = new Date(),
+): NotificationPeriodGroup[] {
+  const groupedItems = new Map<NotificationPeriodGroupId, NotificationItem[]>(
+    NOTIFICATION_PERIOD_GROUPS.map((group) => [group.id, []]),
+  );
+
+  items.forEach((item) => {
+    const groupId = getNotificationPeriodGroupId(item.createdAt, now);
+    groupedItems.get(groupId)?.push(item);
+  });
+
+  return NOTIFICATION_PERIOD_GROUPS.map((group) => ({
+    ...group,
+    items: groupedItems.get(group.id) ?? [],
+  })).filter((group) => group.items.length > 0);
 }
 
 export function getNotificationNavigationTarget(
@@ -99,6 +171,7 @@ export function useNotificationsScreen({
     [items],
   );
   const allRead = unreadCount === 0;
+  const groupedItems = useMemo(() => groupNotificationsByPeriod(items), [items]);
 
   const load = useCallback(
     async ({
@@ -255,6 +328,7 @@ export function useNotificationsScreen({
 
   return {
     items,
+    groupedItems,
     contentState,
     unreadCount,
     allRead,
