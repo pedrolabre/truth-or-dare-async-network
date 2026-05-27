@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 import { useTheme } from '../context/ThemeContext';
+import { useRecoveryFlowContext } from '../context/RecoveryFlowContext';
 import { getAuthRecoveryColors } from '../constants/authRecoveryTheme';
 import RecoveryScreenContainer from '../components/auth-recovery/RecoveryScreenContainer';
 import RecoveryIllustrationCard from '../components/auth-recovery/RecoveryIllustrationCard';
@@ -12,13 +13,24 @@ import RecoverySecondaryLink from '../components/auth-recovery/RecoverySecondary
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string; code?: string }>();
   const { isDark } = useTheme();
+  const recoveryFlow = useRecoveryFlowContext();
+  const didRedirectRef = useRef(false);
   const colors = getAuthRecoveryColors(isDark);
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (recoveryFlow.canAccessNewPasswordStep || didRedirectRef.current) {
+      return;
+    }
+
+    didRedirectRef.current = true;
+    recoveryFlow.handleRecoverySessionExpired();
+    router.replace('/forgot-password');
+  }, [recoveryFlow, router]);
 
   const validations = useMemo(() => {
     const trimmed = password.trim();
@@ -50,8 +62,7 @@ export default function ResetPasswordScreen() {
 
       // Backend futuro:
       // await resetPassword({
-      //   email: String(params.email || ''),
-      //   code: String(params.code || ''),
+      //   resetToken: 'token-em-memoria-do-fluxo',
       //   newPassword: password.trim(),
       // });
 
@@ -139,14 +150,10 @@ export default function ResetPasswordScreen() {
       <View style={styles.bottomSection}>
         <RecoverySecondaryLink
           label="Cancelar"
-          onPress={() =>
-            router.replace({
-              pathname: '/verify-code',
-              params: {
-                email: String(params.email || ''),
-              },
-            })
-          }
+          onPress={() => {
+            recoveryFlow.resetFlow();
+            router.replace('/forgot-password');
+          }}
           color={colors.textSoft}
         />
       </View>

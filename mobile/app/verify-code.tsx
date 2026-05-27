@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 import { useTheme } from '../context/ThemeContext';
+import { useRecoveryFlowContext } from '../context/RecoveryFlowContext';
 import { getAuthRecoveryColors } from '../constants/authRecoveryTheme';
 import RecoveryScreenContainer from '../components/auth-recovery/RecoveryScreenContainer';
 import RecoveryIllustrationCard from '../components/auth-recovery/RecoveryIllustrationCard';
@@ -12,13 +13,23 @@ import RecoverySecondaryLink from '../components/auth-recovery/RecoverySecondary
 
 export default function VerifyCodeScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ email?: string }>();
   const { isDark } = useTheme();
+  const recoveryFlow = useRecoveryFlowContext();
+  const didRedirectRef = useRef(false);
   const colors = getAuthRecoveryColors(isDark);
 
-  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(59);
+
+  useEffect(() => {
+    if (recoveryFlow.canAccessCodeStep || didRedirectRef.current) {
+      return;
+    }
+
+    didRedirectRef.current = true;
+    recoveryFlow.resetFlow();
+    router.replace('/forgot-password');
+  }, [recoveryFlow, router]);
 
   useEffect(() => {
     if (secondsLeft <= 0) {
@@ -33,7 +44,7 @@ export default function VerifyCodeScreen() {
   }, [secondsLeft]);
 
   const maskedEmail = useMemo(() => {
-    const rawEmail = String(params.email || '').trim();
+    const rawEmail = recoveryFlow.email.trim();
 
     if (!rawEmail.includes('@')) {
       return 'seu e-mail';
@@ -44,9 +55,9 @@ export default function VerifyCodeScreen() {
     const hidden = '*'.repeat(Math.max(name.length - 2, 0));
 
     return `${visibleStart}${hidden}@${domain}`;
-  }, [params.email]);
+  }, [recoveryFlow.email]);
 
-  const canSubmit = code.length === 6;
+  const canSubmit = recoveryFlow.code.length === 6;
   const canResend = secondsLeft === 0;
 
   async function handleVerifyCode() {
@@ -58,15 +69,12 @@ export default function VerifyCodeScreen() {
       setLoading(true);
 
       // Backend futuro:
-      // await verifyPasswordResetCode({ email: params.email, code });
+      // await verifyPasswordResetCode({
+      //   email: recoveryFlow.email,
+      //   code: recoveryFlow.code,
+      // });
 
-      router.push({
-        pathname: '/reset-password',
-        params: {
-          email: String(params.email || ''),
-          code,
-        },
-      });
+      router.push('/reset-password');
     } finally {
       setLoading(false);
     }
@@ -78,10 +86,11 @@ export default function VerifyCodeScreen() {
     }
 
     // Backend futuro:
-    // await resendPasswordResetCode({ email: params.email });
+    // await resendPasswordResetCode({ email: recoveryFlow.email });
 
     setSecondsLeft(59);
-    setCode('');
+    recoveryFlow.setCode('');
+    recoveryFlow.clearError();
   }
 
   return (
@@ -96,8 +105,8 @@ export default function VerifyCodeScreen() {
 
         <View style={styles.formSection}>
           <VerificationCodeBoxes
-            value={code}
-            onChange={setCode}
+            value={recoveryFlow.code}
+            onChange={recoveryFlow.setCode}
             colors={colors}
           />
 

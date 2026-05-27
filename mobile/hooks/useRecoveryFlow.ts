@@ -43,7 +43,7 @@ type RecoveryFlowError = {
   message: string;
 };
 
-type UseRecoveryFlowOptions = {
+export type UseRecoveryFlowOptions = {
   requestPasswordResetAction?: RequestPasswordResetAction;
   verifyResetCodeAction?: VerifyResetCodeAction;
   resetPasswordAction?: ResetPasswordAction;
@@ -175,6 +175,12 @@ export function useRecoveryFlow({
     newPassword.trim() === confirmPassword.trim() &&
     confirmPassword.trim().length > 0 &&
     loadingAction === null;
+  const hasRecoveryEmail = isValidEmail(email);
+  const hasResetToken = resetToken !== null;
+  const canAccessCodeStep = hasRecoveryEmail;
+  const canAccessNewPasswordStep =
+    step === 'new-password' && hasRecoveryEmail && hasResetToken;
+  const canAccessSuccessStep = step === 'success';
 
   const clearError = useCallback(() => {
     setError(null);
@@ -193,6 +199,34 @@ export function useRecoveryFlow({
   const startCooldown = useCallback(() => {
     setResendSecondsLeft(Math.max(resendCooldownSeconds, 0));
   }, [resendCooldownSeconds]);
+
+  const handleRecoverySessionExpired = useCallback(() => {
+    setCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setResetToken(null);
+    setLoadingAction(null);
+    setResendSecondsLeft(0);
+    setStep(isValidEmail(email) ? 'code' : 'email');
+    setError({
+      code: 'RESET_TOKEN_INVALID',
+      message: LOCAL_ERROR_MESSAGES.RESET_TOKEN_INVALID,
+    });
+  }, [email]);
+
+  const handleCodeBlocked = useCallback(() => {
+    setCode('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setResetToken(null);
+    setLoadingAction(null);
+    setResendSecondsLeft(0);
+    setStep('email');
+    setError({
+      code: 'CODE_MAX_ATTEMPTS_REACHED',
+      message: LOCAL_ERROR_MESSAGES.CODE_MAX_ATTEMPTS_REACHED,
+    });
+  }, []);
 
   const handleSendCode = useCallback(async () => {
     if (loadingAction) {
@@ -269,11 +303,12 @@ export function useRecoveryFlow({
       const normalizedError = getNormalizedError(caughtError);
       setError(normalizedError);
 
-      if (
-        normalizedError.code === 'INVALID_OR_EXPIRED_CODE' ||
-        normalizedError.code === 'CODE_MAX_ATTEMPTS_REACHED'
-      ) {
+      if (normalizedError.code === 'CODE_MAX_ATTEMPTS_REACHED') {
+        handleCodeBlocked();
+      } else if (normalizedError.code === 'INVALID_OR_EXPIRED_CODE') {
         setCode('');
+        setNewPassword('');
+        setConfirmPassword('');
         setResetToken(null);
       }
 
@@ -284,6 +319,7 @@ export function useRecoveryFlow({
   }, [
     code,
     email,
+    handleCodeBlocked,
     loadingAction,
     setLocalError,
     verifyResetCodeAction,
@@ -349,8 +385,7 @@ export function useRecoveryFlow({
     }
 
     if (!resetToken) {
-      setLocalError('RESET_TOKEN_INVALID');
-      setStep('code');
+      handleRecoverySessionExpired();
       return false;
     }
 
@@ -371,8 +406,7 @@ export function useRecoveryFlow({
       setError(normalizedError);
 
       if (normalizedError.code === 'RESET_TOKEN_INVALID') {
-        setResetToken(null);
-        setStep('code');
+        handleRecoverySessionExpired();
       }
 
       return false;
@@ -382,6 +416,7 @@ export function useRecoveryFlow({
   }, [
     confirmPassword,
     loadingAction,
+    handleRecoverySessionExpired,
     newPassword,
     resetPasswordAction,
     resetToken,
@@ -423,7 +458,11 @@ export function useRecoveryFlow({
     canVerifyCode,
     canResendCode,
     canResetPassword,
-    hasResetToken: resetToken !== null,
+    hasRecoveryEmail,
+    hasResetToken,
+    canAccessCodeStep,
+    canAccessNewPasswordStep,
+    canAccessSuccessStep,
     setEmail,
     setCode,
     setNewPassword,
@@ -433,6 +472,10 @@ export function useRecoveryFlow({
     handleVerifyCode,
     handleResendCode,
     handleResetPassword,
+    handleRecoverySessionExpired,
+    handleCodeBlocked,
     resetFlow,
   };
 }
+
+export type RecoveryFlow = ReturnType<typeof useRecoveryFlow>;

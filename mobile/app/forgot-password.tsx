@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { useTheme } from '../context/ThemeContext';
+import { useRecoveryFlowContext } from '../context/RecoveryFlowContext';
 import { getAuthRecoveryColors } from '../constants/authRecoveryTheme';
 import RecoveryScreenContainer from '../components/auth-recovery/RecoveryScreenContainer';
 import RecoveryIllustrationCard from '../components/auth-recovery/RecoveryIllustrationCard';
@@ -13,6 +14,7 @@ import RecoverySecondaryLink from '../components/auth-recovery/RecoverySecondary
 export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const recoveryFlow = useRecoveryFlowContext();
   const colors = getAuthRecoveryColors(isDark);
 
   const [email, setEmail] = useState('');
@@ -33,10 +35,9 @@ export default function ForgotPasswordScreen() {
       // Backend futuro:
       // await requestPasswordResetCode({ email });
 
-      router.push({
-        pathname: '/verify-code',
-        params: { email: email.trim() },
-      });
+      recoveryFlow.clearError();
+      recoveryFlow.setEmail(email.trim().toLowerCase());
+      router.push('/verify-code');
     } finally {
       setLoading(false);
     }
@@ -78,7 +79,10 @@ export default function ForgotPasswordScreen() {
       <View style={styles.bottomSection}>
         <RecoverySecondaryLink
           label="Voltar para o login"
-          onPress={() => router.replace('/login')}
+          onPress={() => {
+            recoveryFlow.resetFlow();
+            router.replace('/login');
+          }}
           color={colors.text}
         />
       </View>

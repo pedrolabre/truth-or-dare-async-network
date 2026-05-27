@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { useTheme } from '../context/ThemeContext';
+import { useRecoveryFlowContext } from '../context/RecoveryFlowContext';
 import { getAuthRecoveryColors } from '../constants/authRecoveryTheme';
 import RecoveryScreenContainer from '../components/auth-recovery/RecoveryScreenContainer';
 import RecoveryIllustrationCard from '../components/auth-recovery/RecoveryIllustrationCard';
@@ -11,7 +12,19 @@ import RecoveryPrimaryButton from '../components/auth-recovery/RecoveryPrimaryBu
 export default function PasswordSuccessScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
+  const recoveryFlow = useRecoveryFlowContext();
+  const didRedirectRef = useRef(false);
   const colors = getAuthRecoveryColors(isDark);
+
+  useEffect(() => {
+    if (recoveryFlow.canAccessSuccessStep || didRedirectRef.current) {
+      return;
+    }
+
+    didRedirectRef.current = true;
+    recoveryFlow.resetFlow();
+    router.replace('/forgot-password');
+  }, [recoveryFlow, router]);
 
   return (
     <RecoveryScreenContainer backgroundColor={colors.background}>
@@ -25,7 +38,10 @@ export default function PasswordSuccessScreen() {
 
         <RecoveryPrimaryButton
           label="IR PARA O LOGIN"
-          onPress={() => router.replace('/login')}
+          onPress={() => {
+            recoveryFlow.resetFlow();
+            router.replace('/login');
+          }}
           backgroundColor={colors.successAccent}
           textColor={colors.white}
         />
