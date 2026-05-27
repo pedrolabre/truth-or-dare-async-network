@@ -73,6 +73,14 @@ export default function VerifyCodeScreen() {
     }
   }
 
+  function handleCodeSubmitEditing() {
+    void handleVerifyCode();
+  }
+
+  const codeHasError = Boolean(
+    recoveryFlow.codeErrorMessage || recoveryFlow.errorMessage,
+  );
+
   return (
     <RecoveryScreenContainer backgroundColor={colors.background}>
       <View style={styles.topSection}>
@@ -88,6 +96,10 @@ export default function VerifyCodeScreen() {
             value={recoveryFlow.code}
             onChange={handleCodeChange}
             colors={colors}
+            hasError={codeHasError}
+            disabled={recoveryFlow.isLoading}
+            autoFocus
+            onSubmitEditing={handleCodeSubmitEditing}
           />
 
           {recoveryFlow.codeErrorMessage || recoveryFlow.errorMessage ? (

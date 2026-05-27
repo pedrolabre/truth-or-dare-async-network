@@ -730,7 +730,7 @@ describe('VerifyCodeScreen', () => {
       expect(screen.getByText('CONFIRME SEU ACESSO')).toBeTruthy();
     });
 
-    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], code);
+    fireEvent.changeText(screen.getByTestId('verification-code-digit-1'), code);
   }
 
   it('redireciona verificacao sem e-mail valido para solicitacao', () => {
@@ -758,6 +758,38 @@ describe('VerifyCodeScreen', () => {
       screen.getByTestId('verify-code-submit-button').props
         .accessibilityState.disabled,
     ).toBe(true);
+  });
+
+  it('mantem foco inicial, labels acessiveis e envio por teclado no codigo', async () => {
+    const screen = renderVerifyCodeScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText('CONFIRME SEU ACESSO')).toBeTruthy();
+    });
+
+    expect(screen.getByTestId('verification-code-digit-1').props.autoFocus).toBe(
+      true,
+    );
+    expect(
+      screen.getByLabelText('Digito 1 do codigo de recuperacao'),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText('Digito 6 do codigo de recuperacao'),
+    ).toBeTruthy();
+
+    fireEvent.changeText(
+      screen.getByTestId('verification-code-digit-1'),
+      '123456',
+    );
+    fireEvent(screen.getByTestId('verification-code-digit-6'), 'submitEditing');
+
+    await waitFor(() => {
+      expect(screen.verifyResetCodeAction).toHaveBeenCalledWith(
+        'pessoa@email.com',
+        '123456',
+      );
+      expect(mockRouterPush).toHaveBeenCalledWith('/reset-password');
+    });
   });
 
   it('verifica codigo pelo fluxo real, guarda resetToken em memoria e navega', async () => {
@@ -797,6 +829,9 @@ describe('VerifyCodeScreen', () => {
       expect(screen.getByText('Codigo invalido ou expirado.')).toBeTruthy();
       expect(mockRouterPush).not.toHaveBeenCalledWith('/reset-password');
     });
+    expect(
+      screen.getByTestId('verification-code-digit-1').props.accessibilityHint,
+    ).toBe('Codigo com erro');
   });
 
   it('mantem protegido quando o limite de tentativas e atingido', async () => {
@@ -879,6 +914,9 @@ describe('VerifyCodeScreen', () => {
         screen.getByTestId('verify-code-submit-button').props
           .accessibilityState.disabled,
       ).toBe(true);
+      expect(screen.getByTestId('verification-code-digit-1').props.editable).toBe(
+        false,
+      );
     });
 
     await act(async () => {

@@ -13,7 +13,14 @@ type Props = {
     text: string;
     border: string;
     inputBackground: string;
+    danger: string;
+    successAccent?: string;
   };
+  hasError?: boolean;
+  isSuccess?: boolean;
+  disabled?: boolean;
+  autoFocus?: boolean;
+  onSubmitEditing?: () => void;
 };
 
 export default function VerificationCodeBoxes({
@@ -21,17 +28,46 @@ export default function VerificationCodeBoxes({
   onChange,
   length = 6,
   colors,
+  hasError = false,
+  isSuccess = false,
+  disabled = false,
+  autoFocus = false,
+  onSubmitEditing,
 }: Props) {
   const inputsRef = useRef<(TextInput | null)[]>([]);
 
+  function getValueChars() {
+    return Array.from({ length }, (_, index) => value[index] ?? '');
+  }
+
+  function updateValue(chars: string[]) {
+    onChange(chars.join('').slice(0, length));
+  }
+
   function handleChange(text: string, index: number) {
     const clean = text.replace(/[^0-9]/g, '');
+    const currentArray = getValueChars();
 
-    const currentArray = value.split('');
+    if (!clean) {
+      currentArray[index] = '';
+      updateValue(currentArray);
+      return;
+    }
+
+    if (clean.length > 1) {
+      clean
+        .slice(0, length - index)
+        .split('')
+        .forEach((char, offset) => {
+          currentArray[index + offset] = char;
+        });
+      updateValue(currentArray);
+      inputsRef.current[Math.min(index + clean.length, length - 1)]?.focus();
+      return;
+    }
+
     currentArray[index] = clean;
-
-    const newValue = currentArray.join('').slice(0, length);
-    onChange(newValue);
+    updateValue(currentArray);
 
     if (clean && index < length - 1) {
       inputsRef.current[index + 1]?.focus();
@@ -43,16 +79,40 @@ export default function VerificationCodeBoxes({
     index: number,
   ) {
     if (e.nativeEvent.key === 'Backspace') {
-      if (!value[index] && index > 0) {
+      const currentArray = getValueChars();
+
+      if (currentArray[index]) {
+        currentArray[index] = '';
+        updateValue(currentArray);
+        return;
+      }
+
+      if (index > 0) {
+        currentArray[index - 1] = '';
+        updateValue(currentArray);
         inputsRef.current[index - 1]?.focus();
       }
     }
+  }
+
+  function handleSubmitEditing(index: number) {
+    if (index < length - 1) {
+      inputsRef.current[index + 1]?.focus();
+      return;
+    }
+
+    onSubmitEditing?.();
   }
 
   return (
     <View style={styles.container}>
       {Array.from({ length }).map((_, index) => {
         const char = value[index] || '';
+        const borderColor = hasError
+          ? colors.danger
+          : isSuccess
+            ? colors.successAccent ?? colors.border
+            : colors.border;
 
         return (
           <TextInput
@@ -60,17 +120,28 @@ export default function VerificationCodeBoxes({
             ref={(ref) => {
               inputsRef.current[index] = ref;
             }}
+            testID={`verification-code-digit-${index + 1}`}
+            accessibilityLabel={`Digito ${index + 1} do codigo de recuperacao`}
+            accessibilityState={{
+              disabled,
+            }}
+            accessibilityHint={hasError ? 'Codigo com erro' : undefined}
             value={char}
             onChangeText={(text) => handleChange(text, index)}
             onKeyPress={(e) => handleKeyPress(e, index)}
+            onSubmitEditing={() => handleSubmitEditing(index)}
             keyboardType="number-pad"
-            maxLength={1}
+            returnKeyType={index === length - 1 ? 'done' : 'next'}
+            editable={!disabled}
+            autoFocus={autoFocus && index === 0}
+            maxLength={length}
             style={[
               styles.box,
               {
-                borderColor: colors.border,
+                borderColor,
                 color: colors.text,
                 backgroundColor: colors.inputBackground,
+                opacity: disabled ? 0.72 : 1,
               },
             ]}
           />
