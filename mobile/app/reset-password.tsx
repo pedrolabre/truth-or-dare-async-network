@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -18,10 +18,6 @@ export default function ResetPasswordScreen() {
   const didRedirectRef = useRef(false);
   const colors = getAuthRecoveryColors(isDark);
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-
   useEffect(() => {
     if (recoveryFlow.canAccessNewPasswordStep || didRedirectRef.current) {
       return;
@@ -33,42 +29,51 @@ export default function ResetPasswordScreen() {
   }, [recoveryFlow, router]);
 
   const validations = useMemo(() => {
-    const trimmed = password.trim();
+    const trimmed = recoveryFlow.newPassword.trim();
 
     return {
       minLength: trimmed.length >= 8,
-      hasUppercase: /[A-ZÀ-Ú]/.test(trimmed),
+      hasUppercase: /[A-Z]/.test(trimmed),
       hasNumber: /\d/.test(trimmed),
       passwordsMatch:
         trimmed.length > 0 &&
-        confirmPassword.trim().length > 0 &&
-        trimmed === confirmPassword.trim(),
+        recoveryFlow.confirmPassword.trim().length > 0 &&
+        trimmed === recoveryFlow.confirmPassword.trim(),
     };
-  }, [password, confirmPassword]);
+  }, [recoveryFlow.confirmPassword, recoveryFlow.newPassword]);
 
-  const canSubmit =
-    validations.minLength &&
-    validations.hasUppercase &&
-    validations.hasNumber &&
-    validations.passwordsMatch;
+  const canSubmit = recoveryFlow.canResetPassword;
+  const formErrorMessage =
+    recoveryFlow.errorCode === 'PASSWORD_TOO_WEAK' ||
+    recoveryFlow.errorCode === 'VALIDATION_ERROR'
+      ? null
+      : recoveryFlow.errorMessage;
 
   async function handleResetPassword() {
-    if (!canSubmit || loading) {
+    if (!canSubmit) {
       return;
     }
 
-    try {
-      setLoading(true);
+    const reset = await recoveryFlow.handleResetPassword();
 
-      // Backend futuro:
-      // await resetPassword({
-      //   resetToken: 'token-em-memoria-do-fluxo',
-      //   newPassword: password.trim(),
-      // });
-
+    if (reset) {
       router.replace('/password-success');
-    } finally {
-      setLoading(false);
+    }
+  }
+
+  function handlePasswordChange(value: string) {
+    recoveryFlow.setNewPassword(value);
+
+    if (recoveryFlow.errorMessage) {
+      recoveryFlow.clearError();
+    }
+  }
+
+  function handleConfirmPasswordChange(value: string) {
+    recoveryFlow.setConfirmPassword(value);
+
+    if (recoveryFlow.errorMessage) {
+      recoveryFlow.clearError();
     }
   }
 
@@ -85,24 +90,36 @@ export default function ResetPasswordScreen() {
         <View style={styles.formSection}>
           <RecoveryTextField
             label="Nova senha"
-            value={password}
-            onChangeText={setPassword}
+            value={recoveryFlow.newPassword}
+            onChangeText={handlePasswordChange}
             colors={colors}
             placeholder="••••••••"
             secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
+            errorMessage={
+              recoveryFlow.passwordErrorMessage ??
+              (recoveryFlow.errorCode === 'PASSWORD_TOO_WEAK'
+                ? recoveryFlow.errorMessage
+                : null)
+            }
           />
 
           <RecoveryTextField
             label="Confirmar senha"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
+            value={recoveryFlow.confirmPassword}
+            onChangeText={handleConfirmPasswordChange}
             colors={colors}
             placeholder="••••••••"
             secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
+            errorMessage={
+              recoveryFlow.confirmPasswordErrorMessage ??
+              (recoveryFlow.errorCode === 'VALIDATION_ERROR'
+                ? recoveryFlow.errorMessage
+                : null)
+            }
           />
 
           <View
@@ -136,13 +153,20 @@ export default function ResetPasswordScreen() {
             />
           </View>
 
+          {formErrorMessage ? (
+            <Text style={[styles.errorText, { color: colors.danger }]}>
+              {formErrorMessage}
+            </Text>
+          ) : null}
+
           <RecoveryPrimaryButton
             label="REDEFINIR SENHA"
             onPress={handleResetPassword}
             disabled={!canSubmit}
-            loading={loading}
+            loading={recoveryFlow.isResettingPassword}
             backgroundColor={colors.primary}
             textColor={colors.white}
+            testID="reset-password-submit-button"
           />
         </View>
       </View>
@@ -225,6 +249,12 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontWeight: '700',
     letterSpacing: 0.2,
+  },
+  errorText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   bottomSection: {
     paddingBottom: 6,

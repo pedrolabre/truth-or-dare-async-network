@@ -10,6 +10,7 @@ import {
 } from '@testing-library/react-native';
 
 import ForgotPasswordScreen from '../app/forgot-password';
+import PasswordSuccessScreen from '../app/password-success';
 import ResetPasswordScreen from '../app/reset-password';
 import VerifyCodeScreen from '../app/verify-code';
 import {
@@ -591,10 +592,10 @@ describe('VerifyCodeScreen', () => {
     const [ready, setReady] = React.useState(false);
 
     React.useEffect(() => {
-      if (!flow.email) {
+      if (!flow.email && !ready) {
         flow.setEmail(initialEmail);
       }
-    }, [flow, initialEmail]);
+    }, [flow, initialEmail, ready]);
 
     React.useEffect(() => {
       if (
@@ -818,6 +819,454 @@ describe('VerifyCodeScreen', () => {
     fireEvent.press(screen.getByText('Voltar para o login'));
 
     expect(mockRouterReplace).toHaveBeenCalledWith('/login');
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+});
+
+describe('ResetPasswordScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  type RenderResetPasswordOptions = {
+    requestPasswordResetAction?: jest.Mock;
+    verifyResetCodeAction?: jest.Mock;
+    resetPasswordAction?: jest.Mock;
+  };
+
+  function FlowObserver({
+    onChange,
+  }: {
+    onChange: (flow: ReturnType<typeof useRecoveryFlowContext>) => void;
+  }) {
+    const flow = useRecoveryFlowContext();
+
+    React.useEffect(() => {
+      onChange(flow);
+    }, [flow, onChange]);
+
+    return null;
+  }
+
+  function SeededResetPasswordScreen({
+    initialEmail,
+    initialCode,
+  }: {
+    initialEmail: string;
+    initialCode: string;
+  }) {
+    const flow = useRecoveryFlowContext();
+    const [requested, setRequested] = React.useState(false);
+    const [verified, setVerified] = React.useState(false);
+    const [ready, setReady] = React.useState(false);
+
+    React.useEffect(() => {
+      if (!flow.email) {
+        flow.setEmail(initialEmail);
+      }
+    }, [flow, initialEmail]);
+
+    React.useEffect(() => {
+      if (
+        flow.email === initialEmail &&
+        flow.step === 'email' &&
+        !requested
+      ) {
+        setRequested(true);
+        void flow.handleSendCode();
+      }
+    }, [flow, initialEmail, requested]);
+
+    React.useEffect(() => {
+      if (flow.step === 'code' && flow.code !== initialCode) {
+        flow.setCode(initialCode);
+      }
+    }, [flow, initialCode]);
+
+    React.useEffect(() => {
+      if (flow.step === 'code' && flow.code === initialCode && !verified) {
+        setVerified(true);
+        void flow.handleVerifyCode();
+      }
+    }, [flow, initialCode, verified]);
+
+    React.useEffect(() => {
+      if (flow.step === 'new-password') {
+        setReady(true);
+      }
+    }, [flow.step]);
+
+    if (!ready) {
+      return null;
+    }
+
+    return <ResetPasswordScreen />;
+  }
+
+  function renderResetPasswordScreen({
+    requestPasswordResetAction = jest.fn().mockResolvedValue({ ok: true }),
+    verifyResetCodeAction = jest
+      .fn()
+      .mockResolvedValue({ resetToken: 'reset-token-123' }),
+    resetPasswordAction = jest.fn().mockResolvedValue({ ok: true }),
+  }: RenderResetPasswordOptions = {}) {
+    let latestFlow: ReturnType<typeof useRecoveryFlowContext> | null = null;
+    const handleFlowChange = (
+      flow: ReturnType<typeof useRecoveryFlowContext>,
+    ) => {
+      latestFlow = flow;
+    };
+
+    return {
+      requestPasswordResetAction,
+      verifyResetCodeAction,
+      resetPasswordAction,
+      getFlow: () => latestFlow,
+      ...render(
+        <ThemeProvider>
+          <RecoveryFlowProvider
+            requestPasswordResetAction={requestPasswordResetAction}
+            verifyResetCodeAction={verifyResetCodeAction}
+            resetPasswordAction={resetPasswordAction}
+            resendCooldownSeconds={0}
+          >
+            <FlowObserver onChange={handleFlowChange} />
+            <SeededResetPasswordScreen
+              initialEmail="pessoa@email.com"
+              initialCode="123456"
+            />
+          </RecoveryFlowProvider>
+        </ThemeProvider>,
+      ),
+    };
+  }
+
+  async function fillResetPasswords(
+    screen: ReturnType<typeof renderResetPasswordScreen>,
+    password: string,
+    confirmPassword: string,
+  ) {
+    await waitFor(() => {
+      expect(screen.getByText('NOVA SENHA')).toBeTruthy();
+    });
+
+    const inputs = screen.UNSAFE_getAllByType(TextInput);
+
+    fireEvent.changeText(inputs[0], password);
+    fireEvent.changeText(inputs[1], confirmPassword);
+  }
+
+  it('nao chama resetPassword nem navega com senha fraca', async () => {
+    const screen = renderResetPasswordScreen();
+
+    await fillResetPasswords(screen, 'fraca', 'fraca');
+    fireEvent.press(screen.getByTestId('reset-password-submit-button'));
+
+    expect(
+      screen.getByText(
+        'Use uma senha com pelo menos 8 caracteres, uma letra maiuscula e um numero.',
+      ),
+    ).toBeTruthy();
+    expect(screen.resetPasswordAction).not.toHaveBeenCalled();
+    expect(mockRouterReplace).not.toHaveBeenCalledWith('/password-success');
+    expect(
+      screen.getByTestId('reset-password-submit-button').props
+        .accessibilityState.disabled,
+    ).toBe(true);
+  });
+
+  it('nao chama resetPassword nem navega com confirmacao divergente', async () => {
+    const screen = renderResetPasswordScreen();
+
+    await fillResetPasswords(screen, 'NovaSenha123', 'OutraSenha123');
+    fireEvent.press(screen.getByTestId('reset-password-submit-button'));
+
+    expect(screen.getByText('As senhas precisam coincidir.')).toBeTruthy();
+    expect(screen.resetPasswordAction).not.toHaveBeenCalled();
+    expect(mockRouterReplace).not.toHaveBeenCalledWith('/password-success');
+    expect(
+      screen.getByTestId('reset-password-submit-button').props
+        .accessibilityState.disabled,
+    ).toBe(true);
+  });
+
+  it('redefine senha pelo fluxo real usando resetToken em memoria e navega para sucesso', async () => {
+    const screen = renderResetPasswordScreen();
+
+    await fillResetPasswords(screen, 'NovaSenha123', 'NovaSenha123');
+    fireEvent.press(screen.getByTestId('reset-password-submit-button'));
+
+    await waitFor(() => {
+      expect(screen.resetPasswordAction).toHaveBeenCalledWith(
+        'reset-token-123',
+        'NovaSenha123',
+      );
+      expect(mockRouterReplace).toHaveBeenCalledWith('/password-success');
+    });
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('exibe PASSWORD_TOO_WEAK da API sem navegar para sucesso', async () => {
+    const resetPasswordAction = jest.fn().mockRejectedValue(
+      new AuthRecoveryRequestError({
+        code: 'PASSWORD_TOO_WEAK',
+        message: 'Senha muito fraca.',
+        status: 400,
+      }),
+    );
+    const screen = renderResetPasswordScreen({ resetPasswordAction });
+
+    await fillResetPasswords(screen, 'NovaSenha123', 'NovaSenha123');
+    fireEvent.press(screen.getByTestId('reset-password-submit-button'));
+
+    await waitFor(() => {
+      expect(resetPasswordAction).toHaveBeenCalledWith(
+        'reset-token-123',
+        'NovaSenha123',
+      );
+      expect(screen.getByText('Senha muito fraca.')).toBeTruthy();
+      expect(mockRouterReplace).not.toHaveBeenCalledWith('/password-success');
+    });
+  });
+
+  it('exibe SAME_PASSWORD da API sem navegar para sucesso', async () => {
+    const resetPasswordAction = jest.fn().mockRejectedValue(
+      new AuthRecoveryRequestError({
+        code: 'SAME_PASSWORD',
+        message: 'Escolha uma senha diferente da senha atual.',
+        status: 400,
+      }),
+    );
+    const screen = renderResetPasswordScreen({ resetPasswordAction });
+
+    await fillResetPasswords(screen, 'NovaSenha123', 'NovaSenha123');
+    fireEvent.press(screen.getByTestId('reset-password-submit-button'));
+
+    await waitFor(() => {
+      expect(resetPasswordAction).toHaveBeenCalledWith(
+        'reset-token-123',
+        'NovaSenha123',
+      );
+      expect(
+        screen.getByText('Escolha uma senha diferente da senha atual.'),
+      ).toBeTruthy();
+      expect(mockRouterReplace).not.toHaveBeenCalledWith('/password-success');
+    });
+  });
+
+  it('limpa resetToken e protege o fluxo quando RESET_TOKEN_INVALID vem da API', async () => {
+    const resetPasswordAction = jest.fn().mockRejectedValue(
+      new AuthRecoveryRequestError({
+        code: 'RESET_TOKEN_INVALID',
+        message: 'Sua sessao de recuperacao expirou. Solicite um novo codigo.',
+        status: 400,
+      }),
+    );
+    const screen = renderResetPasswordScreen({ resetPasswordAction });
+
+    await fillResetPasswords(screen, 'NovaSenha123', 'NovaSenha123');
+    fireEvent.press(screen.getByTestId('reset-password-submit-button'));
+
+    await waitFor(() => {
+      expect(resetPasswordAction).toHaveBeenCalledWith(
+        'reset-token-123',
+        'NovaSenha123',
+      );
+      expect(mockRouterReplace).toHaveBeenCalledWith('/forgot-password');
+      expect(mockRouterReplace).not.toHaveBeenCalledWith('/password-success');
+      expect(screen.getFlow()?.hasResetToken).toBe(false);
+      expect(screen.getFlow()?.newPassword).toBe('');
+      expect(screen.getFlow()?.confirmPassword).toBe('');
+    });
+  });
+
+  it('desabilita o botao durante a redefinicao real', async () => {
+    let resolveReset: (value: { ok: true }) => void = () => {};
+    const resetPasswordAction = jest.fn(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveReset = resolve;
+        }),
+    );
+    const screen = renderResetPasswordScreen({ resetPasswordAction });
+
+    await fillResetPasswords(screen, 'NovaSenha123', 'NovaSenha123');
+    fireEvent.press(screen.getByTestId('reset-password-submit-button'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('reset-password-submit-button').props
+          .accessibilityState.disabled,
+      ).toBe(true);
+    });
+
+    await act(async () => {
+      resolveReset({ ok: true });
+    });
+  });
+
+  it('cancelar limpa estado sensivel e volta para solicitacao', async () => {
+    const screen = renderResetPasswordScreen();
+
+    await fillResetPasswords(screen, 'NovaSenha123', 'NovaSenha123');
+    fireEvent.press(screen.getByText('Cancelar'));
+
+    await waitFor(() => {
+      expect(mockRouterReplace).toHaveBeenCalledWith('/forgot-password');
+      expect(screen.getFlow()?.step).toBe('email');
+      expect(screen.getFlow()?.newPassword).toBe('');
+      expect(screen.getFlow()?.confirmPassword).toBe('');
+      expect(screen.getFlow()?.hasResetToken).toBe(false);
+    });
+  });
+});
+
+describe('PasswordSuccessScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function FlowObserver({
+    onChange,
+  }: {
+    onChange: (flow: ReturnType<typeof useRecoveryFlowContext>) => void;
+  }) {
+    const flow = useRecoveryFlowContext();
+
+    React.useEffect(() => {
+      onChange(flow);
+    }, [flow, onChange]);
+
+    return null;
+  }
+
+  function SeededPasswordSuccessScreen() {
+    const flow = useRecoveryFlowContext();
+    const [requested, setRequested] = React.useState(false);
+    const [verified, setVerified] = React.useState(false);
+    const [reset, setReset] = React.useState(false);
+    const [ready, setReady] = React.useState(false);
+
+    React.useEffect(() => {
+      if (!flow.email && !ready) {
+        flow.setEmail('pessoa@email.com');
+      }
+    }, [flow, ready]);
+
+    React.useEffect(() => {
+      if (
+        flow.email === 'pessoa@email.com' &&
+        flow.step === 'email' &&
+        !requested
+      ) {
+        setRequested(true);
+        void flow.handleSendCode();
+      }
+    }, [flow, requested]);
+
+    React.useEffect(() => {
+      if (flow.step === 'code' && flow.code !== '123456') {
+        flow.setCode('123456');
+      }
+    }, [flow]);
+
+    React.useEffect(() => {
+      if (flow.step === 'code' && flow.code === '123456' && !verified) {
+        setVerified(true);
+        void flow.handleVerifyCode();
+      }
+    }, [flow, verified]);
+
+    React.useEffect(() => {
+      if (flow.step === 'new-password' && !reset) {
+        setReset(true);
+        flow.setNewPassword('NovaSenha123');
+        flow.setConfirmPassword('NovaSenha123');
+      }
+    }, [flow, reset]);
+
+    React.useEffect(() => {
+      if (
+        flow.step === 'new-password' &&
+        flow.newPassword === 'NovaSenha123' &&
+        flow.confirmPassword === 'NovaSenha123' &&
+        reset
+      ) {
+        void flow.handleResetPassword();
+      }
+    }, [flow, reset]);
+
+    React.useEffect(() => {
+      if (flow.step === 'success') {
+        setReady(true);
+      }
+    }, [flow.step]);
+
+    if (!ready) {
+      return null;
+    }
+
+    return <PasswordSuccessScreen />;
+  }
+
+  function renderPasswordSuccessScreen() {
+    let latestFlow: ReturnType<typeof useRecoveryFlowContext> | null = null;
+    const handleFlowChange = (
+      flow: ReturnType<typeof useRecoveryFlowContext>,
+    ) => {
+      latestFlow = flow;
+    };
+
+    return {
+      getFlow: () => latestFlow,
+      ...render(
+        <ThemeProvider>
+          <RecoveryFlowProvider
+            requestPasswordResetAction={jest.fn().mockResolvedValue({ ok: true })}
+            verifyResetCodeAction={jest
+              .fn()
+              .mockResolvedValue({ resetToken: 'reset-token-123' })}
+            resetPasswordAction={jest.fn().mockResolvedValue({ ok: true })}
+            resendCooldownSeconds={0}
+          >
+            <FlowObserver onChange={handleFlowChange} />
+            <SeededPasswordSuccessScreen />
+          </RecoveryFlowProvider>
+        </ThemeProvider>,
+      ),
+    };
+  }
+
+  it('redireciona sucesso sem etapa success para solicitacao', () => {
+    render(
+      <ThemeProvider>
+        <RecoveryFlowProvider>
+          <PasswordSuccessScreen />
+        </RecoveryFlowProvider>
+      </ThemeProvider>,
+    );
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/forgot-password');
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('ir para login limpa o fluxo em memoria', async () => {
+    const screen = renderPasswordSuccessScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText('SENHA ALTERADA!')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText('IR PARA O LOGIN'));
+
+    await waitFor(() => {
+      expect(mockRouterReplace).toHaveBeenCalledWith('/login');
+      expect(screen.getFlow()?.step).toBe('email');
+      expect(screen.getFlow()?.email).toBe('');
+      expect(screen.getFlow()?.hasResetToken).toBe(false);
+      expect(screen.getFlow()?.newPassword).toBe('');
+      expect(screen.getFlow()?.confirmPassword).toBe('');
+    });
     expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   });
 });
