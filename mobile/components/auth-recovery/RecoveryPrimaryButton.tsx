@@ -16,6 +16,7 @@ type Props = {
   textColor: string;
   borderColor?: string;
   style?: ViewStyle;
+  testID?: string;
 };
 
 export default function RecoveryPrimaryButton({
@@ -26,6 +27,7 @@ export default function RecoveryPrimaryButton({
   backgroundColor,
   textColor,
   style,
+  testID,
 }: Props) {
   const isDisabled = disabled || loading;
 
@@ -33,6 +35,8 @@ export default function RecoveryPrimaryButton({
     <Pressable
       onPress={onPress}
       disabled={isDisabled}
+      accessibilityState={{ disabled: isDisabled }}
+      testID={testID}
       style={({ pressed }) => [
         styles.button,
         {

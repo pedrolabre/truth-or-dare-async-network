@@ -15,9 +15,11 @@ type Props = TextInputProps & {
     text: string;
     textMuted: string;
     textSoft: string;
+    danger: string;
     border: string;
     inputBackground: string;
   };
+  errorMessage?: string | null;
 };
 
 export default function RecoveryTextField({
@@ -25,8 +27,11 @@ export default function RecoveryTextField({
   value,
   onChangeText,
   colors,
+  errorMessage,
   ...rest
 }: Props) {
+  const hasError = Boolean(errorMessage);
+
   return (
     <View style={styles.wrapper}>
       {label ? (
@@ -40,7 +45,7 @@ export default function RecoveryTextField({
           styles.inputContainer,
           {
             backgroundColor: colors.inputBackground,
-            borderColor: colors.border,
+            borderColor: hasError ? colors.danger : colors.border,
           },
         ]}
       >
@@ -52,6 +57,12 @@ export default function RecoveryTextField({
           {...rest}
         />
       </View>
+
+      {errorMessage ? (
+        <Text style={[styles.errorText, { color: colors.danger }]}>
+          {errorMessage}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -77,5 +88,10 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 16,
     fontWeight: '500',
+  },
+  errorText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
   },
 });

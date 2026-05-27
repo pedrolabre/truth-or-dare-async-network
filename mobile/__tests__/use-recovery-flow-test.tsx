@@ -1,7 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
-import { act, render, renderHook } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  waitFor,
+} from '@testing-library/react-native';
 
+import ForgotPasswordScreen from '../app/forgot-password';
 import ResetPasswordScreen from '../app/reset-password';
 import {
   RecoveryFlowProvider,
@@ -414,6 +421,148 @@ describe('RecoveryFlowContext', () => {
     );
 
     expect(mockRouterReplace).toHaveBeenCalledWith('/forgot-password');
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+});
+
+describe('ForgotPasswordScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  function renderForgotPasswordScreen(
+    requestPasswordResetAction = jest.fn().mockResolvedValue({ ok: true }),
+  ) {
+    return {
+      requestPasswordResetAction,
+      ...render(
+        <ThemeProvider>
+          <RecoveryFlowProvider
+            requestPasswordResetAction={requestPasswordResetAction}
+          >
+            <ForgotPasswordScreen />
+          </RecoveryFlowProvider>
+        </ThemeProvider>,
+      ),
+    };
+  }
+
+  it('nao solicita codigo nem navega com e-mail invalido', () => {
+    const {
+      getByPlaceholderText,
+      getByTestId,
+      getByText,
+      requestPasswordResetAction,
+    } =
+      renderForgotPasswordScreen();
+
+    fireEvent.changeText(getByPlaceholderText('Seu e-mail'), 'email-invalido');
+    fireEvent.press(getByTestId('forgot-password-send-code-button'));
+
+    expect(getByText('Informe um e-mail valido.')).toBeTruthy();
+    expect(requestPasswordResetAction).not.toHaveBeenCalled();
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it('solicita codigo pelo fluxo real e navega para verificacao em sucesso', async () => {
+    const { getByPlaceholderText, getByTestId, requestPasswordResetAction } =
+      renderForgotPasswordScreen();
+
+    fireEvent.changeText(
+      getByPlaceholderText('Seu e-mail'),
+      ' Pessoa@Email.com ',
+    );
+    fireEvent.press(getByTestId('forgot-password-send-code-button'));
+
+    await waitFor(() => {
+      expect(requestPasswordResetAction).toHaveBeenCalledWith(
+        'pessoa@email.com',
+      );
+      expect(mockRouterPush).toHaveBeenCalledWith('/verify-code');
+    });
+  });
+
+  it('mantem a tela e exibe erro normalizado quando a API aplica rate limit', async () => {
+    const requestPasswordResetAction = jest.fn().mockRejectedValue(
+      new AuthRecoveryRequestError({
+        code: 'RATE_LIMIT_EXCEEDED',
+        message: 'Muitas tentativas. Aguarde alguns minutos.',
+        status: 429,
+      }),
+    );
+    const { getByPlaceholderText, getByTestId, getByText } =
+      renderForgotPasswordScreen(requestPasswordResetAction);
+
+    fireEvent.changeText(
+      getByPlaceholderText('Seu e-mail'),
+      'pessoa@email.com',
+    );
+    fireEvent.press(getByTestId('forgot-password-send-code-button'));
+
+    await waitFor(() => {
+      expect(requestPasswordResetAction).toHaveBeenCalledWith(
+        'pessoa@email.com',
+      );
+      expect(
+        getByText('Muitas tentativas. Aguarde alguns minutos.'),
+      ).toBeTruthy();
+      expect(mockRouterPush).not.toHaveBeenCalled();
+    });
+  });
+
+  it('desabilita o botao durante o envio real do codigo', async () => {
+    let resolveRequest: (value: { ok: true }) => void = () => {};
+    const requestPasswordResetAction = jest.fn(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveRequest = resolve;
+        }),
+    );
+    const { getByPlaceholderText, getByTestId } =
+      renderForgotPasswordScreen(requestPasswordResetAction);
+
+    fireEvent.changeText(
+      getByPlaceholderText('Seu e-mail'),
+      'pessoa@email.com',
+    );
+    fireEvent.press(getByTestId('forgot-password-send-code-button'));
+
+    await waitFor(() => {
+      expect(
+        getByTestId('forgot-password-send-code-button').props
+          .accessibilityState.disabled,
+      ).toBe(true);
+    });
+
+    await act(async () => {
+      resolveRequest({ ok: true });
+    });
+  });
+
+  it('voltar para login cancela e limpa o fluxo sensivel', async () => {
+    const {
+      getByPlaceholderText,
+      getByTestId,
+      getByText,
+      requestPasswordResetAction,
+    } =
+      renderForgotPasswordScreen();
+
+    fireEvent.changeText(
+      getByPlaceholderText('Seu e-mail'),
+      'pessoa@email.com',
+    );
+    fireEvent.press(getByTestId('forgot-password-send-code-button'));
+
+    await waitFor(() => {
+      expect(requestPasswordResetAction).toHaveBeenCalledWith(
+        'pessoa@email.com',
+      );
+    });
+
+    fireEvent.press(getByText('Voltar para o login'));
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/login');
     expect(AsyncStorage.setItem).not.toHaveBeenCalled();
   });
 });

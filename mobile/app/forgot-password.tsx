@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -17,29 +17,23 @@ export default function ForgotPasswordScreen() {
   const recoveryFlow = useRecoveryFlowContext();
   const colors = getAuthRecoveryColors(isDark);
 
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const canSubmit = useMemo(() => {
-    return email.trim().length > 0;
-  }, [email]);
-
   async function handleSendCode() {
-    if (!canSubmit || loading) {
+    if (!recoveryFlow.canSendCode) {
       return;
     }
 
-    try {
-      setLoading(true);
+    const sent = await recoveryFlow.handleSendCode();
 
-      // Backend futuro:
-      // await requestPasswordResetCode({ email });
-
-      recoveryFlow.clearError();
-      recoveryFlow.setEmail(email.trim().toLowerCase());
+    if (sent) {
       router.push('/verify-code');
-    } finally {
-      setLoading(false);
+    }
+  }
+
+  function handleEmailChange(value: string) {
+    recoveryFlow.setEmail(value);
+
+    if (recoveryFlow.errorMessage) {
+      recoveryFlow.clearError();
     }
   }
 
@@ -56,22 +50,26 @@ export default function ForgotPasswordScreen() {
         <View style={styles.formSection}>
           <RecoveryTextField
             label="Endereço de e-mail"
-            value={email}
-            onChangeText={setEmail}
+            value={recoveryFlow.email}
+            onChangeText={handleEmailChange}
             colors={colors}
             placeholder="Seu e-mail"
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            errorMessage={
+              recoveryFlow.emailErrorMessage ?? recoveryFlow.errorMessage
+            }
           />
 
           <RecoveryPrimaryButton
             label="ENVIAR CÓDIGO"
             onPress={handleSendCode}
-            disabled={!canSubmit}
-            loading={loading}
+            disabled={!recoveryFlow.canSendCode}
+            loading={recoveryFlow.isSendingCode}
             backgroundColor={colors.primary}
             textColor={colors.white}
+            testID="forgot-password-send-code-button"
           />
         </View>
       </View>
