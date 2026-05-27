@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React from 'react';
+import { TextInput } from 'react-native';
 import {
   act,
   fireEvent,
@@ -10,6 +11,7 @@ import {
 
 import ForgotPasswordScreen from '../app/forgot-password';
 import ResetPasswordScreen from '../app/reset-password';
+import VerifyCodeScreen from '../app/verify-code';
 import {
   RecoveryFlowProvider,
   useRecoveryFlowContext,
@@ -170,7 +172,7 @@ describe('useRecoveryFlow', () => {
     const { result } = renderHook(() =>
       useRecoveryFlow({
         requestPasswordResetAction,
-        resendCooldownSeconds: 0,
+        resendCooldownSeconds: 7,
       }),
     );
 
@@ -194,6 +196,7 @@ describe('useRecoveryFlow', () => {
     expect(result.current.step).toBe('code');
     expect(result.current.code).toBe('');
     expect(result.current.errorCode).toBeNull();
+    expect(result.current.resendSecondsLeft).toBe(7);
   });
 
   it('verifica codigo com sucesso e guarda resetToken apenas em memoria', async () => {
@@ -561,6 +564,258 @@ describe('ForgotPasswordScreen', () => {
     });
 
     fireEvent.press(getByText('Voltar para o login'));
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/login');
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+});
+
+describe('VerifyCodeScreen', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  type RenderVerifyCodeOptions = {
+    requestPasswordResetAction?: jest.Mock;
+    verifyResetCodeAction?: jest.Mock;
+    resendCooldownSeconds?: number;
+  };
+
+  function SeededVerifyCodeScreen({
+    initialEmail,
+  }: {
+    initialEmail: string;
+  }) {
+    const flow = useRecoveryFlowContext();
+    const [requested, setRequested] = React.useState(false);
+    const [ready, setReady] = React.useState(false);
+
+    React.useEffect(() => {
+      if (!flow.email) {
+        flow.setEmail(initialEmail);
+      }
+    }, [flow, initialEmail]);
+
+    React.useEffect(() => {
+      if (
+        flow.email === initialEmail &&
+        flow.step === 'email' &&
+        !requested
+      ) {
+        setRequested(true);
+        void flow.handleSendCode();
+      }
+    }, [flow, initialEmail, requested]);
+
+    React.useEffect(() => {
+      if (flow.step === 'code') {
+        setReady(true);
+      }
+    }, [flow.step]);
+
+    if (!ready) {
+      return null;
+    }
+
+    return <VerifyCodeScreen />;
+  }
+
+  function renderVerifyCodeScreen({
+    requestPasswordResetAction = jest.fn().mockResolvedValue({ ok: true }),
+    verifyResetCodeAction = jest
+      .fn()
+      .mockResolvedValue({ resetToken: 'reset-token-123' }),
+    resendCooldownSeconds = 0,
+  }: RenderVerifyCodeOptions = {}) {
+    return {
+      requestPasswordResetAction,
+      verifyResetCodeAction,
+      ...render(
+        <ThemeProvider>
+          <RecoveryFlowProvider
+            requestPasswordResetAction={requestPasswordResetAction}
+            verifyResetCodeAction={verifyResetCodeAction}
+            resendCooldownSeconds={resendCooldownSeconds}
+          >
+            <SeededVerifyCodeScreen initialEmail="pessoa@email.com" />
+          </RecoveryFlowProvider>
+        </ThemeProvider>,
+      ),
+    };
+  }
+
+  async function fillVerificationCode(
+    screen: ReturnType<typeof renderVerifyCodeScreen>,
+    code: string,
+  ) {
+    await waitFor(() => {
+      expect(screen.getByText('CONFIRME SEU ACESSO')).toBeTruthy();
+    });
+
+    fireEvent.changeText(screen.UNSAFE_getAllByType(TextInput)[0], code);
+  }
+
+  it('redireciona verificacao sem e-mail valido para solicitacao', () => {
+    render(
+      <ThemeProvider>
+        <RecoveryFlowProvider>
+          <VerifyCodeScreen />
+        </RecoveryFlowProvider>
+      </ThemeProvider>,
+    );
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/forgot-password');
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('nao verifica codigo incompleto nem navega', async () => {
+    const screen = renderVerifyCodeScreen();
+
+    await fillVerificationCode(screen, '123');
+    fireEvent.press(screen.getByTestId('verify-code-submit-button'));
+
+    expect(screen.verifyResetCodeAction).not.toHaveBeenCalled();
+    expect(mockRouterPush).not.toHaveBeenCalled();
+    expect(
+      screen.getByTestId('verify-code-submit-button').props
+        .accessibilityState.disabled,
+    ).toBe(true);
+  });
+
+  it('verifica codigo pelo fluxo real, guarda resetToken em memoria e navega', async () => {
+    const screen = renderVerifyCodeScreen();
+
+    await fillVerificationCode(screen, '123456');
+    fireEvent.press(screen.getByTestId('verify-code-submit-button'));
+
+    await waitFor(() => {
+      expect(screen.verifyResetCodeAction).toHaveBeenCalledWith(
+        'pessoa@email.com',
+        '123456',
+      );
+      expect(mockRouterPush).toHaveBeenCalledWith('/reset-password');
+    });
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('exibe erro de codigo invalido sem navegar para nova senha', async () => {
+    const verifyResetCodeAction = jest.fn().mockRejectedValue(
+      new AuthRecoveryRequestError({
+        code: 'INVALID_OR_EXPIRED_CODE',
+        message: 'Codigo invalido ou expirado.',
+        status: 400,
+      }),
+    );
+    const screen = renderVerifyCodeScreen({ verifyResetCodeAction });
+
+    await fillVerificationCode(screen, '000000');
+    fireEvent.press(screen.getByTestId('verify-code-submit-button'));
+
+    await waitFor(() => {
+      expect(verifyResetCodeAction).toHaveBeenCalledWith(
+        'pessoa@email.com',
+        '000000',
+      );
+      expect(screen.getByText('Codigo invalido ou expirado.')).toBeTruthy();
+      expect(mockRouterPush).not.toHaveBeenCalledWith('/reset-password');
+    });
+  });
+
+  it('mantem protegido quando o limite de tentativas e atingido', async () => {
+    const verifyResetCodeAction = jest.fn().mockRejectedValue(
+      new AuthRecoveryRequestError({
+        code: 'CODE_MAX_ATTEMPTS_REACHED',
+        message: 'Limite de tentativas atingido.',
+        status: 429,
+      }),
+    );
+    const screen = renderVerifyCodeScreen({ verifyResetCodeAction });
+
+    await fillVerificationCode(screen, '111111');
+    fireEvent.press(screen.getByTestId('verify-code-submit-button'));
+
+    await waitFor(() => {
+      expect(verifyResetCodeAction).toHaveBeenCalledWith(
+        'pessoa@email.com',
+        '111111',
+      );
+      expect(
+        screen.getByText(
+          'Limite de tentativas atingido. Solicite um novo codigo.',
+        ),
+      ).toBeTruthy();
+      expect(mockRouterPush).not.toHaveBeenCalledWith('/reset-password');
+    });
+    expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('reenvia codigo pelo fluxo real e limpa erro de verificacao', async () => {
+    const requestPasswordResetAction = jest
+      .fn()
+      .mockResolvedValue({ ok: true });
+    const verifyResetCodeAction = jest.fn().mockRejectedValue(
+      new AuthRecoveryRequestError({
+        code: 'INVALID_OR_EXPIRED_CODE',
+        message: 'Codigo invalido ou expirado.',
+        status: 400,
+      }),
+    );
+    const screen = renderVerifyCodeScreen({
+      requestPasswordResetAction,
+      verifyResetCodeAction,
+    });
+
+    await fillVerificationCode(screen, '000000');
+    fireEvent.press(screen.getByTestId('verify-code-submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Codigo invalido ou expirado.')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText('Reenviar agora'));
+
+    await waitFor(() => {
+      expect(requestPasswordResetAction).toHaveBeenCalledTimes(2);
+      expect(requestPasswordResetAction).toHaveBeenLastCalledWith(
+        'pessoa@email.com',
+      );
+      expect(screen.queryByText('Codigo invalido ou expirado.')).toBeNull();
+    });
+  });
+
+  it('desabilita o botao durante a verificacao real', async () => {
+    let resolveVerify: (value: { resetToken: string }) => void = () => {};
+    const verifyResetCodeAction = jest.fn(
+      () =>
+        new Promise<{ resetToken: string }>((resolve) => {
+          resolveVerify = resolve;
+        }),
+    );
+    const screen = renderVerifyCodeScreen({ verifyResetCodeAction });
+
+    await fillVerificationCode(screen, '123456');
+    fireEvent.press(screen.getByTestId('verify-code-submit-button'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('verify-code-submit-button').props
+          .accessibilityState.disabled,
+      ).toBe(true);
+    });
+
+    await act(async () => {
+      resolveVerify({ resetToken: 'reset-token-123' });
+    });
+  });
+
+  it('voltar para login cancela o fluxo de verificacao', async () => {
+    const screen = renderVerifyCodeScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText('CONFIRME SEU ACESSO')).toBeTruthy();
+    });
+
+    fireEvent.press(screen.getByText('Voltar para o login'));
 
     expect(mockRouterReplace).toHaveBeenCalledWith('/login');
     expect(AsyncStorage.setItem).not.toHaveBeenCalled();

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -18,9 +18,6 @@ export default function VerifyCodeScreen() {
   const didRedirectRef = useRef(false);
   const colors = getAuthRecoveryColors(isDark);
 
-  const [loading, setLoading] = useState(false);
-  const [secondsLeft, setSecondsLeft] = useState(59);
-
   useEffect(() => {
     if (recoveryFlow.canAccessCodeStep || didRedirectRef.current) {
       return;
@@ -30,18 +27,6 @@ export default function VerifyCodeScreen() {
     recoveryFlow.resetFlow();
     router.replace('/forgot-password');
   }, [recoveryFlow, router]);
-
-  useEffect(() => {
-    if (secondsLeft <= 0) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setSecondsLeft((current) => current - 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [secondsLeft]);
 
   const maskedEmail = useMemo(() => {
     const rawEmail = recoveryFlow.email.trim();
@@ -57,40 +42,35 @@ export default function VerifyCodeScreen() {
     return `${visibleStart}${hidden}@${domain}`;
   }, [recoveryFlow.email]);
 
-  const canSubmit = recoveryFlow.code.length === 6;
-  const canResend = secondsLeft === 0;
+  const canSubmit = recoveryFlow.canVerifyCode;
+  const canResend = recoveryFlow.canResendCode;
 
   async function handleVerifyCode() {
-    if (!canSubmit || loading) {
+    if (!canSubmit) {
       return;
     }
 
-    try {
-      setLoading(true);
+    const verified = await recoveryFlow.handleVerifyCode();
 
-      // Backend futuro:
-      // await verifyPasswordResetCode({
-      //   email: recoveryFlow.email,
-      //   code: recoveryFlow.code,
-      // });
-
+    if (verified) {
       router.push('/reset-password');
-    } finally {
-      setLoading(false);
     }
   }
 
-  function handleResendNow() {
+  async function handleResendNow() {
     if (!canResend) {
       return;
     }
 
-    // Backend futuro:
-    // await resendPasswordResetCode({ email: recoveryFlow.email });
+    await recoveryFlow.handleResendCode();
+  }
 
-    setSecondsLeft(59);
-    recoveryFlow.setCode('');
-    recoveryFlow.clearError();
+  function handleCodeChange(value: string) {
+    recoveryFlow.setCode(value);
+
+    if (recoveryFlow.errorMessage) {
+      recoveryFlow.clearError();
+    }
   }
 
   return (
@@ -106,17 +86,24 @@ export default function VerifyCodeScreen() {
         <View style={styles.formSection}>
           <VerificationCodeBoxes
             value={recoveryFlow.code}
-            onChange={recoveryFlow.setCode}
+            onChange={handleCodeChange}
             colors={colors}
           />
+
+          {recoveryFlow.codeErrorMessage || recoveryFlow.errorMessage ? (
+            <Text style={[styles.errorText, { color: colors.danger }]}>
+              {recoveryFlow.codeErrorMessage ?? recoveryFlow.errorMessage}
+            </Text>
+          ) : null}
 
           <RecoveryPrimaryButton
             label="VERIFICAR"
             onPress={handleVerifyCode}
             disabled={!canSubmit}
-            loading={loading}
+            loading={recoveryFlow.isVerifyingCode}
             backgroundColor={colors.primary}
             textColor={colors.white}
+            testID="verify-code-submit-button"
           />
 
           <View
@@ -131,7 +118,9 @@ export default function VerifyCodeScreen() {
             <Text style={[styles.timerText, { color: colors.textSoft }]}>
               {canResend
                 ? 'VOCÊ JÁ PODE REENVIAR'
-                : `REENVIAR EM 00:${String(secondsLeft).padStart(2, '0')}`}
+                : `REENVIAR EM 00:${String(
+                    recoveryFlow.resendSecondsLeft,
+                  ).padStart(2, '0')}`}
             </Text>
           </View>
 
@@ -146,7 +135,10 @@ export default function VerifyCodeScreen() {
       <View style={styles.bottomSection}>
         <RecoverySecondaryLink
           label="Voltar para o login"
-          onPress={() => router.replace('/login')}
+          onPress={() => {
+            recoveryFlow.resetFlow();
+            router.replace('/login');
+          }}
           color={colors.text}
         />
       </View>
@@ -178,6 +170,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.4,
     textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  errorText: {
+    alignSelf: 'stretch',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '700',
     textAlign: 'center',
   },
   bottomSection: {
