@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { useTheme } from '../context/ThemeContext';
@@ -16,6 +16,7 @@ export default function ResetPasswordScreen() {
   const { isDark } = useTheme();
   const recoveryFlow = useRecoveryFlowContext();
   const didRedirectRef = useRef(false);
+  const confirmPasswordInputRef = useRef<TextInput>(null);
   const colors = getAuthRecoveryColors(isDark);
 
   useEffect(() => {
@@ -97,6 +98,11 @@ export default function ResetPasswordScreen() {
             secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!recoveryFlow.isResettingPassword}
+            returnKeyType="next"
+            onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
+            showPasswordToggle
+            passwordToggleTestID="new-password-visibility-toggle"
             errorMessage={
               recoveryFlow.passwordErrorMessage ??
               (recoveryFlow.errorCode === 'PASSWORD_TOO_WEAK'
@@ -110,10 +116,16 @@ export default function ResetPasswordScreen() {
             value={recoveryFlow.confirmPassword}
             onChangeText={handleConfirmPasswordChange}
             colors={colors}
+            ref={confirmPasswordInputRef}
             placeholder="••••••••"
             secureTextEntry
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!recoveryFlow.isResettingPassword}
+            returnKeyType="done"
+            onSubmitEditing={handleResetPassword}
+            showPasswordToggle
+            passwordToggleTestID="confirm-password-visibility-toggle"
             errorMessage={
               recoveryFlow.confirmPasswordErrorMessage ??
               (recoveryFlow.errorCode === 'VALIDATION_ERROR'

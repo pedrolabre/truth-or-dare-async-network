@@ -57,6 +57,10 @@ export default function ForgotPasswordScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            autoFocus
+            editable={!recoveryFlow.isSendingCode}
+            returnKeyType="send"
+            onSubmitEditing={handleSendCode}
             errorMessage={
               recoveryFlow.emailErrorMessage ?? recoveryFlow.errorMessage
             }

@@ -18,6 +18,7 @@ import {
   useRecoveryFlowContext,
 } from '../context/RecoveryFlowContext';
 import { ThemeProvider } from '../context/ThemeContext';
+import RecoveryTextField from '../components/auth-recovery/RecoveryTextField';
 import { useRecoveryFlow } from '../hooks/useRecoveryFlow';
 import { AuthRecoveryRequestError } from '../services/api';
 
@@ -38,6 +39,63 @@ jest.mock('expo-router', () => ({
     replace: mockRouterReplace,
   }),
 }));
+
+const recoveryTextFieldColors = {
+  text: '#171d1a',
+  textMuted: '#6d7a74',
+  textSoft: '#3d4944',
+  danger: '#D70015',
+  border: '#bccac2',
+  inputBackground: '#e4eae5',
+};
+
+describe('RecoveryTextField', () => {
+  it('exibe errorMessage abaixo do campo sem alterar o valor', () => {
+    const onChangeText = jest.fn();
+    const { getByText, getByDisplayValue } = render(
+      <RecoveryTextField
+        label="E-mail"
+        value="pessoa@email.com"
+        onChangeText={onChangeText}
+        colors={recoveryTextFieldColors}
+        errorMessage="Informe um e-mail valido."
+      />,
+    );
+
+    expect(getByDisplayValue('pessoa@email.com')).toBeTruthy();
+    expect(getByText('Informe um e-mail valido.')).toBeTruthy();
+  });
+
+  it('inicia senha oculta e alterna visibilidade pelo toggle acessivel', () => {
+    const { UNSAFE_getByType, getByTestId } = render(
+      <RecoveryTextField
+        label="Senha"
+        value="NovaSenha123"
+        onChangeText={jest.fn()}
+        colors={recoveryTextFieldColors}
+        secureTextEntry
+        showPasswordToggle
+        passwordToggleTestID="password-visibility-toggle"
+      />,
+    );
+
+    expect(UNSAFE_getByType(TextInput).props.secureTextEntry).toBe(true);
+    expect(getByTestId('password-visibility-toggle').props.accessibilityLabel).toBe(
+      'Mostrar senha',
+    );
+
+    fireEvent.press(getByTestId('password-visibility-toggle'));
+
+    expect(UNSAFE_getByType(TextInput).props.secureTextEntry).toBe(false);
+    expect(getByTestId('password-visibility-toggle').props.accessibilityLabel).toBe(
+      'Ocultar senha',
+    );
+
+    fireEvent.press(getByTestId('password-visibility-toggle'));
+
+    expect(UNSAFE_getByType(TextInput).props.secureTextEntry).toBe(true);
+  });
+});
 
 describe('useRecoveryFlow', () => {
   beforeEach(() => {
@@ -466,6 +524,25 @@ describe('ForgotPasswordScreen', () => {
     expect(getByText('Informe um e-mail valido.')).toBeTruthy();
     expect(requestPasswordResetAction).not.toHaveBeenCalled();
     expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it('mantem foco inicial e envio por teclado no campo de e-mail', async () => {
+    const { getByPlaceholderText, requestPasswordResetAction } =
+      renderForgotPasswordScreen();
+
+    const emailInput = getByPlaceholderText('Seu e-mail');
+    expect(emailInput.props.autoFocus).toBe(true);
+    expect(emailInput.props.returnKeyType).toBe('send');
+
+    fireEvent.changeText(emailInput, ' Pessoa@Email.com ');
+    fireEvent(getByPlaceholderText('Seu e-mail'), 'submitEditing');
+
+    await waitFor(() => {
+      expect(requestPasswordResetAction).toHaveBeenCalledWith(
+        'pessoa@email.com',
+      );
+      expect(mockRouterPush).toHaveBeenCalledWith('/verify-code');
+    });
   });
 
   it('solicita codigo pelo fluxo real e navega para verificacao em sucesso', async () => {
@@ -1004,6 +1081,65 @@ describe('ResetPasswordScreen', () => {
       expect(mockRouterReplace).toHaveBeenCalledWith('/password-success');
     });
     expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  });
+
+  it('mantem campos de senha ocultos e alterna visibilidade pelos toggles', async () => {
+    const screen = renderResetPasswordScreen();
+
+    await waitFor(() => {
+      expect(screen.getByText('NOVA SENHA')).toBeTruthy();
+    });
+
+    expect(screen.UNSAFE_getAllByType(TextInput)[0].props.secureTextEntry).toBe(
+      true,
+    );
+    expect(screen.UNSAFE_getAllByType(TextInput)[1].props.secureTextEntry).toBe(
+      true,
+    );
+    expect(
+      screen.getByTestId('new-password-visibility-toggle').props
+        .accessibilityLabel,
+    ).toBe('Mostrar senha');
+
+    fireEvent.press(screen.getByTestId('new-password-visibility-toggle'));
+
+    expect(screen.UNSAFE_getAllByType(TextInput)[0].props.secureTextEntry).toBe(
+      false,
+    );
+    expect(
+      screen.getByTestId('new-password-visibility-toggle').props
+        .accessibilityLabel,
+    ).toBe('Ocultar senha');
+
+    fireEvent.press(screen.getByTestId('new-password-visibility-toggle'));
+    fireEvent.press(screen.getByTestId('confirm-password-visibility-toggle'));
+
+    expect(screen.UNSAFE_getAllByType(TextInput)[0].props.secureTextEntry).toBe(
+      true,
+    );
+    expect(screen.UNSAFE_getAllByType(TextInput)[1].props.secureTextEntry).toBe(
+      false,
+    );
+  });
+
+  it('usa returnKeyType adequado e envia senha valida pelo teclado', async () => {
+    const screen = renderResetPasswordScreen();
+
+    await fillResetPasswords(screen, 'NovaSenha123', 'NovaSenha123');
+
+    const inputs = screen.UNSAFE_getAllByType(TextInput);
+    expect(inputs[0].props.returnKeyType).toBe('next');
+    expect(inputs[1].props.returnKeyType).toBe('done');
+
+    fireEvent(inputs[1], 'submitEditing');
+
+    await waitFor(() => {
+      expect(screen.resetPasswordAction).toHaveBeenCalledWith(
+        'reset-token-123',
+        'NovaSenha123',
+      );
+      expect(mockRouterReplace).toHaveBeenCalledWith('/password-success');
+    });
   });
 
   it('exibe PASSWORD_TOO_WEAK da API sem navegar para sucesso', async () => {
