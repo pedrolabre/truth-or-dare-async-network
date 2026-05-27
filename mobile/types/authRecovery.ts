@@ -45,8 +45,9 @@ export type AuthRecoveryNormalizedErrorCode =
   | 'UNKNOWN_ERROR';
 
 export type AuthRecoveryBackendErrorResponse = {
-  error: string;
-  code?: AuthRecoveryErrorCode;
+  error?: string;
+  message?: string;
+  code?: string;
 };
 
 export type AuthRecoveryApiError = {

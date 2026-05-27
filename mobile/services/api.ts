@@ -16,6 +16,13 @@ import type {
   SubmitDareProofPayload,
   SubmitDareProofResponse,
 } from '../types/action';
+import type {
+  AuthRecoveryBackendErrorResponse,
+  AuthRecoveryNormalizedErrorCode,
+  ForgotPasswordResponse,
+  ResetPasswordResponse,
+  VerifyResetCodeResponse,
+} from '../types/authRecovery';
 import type { ToggleClubLikeApi } from '../types/clubsApi';
 
 type SignupInput = {
@@ -53,6 +60,82 @@ export type ChallengeUser = {
 };
 
 const TOKEN_KEY = 'auth_token';
+const AUTH_RECOVERY_KNOWN_ERROR_CODES = [
+  'RATE_LIMIT_EXCEEDED',
+  'INVALID_OR_EXPIRED_CODE',
+  'CODE_MAX_ATTEMPTS_REACHED',
+  'RESET_TOKEN_INVALID',
+  'PASSWORD_TOO_WEAK',
+  'SAME_PASSWORD',
+  'VALIDATION_ERROR',
+] as const;
+
+type AuthRecoveryKnownErrorCode =
+  (typeof AUTH_RECOVERY_KNOWN_ERROR_CODES)[number];
+
+type AuthRecoveryErrorInput = {
+  code: AuthRecoveryNormalizedErrorCode;
+  message: string;
+  status?: number;
+};
+
+export class AuthRecoveryRequestError extends Error {
+  code: AuthRecoveryNormalizedErrorCode;
+  status?: number;
+
+  constructor({ code, message, status }: AuthRecoveryErrorInput) {
+    super(message);
+    this.name = 'AuthRecoveryRequestError';
+    this.code = code;
+    this.status = status;
+  }
+}
+
+function isAuthRecoveryKnownErrorCode(
+  code: unknown,
+): code is AuthRecoveryKnownErrorCode {
+  return (
+    typeof code === 'string' &&
+    AUTH_RECOVERY_KNOWN_ERROR_CODES.includes(
+      code as AuthRecoveryKnownErrorCode,
+    )
+  );
+}
+
+async function parseAuthRecoveryResponse<T>(response: Response): Promise<T> {
+  let data: T | AuthRecoveryBackendErrorResponse | null = null;
+  let text = '';
+
+  try {
+    data = await response.json();
+  } catch {
+    try {
+      text = await response.text();
+    } catch {
+      text = '';
+    }
+  }
+
+  if (!response.ok) {
+    const errorData = data as AuthRecoveryBackendErrorResponse | null;
+    const code = isAuthRecoveryKnownErrorCode(errorData?.code)
+      ? errorData.code
+      : 'UNKNOWN_ERROR';
+    const message =
+      errorData?.error ||
+      errorData?.message ||
+      text ||
+      'Nao foi possivel concluir a recuperacao de senha.';
+
+    throw new AuthRecoveryRequestError({
+      code,
+      message,
+      status: response.status,
+    });
+  }
+
+  return data as T;
+}
 
 export function getApiUrl() {
   const apiUrl = process.env.EXPO_PUBLIC_API_URL;
@@ -129,6 +212,56 @@ export async function login(data: LoginInput): Promise<LoginResponse> {
   });
 
   return parseResponse(response);
+}
+
+export async function requestPasswordReset(
+  email: string,
+): Promise<ForgotPasswordResponse> {
+  const baseUrl = getApiUrl();
+
+  const response = await fetch(`${baseUrl}/auth/forgot-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email }),
+  });
+
+  return parseAuthRecoveryResponse<ForgotPasswordResponse>(response);
+}
+
+export async function verifyResetCode(
+  email: string,
+  code: string,
+): Promise<VerifyResetCodeResponse> {
+  const baseUrl = getApiUrl();
+
+  const response = await fetch(`${baseUrl}/auth/verify-reset-code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, code }),
+  });
+
+  return parseAuthRecoveryResponse<VerifyResetCodeResponse>(response);
+}
+
+export async function resetPassword(
+  resetToken: string,
+  newPassword: string,
+): Promise<ResetPasswordResponse> {
+  const baseUrl = getApiUrl();
+
+  const response = await fetch(`${baseUrl}/auth/reset-password`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ resetToken, newPassword }),
+  });
+
+  return parseAuthRecoveryResponse<ResetPasswordResponse>(response);
 }
 
 export async function getFeed(): Promise<FeedItem[]> {
