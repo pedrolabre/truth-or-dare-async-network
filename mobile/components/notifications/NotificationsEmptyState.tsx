@@ -26,11 +26,11 @@ export default function NotificationsEmptyState({
       </View>
 
       <Text style={[styles.title, { color: titleColor }]}>
-        Nenhuma notificacao
+        Nenhuma notificacao por enquanto
       </Text>
 
       <Text style={[styles.text, { color: textColor }]}>
-        Quando houver atividade importante no app, ela aparecera aqui.
+        Avisos de clubes, feed e conta aparecerao aqui quando houver novidade.
       </Text>
     </View>
   );

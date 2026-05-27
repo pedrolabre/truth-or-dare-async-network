@@ -27,36 +27,46 @@ import type { NotificationItem, NotificationType } from '../types/notifications'
 const LIGHT = {
   bg: '#f5fbf6',
   card: '#ffffff',
-  cardSoft: '#eff5f0',
+  cardSoft: '#e6eee9',
   text: '#171d1a',
-  sub: '#3d4944',
-  muted: '#6d7a74',
-  outline: '#bccac2',
-  green: '#5A8363',
+  sub: '#33423b',
+  muted: '#5f6f67',
+  outline: '#aebfb5',
+  header: '#3f6b4a',
+  green: '#3f6b4a',
+  greenSolid: '#3f6b4a',
   greenSoft: '#e7f3ea',
-  blue: '#2563EB',
+  blue: '#1d4ed8',
+  blueSolid: '#1d4ed8',
   blueSoft: '#eaf1ff',
-  amber: '#9A6700',
+  amber: '#7a4f01',
+  amberSolid: '#7a4f01',
   amberSoft: '#fff3c4',
-  red: '#D70015',
+  red: '#b42318',
+  redAccent: '#b42318',
   white: '#ffffff',
 };
 
 const DARK = {
   bg: '#121212',
   card: '#232323',
-  cardSoft: '#1b1d1b',
+  cardSoft: '#2d332f',
   text: '#f5fbf6',
-  sub: '#bccac2',
-  muted: '#8f9993',
-  outline: '#444746',
-  green: '#5A8363',
+  sub: '#d1ddd5',
+  muted: '#b4c0b9',
+  outline: '#59615c',
+  header: '#2f5a3b',
+  green: '#8fd29e',
+  greenSolid: '#3f6b4a',
   greenSoft: '#203328',
-  blue: '#60A5FA',
+  blue: '#93c5fd',
+  blueSolid: '#1d4ed8',
   blueSoft: '#17263d',
-  amber: '#F4C430',
+  amber: '#facc15',
+  amberSolid: '#7a4f01',
   amberSoft: '#332a14',
-  red: '#E11D2E',
+  red: '#b42318',
+  redAccent: '#ff6b6b',
   white: '#f9f9f9',
 };
 
@@ -258,14 +268,17 @@ export default function NotificationsScreen() {
     if (notifications.contentState === 'error') {
       return (
         <NotificationsErrorState
-          message={notifications.errorMessage ?? 'Tente novamente em instantes.'}
+          message={
+            notifications.errorMessage ??
+            'Confira sua conexao e tente novamente.'
+          }
           backgroundColor={c.card}
           borderColor={c.outline}
           iconBackgroundColor={c.cardSoft}
-          iconColor={c.red}
+          iconColor={c.redAccent}
           titleColor={c.text}
           textColor={c.sub}
-          actionBackgroundColor={c.green}
+          actionBackgroundColor={c.header}
           actionTextColor={c.white}
           onRetry={() => {
             void notifications.handleRetry();
@@ -308,14 +321,17 @@ export default function NotificationsScreen() {
                 const tone = {
                   club: {
                     accent: c.green,
+                    solid: c.greenSolid,
                     soft: c.greenSoft,
                   },
                   feed: {
                     accent: c.blue,
+                    solid: c.blueSolid,
                     soft: c.blueSoft,
                   },
                   account: {
                     accent: c.amber,
+                    solid: c.amberSolid,
                     soft: c.amberSoft,
                   },
                 }[presentation.tone];
@@ -328,14 +344,14 @@ export default function NotificationsScreen() {
                     timeLabel={formatNotificationTime(notification.createdAt)}
                     icon={presentation.icon}
                     iconColor={unread ? c.white : tone.accent}
-                    iconBackgroundColor={unread ? tone.accent : tone.soft}
+                    iconBackgroundColor={unread ? tone.solid : tone.soft}
                     backgroundColor={unread ? tone.soft : c.card}
                     borderColor={unread ? tone.accent : c.outline}
                     titleColor={c.text}
                     textColor={c.sub}
                     timeColor={c.muted}
                     unread={unread}
-                    unreadAccentColor={c.red}
+                    unreadAccentColor={c.redAccent}
                     onPress={() => {
                       void handlePressNotification(notification);
                     }}
@@ -350,16 +366,16 @@ export default function NotificationsScreen() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: c.green }]}>
+    <View style={[styles.root, { backgroundColor: c.header }]}>
       <StatusBar
         barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={c.green}
+        backgroundColor={c.header}
       />
 
       <View style={[styles.screen, { backgroundColor: c.bg }]}>
         <AccountScreenHeader
           title="Notificacoes"
-          headerGreen={c.green}
+          headerGreen={c.header}
           titleColor={c.white}
           borderBottomColor="rgba(207,247,238,0.20)"
           leftIcon="arrow-back"
@@ -368,7 +384,7 @@ export default function NotificationsScreen() {
           rightBadgeCount={visibleNotificationsUnreadCount}
           rightBadgeBackgroundColor={c.red}
           rightBadgeTextColor="#ffffff"
-          rightBadgeBorderColor={c.green}
+          rightBadgeBorderColor={c.header}
         />
 
         <ScrollView
@@ -390,6 +406,7 @@ export default function NotificationsScreen() {
           <NotificationsIntro
             allRead={notifications.allRead}
             titleColor={c.text}
+            subtitleColor={c.sub}
             actionColor={c.green}
             disabledColor={c.muted}
             onPressMarkAllRead={() => {
@@ -404,7 +421,7 @@ export default function NotificationsScreen() {
           items={FEED_BOTTOM_NAV_ITEMS}
           activeKey="profile"
           onSelect={handleBottomNavSelect}
-          backgroundColor={c.green}
+          backgroundColor={c.header}
           borderTopColor="rgba(207,247,238,0.10)"
           activeBackgroundColor={c.red}
           activeIconColor="#ffffff"

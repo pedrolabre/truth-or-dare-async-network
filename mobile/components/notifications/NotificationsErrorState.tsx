@@ -34,7 +34,7 @@ export default function NotificationsErrorState({
       </View>
 
       <Text style={[styles.title, { color: titleColor }]}>
-        Nao foi possivel carregar
+        Nao foi possivel carregar as notificacoes
       </Text>
 
       <Text style={[styles.text, { color: textColor }]}>{message}</Text>
@@ -49,7 +49,7 @@ export default function NotificationsErrorState({
         ]}
       >
         <Text style={[styles.retryText, { color: actionTextColor }]}>
-          Tentar novamente
+          Recarregar notificacoes
         </Text>
       </Pressable>
     </View>
@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     minHeight: 44,
+    minWidth: 44,
     borderRadius: 14,
     paddingHorizontal: 18,
     alignItems: 'center',

@@ -401,10 +401,10 @@ describe('NotificationsScreen', () => {
     );
 
     const empty = render(<NotificationsScreen />);
-    expect(empty.getByText('Nenhuma notificacao')).toBeTruthy();
+    expect(empty.getByText('Nenhuma notificacao por enquanto')).toBeTruthy();
     expect(
       empty.getByText(
-        'Quando houver atividade importante no app, ela aparecera aqui.',
+        'Avisos de clubes, feed e conta aparecerao aqui quando houver novidade.',
       ),
     ).toBeTruthy();
     empty.unmount();
@@ -421,7 +421,9 @@ describe('NotificationsScreen', () => {
     );
 
     const error = render(<NotificationsScreen />);
-    expect(error.getByText('Nao foi possivel carregar')).toBeTruthy();
+    expect(
+      error.getByText('Nao foi possivel carregar as notificacoes'),
+    ).toBeTruthy();
     expect(error.getByText('Falha de rede')).toBeTruthy();
   });
 

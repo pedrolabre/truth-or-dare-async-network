@@ -39,28 +39,35 @@ export default function NotificationActivityCard({
   textColor,
   timeColor,
   unread = false,
-  unreadAccentColor = '#D70015',
+  unreadAccentColor = '#B42318',
   actions,
   onPress,
 }: Props) {
-  const CardRoot = onPress ? Pressable : View;
+  const unreadStyle = unread
+    ? {
+        borderLeftWidth: 4,
+        borderLeftColor: unreadAccentColor,
+      }
+    : null;
+  const rootStyle = [
+    styles.card,
+    {
+      backgroundColor,
+      borderColor,
+    },
+    unreadStyle,
+  ];
+  const accessibilityLabel = [
+    title,
+    description,
+    timeLabel,
+    unread ? 'Nao lida' : undefined,
+  ]
+    .filter(Boolean)
+    .join('. ');
 
-  return (
-    <CardRoot
-      accessibilityRole={onPress ? 'button' : undefined}
-      onPress={onPress}
-      style={[
-        styles.card,
-        {
-          backgroundColor,
-          borderColor,
-        },
-        unread && {
-          borderLeftWidth: 4,
-          borderLeftColor: unreadAccentColor,
-        },
-      ]}
-    >
+  const content = (
+    <>
       <View style={[styles.iconWrap, { backgroundColor: iconBackgroundColor }]}>
         <MaterialIcons name={icon} size={24} color={iconColor} />
       </View>
@@ -71,9 +78,22 @@ export default function NotificationActivityCard({
             {title}
           </Text>
 
-          <Text style={[styles.time, { color: timeColor }]}>
-            {timeLabel}
-          </Text>
+          <View style={styles.metaRow}>
+            {unread && (
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no"
+                style={[
+                  styles.unreadDot,
+                  { backgroundColor: unreadAccentColor },
+                ]}
+              />
+            )}
+
+            <Text style={[styles.time, { color: timeColor }]}>
+              {timeLabel}
+            </Text>
+          </View>
         </View>
 
         <Text
@@ -91,7 +111,9 @@ export default function NotificationActivityCard({
               return (
                 <Pressable
                   key={action.label}
+                  accessibilityRole="button"
                   onPress={action.onPress}
+                  hitSlop={6}
                   style={({ pressed }) => [
                     styles.actionButton,
                     isPrimary ? styles.primaryButton : styles.secondaryButton,
@@ -114,15 +136,38 @@ export default function NotificationActivityCard({
           </View>
         )}
       </View>
-    </CardRoot>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        onPress={onPress}
+        style={({ pressed }) => [
+          ...rootStyle,
+          pressed && styles.pressed,
+        ]}
+      >
+        {content}
+      </Pressable>
+    );
+  }
+
+  return (
+    <View accessibilityLabel={accessibilityLabel} style={rootStyle}>
+      {content}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
+    minHeight: 92,
     borderWidth: 1,
-    borderRadius: 22,
-    padding: 14,
+    borderRadius: 20,
+    padding: 16,
     flexDirection: 'row',
     gap: 14,
   },
@@ -142,6 +187,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: 10,
+  },
+  metaRow: {
+    minHeight: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+    flexShrink: 0,
+  },
+  unreadDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 999,
   },
   title: {
     flex: 1,
@@ -166,17 +224,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   actionButton: {
-    minHeight: 42,
+    minHeight: 44,
+    minWidth: 44,
     paddingHorizontal: 18,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButton: {
-    backgroundColor: '#D70015',
+    backgroundColor: '#B42318',
   },
   secondaryButton: {
-    backgroundColor: '#5A8363',
+    backgroundColor: '#3F6B4A',
   },
   actionText: {
     fontSize: 12,
