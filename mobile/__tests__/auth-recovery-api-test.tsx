@@ -138,7 +138,7 @@ describe('auth recovery API', () => {
     ).rejects.toMatchObject({
       name: 'AuthRecoveryRequestError',
       code: 'UNKNOWN_ERROR',
-      message: 'Falha inesperada',
+      message: 'Nao foi possivel concluir a recuperacao de senha.',
       status: 500,
     });
   });

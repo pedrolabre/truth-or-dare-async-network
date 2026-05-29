@@ -70,6 +70,9 @@ const AUTH_RECOVERY_KNOWN_ERROR_CODES = [
   'VALIDATION_ERROR',
 ] as const;
 
+const AUTH_RECOVERY_GENERIC_ERROR_MESSAGE =
+  'Nao foi possivel concluir a recuperacao de senha.';
+
 type AuthRecoveryKnownErrorCode =
   (typeof AUTH_RECOVERY_KNOWN_ERROR_CODES)[number];
 
@@ -121,11 +124,11 @@ async function parseAuthRecoveryResponse<T>(response: Response): Promise<T> {
     const code = isAuthRecoveryKnownErrorCode(errorData?.code)
       ? errorData.code
       : 'UNKNOWN_ERROR';
+    const backendMessage = errorData?.error || errorData?.message || text;
     const message =
-      errorData?.error ||
-      errorData?.message ||
-      text ||
-      'Nao foi possivel concluir a recuperacao de senha.';
+      code === 'UNKNOWN_ERROR'
+        ? AUTH_RECOVERY_GENERIC_ERROR_MESSAGE
+        : backendMessage || AUTH_RECOVERY_GENERIC_ERROR_MESSAGE;
 
     throw new AuthRecoveryRequestError({
       code,

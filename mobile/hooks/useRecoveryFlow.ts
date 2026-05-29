@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   AuthRecoveryRequestError,
@@ -94,7 +94,7 @@ function getNormalizedError(error: unknown): RecoveryFlowError {
   if (error instanceof AuthRecoveryRequestError) {
     return {
       code: error.code,
-      message: error.message || LOCAL_ERROR_MESSAGES[error.code],
+      message: LOCAL_ERROR_MESSAGES[error.code],
     };
   }
 
@@ -118,6 +118,7 @@ export function useRecoveryFlow({
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [loadingAction, setLoadingAction] =
     useState<RecoveryLoadingAction | null>(null);
+  const loadingActionRef = useRef<RecoveryLoadingAction | null>(null);
   const [error, setError] = useState<RecoveryFlowError | null>(null);
   const [resendSecondsLeft, setResendSecondsLeft] = useState(0);
 
@@ -196,6 +197,14 @@ export function useRecoveryFlow({
     [],
   );
 
+  const setCurrentLoadingAction = useCallback(
+    (action: RecoveryLoadingAction | null) => {
+      loadingActionRef.current = action;
+      setLoadingAction(action);
+    },
+    [],
+  );
+
   const startCooldown = useCallback(() => {
     setResendSecondsLeft(Math.max(resendCooldownSeconds, 0));
   }, [resendCooldownSeconds]);
@@ -205,31 +214,31 @@ export function useRecoveryFlow({
     setNewPassword('');
     setConfirmPassword('');
     setResetToken(null);
-    setLoadingAction(null);
+    setCurrentLoadingAction(null);
     setResendSecondsLeft(0);
     setStep(isValidEmail(email) ? 'code' : 'email');
     setError({
       code: 'RESET_TOKEN_INVALID',
       message: LOCAL_ERROR_MESSAGES.RESET_TOKEN_INVALID,
     });
-  }, [email]);
+  }, [email, setCurrentLoadingAction]);
 
   const handleCodeBlocked = useCallback(() => {
     setCode('');
     setNewPassword('');
     setConfirmPassword('');
     setResetToken(null);
-    setLoadingAction(null);
+    setCurrentLoadingAction(null);
     setResendSecondsLeft(0);
     setStep('email');
     setError({
       code: 'CODE_MAX_ATTEMPTS_REACHED',
       message: LOCAL_ERROR_MESSAGES.CODE_MAX_ATTEMPTS_REACHED,
     });
-  }, []);
+  }, [setCurrentLoadingAction]);
 
   const handleSendCode = useCallback(async () => {
-    if (loadingAction) {
+    if (loadingActionRef.current) {
       return false;
     }
 
@@ -240,7 +249,7 @@ export function useRecoveryFlow({
       return false;
     }
 
-    setLoadingAction('send-code');
+    setCurrentLoadingAction('send-code');
     setError(null);
 
     try {
@@ -255,18 +264,18 @@ export function useRecoveryFlow({
       setError(getNormalizedError(caughtError));
       return false;
     } finally {
-      setLoadingAction(null);
+      setCurrentLoadingAction(null);
     }
   }, [
     email,
-    loadingAction,
     requestPasswordResetAction,
+    setCurrentLoadingAction,
     setLocalError,
     startCooldown,
   ]);
 
   const handleVerifyCode = useCallback(async () => {
-    if (loadingAction) {
+    if (loadingActionRef.current) {
       return false;
     }
 
@@ -283,7 +292,7 @@ export function useRecoveryFlow({
       return false;
     }
 
-    setLoadingAction('verify-code');
+    setCurrentLoadingAction('verify-code');
     setError(null);
 
     try {
@@ -314,19 +323,19 @@ export function useRecoveryFlow({
 
       return false;
     } finally {
-      setLoadingAction(null);
+      setCurrentLoadingAction(null);
     }
   }, [
     code,
     email,
     handleCodeBlocked,
-    loadingAction,
+    setCurrentLoadingAction,
     setLocalError,
     verifyResetCodeAction,
   ]);
 
   const handleResendCode = useCallback(async () => {
-    if (loadingAction || resendSecondsLeft > 0) {
+    if (loadingActionRef.current || resendSecondsLeft > 0) {
       return false;
     }
 
@@ -337,7 +346,7 @@ export function useRecoveryFlow({
       return false;
     }
 
-    setLoadingAction('resend-code');
+    setCurrentLoadingAction('resend-code');
     setError(null);
 
     try {
@@ -352,19 +361,19 @@ export function useRecoveryFlow({
       setError(getNormalizedError(caughtError));
       return false;
     } finally {
-      setLoadingAction(null);
+      setCurrentLoadingAction(null);
     }
   }, [
     email,
-    loadingAction,
     requestPasswordResetAction,
     resendSecondsLeft,
+    setCurrentLoadingAction,
     setLocalError,
     startCooldown,
   ]);
 
   const handleResetPassword = useCallback(async () => {
-    if (loadingAction) {
+    if (loadingActionRef.current) {
       return false;
     }
 
@@ -389,7 +398,7 @@ export function useRecoveryFlow({
       return false;
     }
 
-    setLoadingAction('reset-password');
+    setCurrentLoadingAction('reset-password');
     setError(null);
 
     try {
@@ -411,15 +420,15 @@ export function useRecoveryFlow({
 
       return false;
     } finally {
-      setLoadingAction(null);
+      setCurrentLoadingAction(null);
     }
   }, [
     confirmPassword,
-    loadingAction,
     handleRecoverySessionExpired,
     newPassword,
     resetPasswordAction,
     resetToken,
+    setCurrentLoadingAction,
     setLocalError,
   ]);
 
@@ -430,10 +439,10 @@ export function useRecoveryFlow({
     setNewPassword('');
     setConfirmPassword('');
     setResetToken(null);
-    setLoadingAction(null);
+    setCurrentLoadingAction(null);
     setError(null);
     setResendSecondsLeft(0);
-  }, []);
+  }, [setCurrentLoadingAction]);
 
   return {
     step,

@@ -127,6 +127,37 @@ describe('useRecoveryFlow', () => {
     expect(result.current.errorCode).toBeNull();
   });
 
+  it('ignora envio duplicado enquanto a solicitacao esta em andamento', async () => {
+    let resolveRequest: (value: { ok: true }) => void = () => {};
+    const requestPasswordResetAction = jest.fn(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveRequest = resolve;
+        }),
+    );
+    const { result } = renderHook(() =>
+      useRecoveryFlow({ requestPasswordResetAction }),
+    );
+    const requests: Promise<boolean>[] = [];
+
+    act(() => {
+      result.current.setEmail('pessoa@email.com');
+    });
+
+    act(() => {
+      requests.push(result.current.handleSendCode());
+      requests.push(result.current.handleSendCode());
+    });
+
+    await expect(requests[1]).resolves.toBe(false);
+    expect(requestPasswordResetAction).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveRequest({ ok: true });
+      await requests[0];
+    });
+  });
+
   it('bloqueia e-mail invalido sem chamar API', async () => {
     const requestPasswordResetAction = jest.fn();
     const { result } = renderHook(() =>
@@ -192,6 +223,9 @@ describe('useRecoveryFlow', () => {
       '123456',
     );
     expect(result.current.errorCode).toBe('INVALID_OR_EXPIRED_CODE');
+    expect(result.current.errorMessage).toBe(
+      'Codigo invalido ou expirado. Solicite um novo codigo.',
+    );
     expect(result.current.code).toBe('');
     expect(result.current.hasResetToken).toBe(false);
   });
@@ -370,6 +404,74 @@ describe('useRecoveryFlow', () => {
     expect(result.current.hasResetToken).toBe(false);
     expect(result.current.newPassword).toBe('');
     expect(result.current.confirmPassword).toBe('');
+  });
+
+  it('usa mensagem generica para erro desconhecido sem vazar detalhe da API', async () => {
+    const requestPasswordResetAction = jest.fn().mockRejectedValue(
+      new AuthRecoveryRequestError({
+        code: 'UNKNOWN_ERROR',
+        message: 'stack trace interno',
+        status: 500,
+      }),
+    );
+    const { result } = renderHook(() =>
+      useRecoveryFlow({ requestPasswordResetAction }),
+    );
+
+    act(() => {
+      result.current.setEmail('pessoa@email.com');
+    });
+
+    await act(async () => {
+      await result.current.handleSendCode();
+    });
+
+    expect(result.current.errorCode).toBe('UNKNOWN_ERROR');
+    expect(result.current.errorMessage).toBe(
+      'Nao foi possivel concluir a recuperacao de senha. Tente novamente.',
+    );
+  });
+
+  it('ignora reset duplicado enquanto a redefinicao esta em andamento', async () => {
+    const verifyResetCodeAction = jest
+      .fn()
+      .mockResolvedValue({ resetToken: 'reset-token-123' });
+    let resolveReset: (value: { ok: true }) => void = () => {};
+    const resetPasswordAction = jest.fn(
+      () =>
+        new Promise<{ ok: true }>((resolve) => {
+          resolveReset = resolve;
+        }),
+    );
+    const { result } = renderHook(() =>
+      useRecoveryFlow({ verifyResetCodeAction, resetPasswordAction }),
+    );
+    const requests: Promise<boolean>[] = [];
+
+    act(() => {
+      result.current.setEmail('pessoa@email.com');
+      result.current.setCode('123456');
+    });
+    await act(async () => {
+      await result.current.handleVerifyCode();
+    });
+    act(() => {
+      result.current.setNewPassword('NovaSenha123');
+      result.current.setConfirmPassword('NovaSenha123');
+    });
+
+    act(() => {
+      requests.push(result.current.handleResetPassword());
+      requests.push(result.current.handleResetPassword());
+    });
+
+    await expect(requests[1]).resolves.toBe(false);
+    expect(resetPasswordAction).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      resolveReset({ ok: true });
+      await requests[0];
+    });
   });
 
   it('limpa estado sensivel e avanca para sucesso apos reset', async () => {
@@ -585,7 +687,9 @@ describe('ForgotPasswordScreen', () => {
         'pessoa@email.com',
       );
       expect(
-        getByText('Muitas tentativas. Aguarde alguns minutos.'),
+        getByText(
+          'Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.',
+        ),
       ).toBeTruthy();
       expect(mockRouterPush).not.toHaveBeenCalled();
     });
@@ -826,7 +930,11 @@ describe('VerifyCodeScreen', () => {
         'pessoa@email.com',
         '000000',
       );
-      expect(screen.getByText('Codigo invalido ou expirado.')).toBeTruthy();
+      expect(
+        screen.getByText(
+          'Codigo invalido ou expirado. Solicite um novo codigo.',
+        ),
+      ).toBeTruthy();
       expect(mockRouterPush).not.toHaveBeenCalledWith('/reset-password');
     });
     expect(
@@ -882,7 +990,11 @@ describe('VerifyCodeScreen', () => {
     fireEvent.press(screen.getByTestId('verify-code-submit-button'));
 
     await waitFor(() => {
-      expect(screen.getByText('Codigo invalido ou expirado.')).toBeTruthy();
+      expect(
+        screen.getByText(
+          'Codigo invalido ou expirado. Solicite um novo codigo.',
+        ),
+      ).toBeTruthy();
     });
 
     fireEvent.press(screen.getByText('Reenviar agora'));
@@ -892,7 +1004,11 @@ describe('VerifyCodeScreen', () => {
       expect(requestPasswordResetAction).toHaveBeenLastCalledWith(
         'pessoa@email.com',
       );
-      expect(screen.queryByText('Codigo invalido ou expirado.')).toBeNull();
+      expect(
+        screen.queryByText(
+          'Codigo invalido ou expirado. Solicite um novo codigo.',
+        ),
+      ).toBeNull();
     });
   });
 
@@ -1198,7 +1314,11 @@ describe('ResetPasswordScreen', () => {
         'reset-token-123',
         'NovaSenha123',
       );
-      expect(screen.getByText('Senha muito fraca.')).toBeTruthy();
+      expect(
+        screen.getByText(
+          'Use uma senha com pelo menos 8 caracteres, uma letra maiuscula e um numero.',
+        ),
+      ).toBeTruthy();
       expect(mockRouterReplace).not.toHaveBeenCalledWith('/password-success');
     });
   });
