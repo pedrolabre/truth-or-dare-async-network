@@ -6,12 +6,17 @@ import {
 import { prisma } from '../src/lib/prisma';
 import {
   searchClubs,
+  getRecommendedUsers,
+  getTrendingClubs,
   SearchServiceError,
   searchUsers,
 } from '../src/services/search/search.service';
 import {
   addUserToClub,
   createTestClub,
+  createTestClubPrompt,
+  createTestDare,
+  createTestTruth,
   createTestUser,
   resetFeedData,
 } from '../src/test-utils/factories';
@@ -321,5 +326,146 @@ describe('search.service', () => {
     });
 
     findManySpy.mockRestore();
+  });
+
+  it('recomenda usuarios por clubes ativos em comum e atividade recente', async () => {
+    const now = new Date('2026-05-29T15:00:00.000Z');
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const recommended = await createTestUser({
+      name: 'Usuario Recomendado Busca',
+      email: 'recommended-search-service@test.com',
+      username: 'recomendado_busca',
+      createdAt: new Date('2026-05-28T10:00:00.000Z'),
+    });
+    const lessRelevant = await createTestUser({
+      name: 'Usuario Recomendado Distante',
+      email: 'recommended-distant-search-service@test.com',
+      createdAt: new Date('2026-05-29T10:00:00.000Z'),
+    });
+    const sharedClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Recomendacao',
+    });
+
+    await addUserToClub(sharedClub.id, viewer.id);
+    await addUserToClub(sharedClub.id, recommended.id);
+    await createTestTruth({
+      authorId: recommended.id,
+      targetUserId: viewer.id,
+      content: 'Verdade recente para recomendacao.',
+      createdAt: new Date('2026-05-29T12:00:00.000Z'),
+    });
+    await createTestDare({
+      authorId: lessRelevant.id,
+      targetUserId: viewer.id,
+      content: 'Desafio recente sem clube em comum.',
+      createdAt: new Date('2026-05-29T12:30:00.000Z'),
+    });
+
+    const result = await getRecommendedUsers({
+      userId: viewer.id,
+      now,
+      limit: 5,
+    });
+
+    expect(result[0]).toMatchObject({
+      id: recommended.id,
+      name: 'Usuario Recomendado Busca',
+      username: 'recomendado_busca',
+      avatarUrl: null,
+      level: null,
+      mutualCount: 1,
+    });
+    expect(result[0]).not.toHaveProperty('email');
+    expect(result[0]).not.toHaveProperty('passwordHash');
+    expect(result.map((user) => user.id)).not.toContain(viewer.id);
+  });
+
+  it('retorna recomendados vazio quando nao ha candidatos', async () => {
+    const viewer = await createTestUser();
+
+    const result = await getRecommendedUsers({
+      userId: viewer.id,
+      limit: 5,
+    });
+
+    expect(result).toEqual([]);
+  });
+
+  it('retorna clubes em alta por crescimento, atividade e prompts recentes', async () => {
+    const now = new Date('2026-05-29T15:00:00.000Z');
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const recentMember = await createTestUser();
+    const trendingClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Alta Servico',
+      tags: ['alta-servico'],
+      memberCount: 8,
+    });
+    const promptClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Prompt Recente',
+      tags: ['alta-servico'],
+      memberCount: 4,
+    });
+
+    await addUserToClub(trendingClub.id, recentMember.id, {
+      joinedAt: new Date('2026-05-29T12:00:00.000Z'),
+    });
+    await createTestClubPrompt({
+      clubId: promptClub.id,
+      authorId: owner.id,
+      content: 'Prompt recente para alta.',
+      createdAt: new Date('2026-05-29T13:00:00.000Z'),
+    });
+    await prisma.club.update({
+      where: {
+        id: promptClub.id,
+      },
+      data: {
+        promptCount: 1,
+        lastActivityAt: new Date('2026-05-29T13:00:00.000Z'),
+      },
+    });
+
+    const result = await getTrendingClubs({
+      userId: viewer.id,
+      now,
+      trendingMemberGrowthThreshold: 1,
+      limit: 5,
+    });
+
+    expect(result).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: trendingClub.id,
+          isTrending: true,
+        }),
+        expect.objectContaining({
+          id: promptClub.id,
+          isTrending: true,
+        }),
+      ]),
+    );
+    expect(result[0]).not.toHaveProperty('createdById');
+  });
+
+  it('retorna clubes em alta vazio quando nao ha clubes elegiveis', async () => {
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Sem Alta',
+    });
+
+    const result = await getTrendingClubs({
+      userId: viewer.id,
+      now: new Date('2026-05-29T15:00:00.000Z'),
+      limit: 5,
+    });
+
+    expect(result).toEqual([]);
   });
 });

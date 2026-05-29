@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import {
+  getRecommendedUsers,
+  getTrendingClubs,
   searchClubs,
   SearchServiceError,
   searchUsers,
@@ -98,6 +100,50 @@ export async function searchAllController(req: Request, res: Response) {
       res,
       error,
       'Erro interno ao buscar resultados',
+    );
+  }
+}
+
+export async function getRecommendedUsersController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const limit =
+      typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined;
+    const users = await getRecommendedUsers({
+      userId: getAuthenticatedUserId(req),
+      limit,
+    });
+
+    return res.status(200).json(users);
+  } catch (error) {
+    return handleSearchControllerError(
+      res,
+      error,
+      'Erro interno ao buscar usuarios recomendados',
+    );
+  }
+}
+
+export async function getTrendingClubsController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const limit =
+      typeof req.query.limit === 'string' ? Number(req.query.limit) : undefined;
+    const clubs = await getTrendingClubs({
+      userId: getAuthenticatedUserId(req),
+      limit,
+    });
+
+    return res.status(200).json(clubs);
+  } catch (error) {
+    return handleSearchControllerError(
+      res,
+      error,
+      'Erro interno ao buscar clubes em alta',
     );
   }
 }

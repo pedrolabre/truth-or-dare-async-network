@@ -17,6 +17,14 @@ export type SearchClubsOptions = SearchPaginationOptions & {
   trendingWindowHours?: number;
 };
 
+export type SearchDiscoveryOptions = {
+  userId: string;
+  limit?: number;
+  now?: Date;
+  trendingMemberGrowthThreshold?: number;
+  trendingWindowHours?: number;
+};
+
 export type NormalizedSearchPaginationOptions = {
   limit: number;
   cursor?: string;

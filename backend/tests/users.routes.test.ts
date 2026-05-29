@@ -2,7 +2,16 @@ import express from 'express';
 import request from 'supertest';
 import usersRoutes from '../src/routes/users/users.routes';
 import { applyTestDatabaseHooks } from './test-db';
-import { createTestUser, resetFeedData } from '../src/test-utils/factories';
+import { prisma } from '../src/lib/prisma';
+import {
+  addUserToClub,
+  createTestClub,
+  createTestClubPrompt,
+  createTestDare,
+  createTestTruth,
+  createTestUser,
+  resetFeedData,
+} from '../src/test-utils/factories';
 import { generateToken } from '../src/utils/jwt';
 
 function createTestApp() {
@@ -121,6 +130,80 @@ describe('users.routes', () => {
     expect(response.status).toBe(401);
     expect(response.body).toMatchObject({
       error: 'Token não informado',
+    });
+  });
+
+  it('GET /users/:id/public retorna perfil publico com contrato seguro', async () => {
+    const user = await createTestUser({
+      name: 'Perfil Publico Busca',
+      email: 'perfil-publico-busca@test.com',
+      username: 'perfil_publico_busca',
+    });
+    const owner = await createTestUser({
+      name: 'Owner Perfil Publico',
+      email: 'owner-perfil-publico@test.com',
+    });
+    const target = await createTestUser({
+      name: 'Alvo Perfil Publico',
+      email: 'target-perfil-publico@test.com',
+    });
+    await createTestTruth({
+      authorId: user.id,
+      targetUserId: target.id,
+      content: 'Verdade publica para estatistica.',
+    });
+    await createTestDare({
+      authorId: user.id,
+      targetUserId: target.id,
+      content: 'Desafio publico para estatistica.',
+    });
+    const club = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Perfil Publico',
+    });
+    await addUserToClub(club.id, user.id);
+    await createTestClubPrompt({
+      clubId: club.id,
+      authorId: user.id,
+      content: 'Prompt publico para estatistica.',
+    });
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        bio: 'Bio publica da busca',
+      },
+    });
+
+    const response = await request(app).get(`/users/${user.id}/public`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: user.id,
+      name: 'Perfil Publico Busca',
+      username: 'perfil_publico_busca',
+      bio: 'Bio publica da busca',
+      avatarUrl: null,
+      level: null,
+      levelLabel: 'Nivel indisponivel',
+      stats: {
+        createdTruthsCount: 1,
+        createdDaresCount: 1,
+        activePublicClubsCount: 1,
+        publishedClubPromptsCount: 1,
+      },
+    });
+    expect(response.body).not.toHaveProperty('email');
+    expect(response.body).not.toHaveProperty('passwordHash');
+  });
+
+  it('GET /users/:id/public retorna 404 para usuario inexistente', async () => {
+    const response = await request(app).get('/users/usuario-inexistente/public');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({
+      error: 'Usuario nao encontrado',
     });
   });
 });

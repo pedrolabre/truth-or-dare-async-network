@@ -1,3 +1,9 @@
+import {
+  ClubMemberStatus,
+  ClubPromptStatus,
+  ClubStatus,
+  ClubVisibility,
+} from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 
 type ListUsersInput = {
@@ -19,6 +25,22 @@ export type MyProfile = {
   bio: string | null;
   createdTruthsCount: number;
   createdDaresCount: number;
+};
+
+export type PublicUserProfile = {
+  id: string;
+  name: string;
+  username: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  level: number | null;
+  levelLabel: string;
+  stats: {
+    createdTruthsCount: number;
+    createdDaresCount: number;
+    activePublicClubsCount: number;
+    publishedClubPromptsCount: number;
+  };
 };
 
 export async function listUsersForChallenge({
@@ -110,6 +132,88 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
     bio: user.bio,
     createdTruthsCount,
     createdDaresCount,
+  };
+}
+
+export async function getPublicUserProfile(
+  userId: string,
+): Promise<PublicUserProfile> {
+  if (!userId) {
+    throw new Error('Usuario nao encontrado');
+  }
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      name: true,
+      username: true,
+      bio: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error('Usuario nao encontrado');
+  }
+
+  const [
+    createdTruthsCount,
+    createdDaresCount,
+    activePublicClubsCount,
+    publishedClubPromptsCount,
+  ] = await Promise.all([
+    prisma.truth.count({
+      where: {
+        authorId: userId,
+      },
+    }),
+    prisma.dare.count({
+      where: {
+        authorId: userId,
+      },
+    }),
+    prisma.clubMember.count({
+      where: {
+        userId,
+        status: ClubMemberStatus.active,
+        club: {
+          visibility: ClubVisibility.public,
+          status: ClubStatus.active,
+          deletedAt: null,
+        },
+      },
+    }),
+    prisma.clubPrompt.count({
+      where: {
+        authorId: userId,
+        status: ClubPromptStatus.published,
+        archivedAt: null,
+        removedAt: null,
+        club: {
+          visibility: ClubVisibility.public,
+          status: ClubStatus.active,
+          deletedAt: null,
+        },
+      },
+    }),
+  ]);
+
+  return {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    bio: user.bio,
+    avatarUrl: null,
+    level: null,
+    levelLabel: 'Nivel indisponivel',
+    stats: {
+      createdTruthsCount,
+      createdDaresCount,
+      activePublicClubsCount,
+      publishedClubPromptsCount,
+    },
   };
 }
 

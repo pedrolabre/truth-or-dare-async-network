@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import {
   getMyProfile,
+  getPublicUserProfile,
   listUsersForChallenge,
   updateMyProfile,
 } from '../../services/users/users.service';
@@ -51,6 +52,29 @@ export async function getMyProfileController(req: Request, res: Response) {
         : message === 'Usuário não encontrado'
         ? 404
         : 500;
+
+    return res.status(status).json({
+      error: message,
+    });
+  }
+}
+
+export async function getPublicUserProfileController(
+  req: Request,
+  res: Response,
+) {
+  try {
+    const userId = typeof req.params.id === 'string' ? req.params.id : '';
+    const profile = await getPublicUserProfile(userId);
+
+    return res.status(200).json(profile);
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Erro interno ao buscar perfil publico';
+
+    const status = message === 'Usuario nao encontrado' ? 404 : 500;
 
     return res.status(status).json({
       error: message,

@@ -10,6 +10,7 @@ import searchRoutes from '../src/routes/search/search.routes';
 import {
   addUserToClub,
   createTestClub,
+  createTestClubPrompt,
   createTestUser,
   resetFeedData,
 } from '../src/test-utils/factories';
@@ -58,12 +59,18 @@ describe('search.routes', () => {
     const clubsResponse = await request(app)
       .get('/search/clubs')
       .query({ query: 'rota' });
+    const recommendedResponse = await request(app).get(
+      '/search/recommended/users',
+    );
+    const trendingResponse = await request(app).get('/search/trending/clubs');
     const allResponse = await request(app).get('/search').query({
       query: 'rota',
     });
 
     expect(usersResponse.status).toBe(401);
     expect(clubsResponse.status).toBe(401);
+    expect(recommendedResponse.status).toBe(401);
+    expect(trendingResponse.status).toBe(401);
     expect(allResponse.status).toBe(401);
   });
 
@@ -363,6 +370,185 @@ describe('search.routes', () => {
         nextCursor: null,
       },
     });
+  });
+
+  it('GET /search/recommended/users retorna recomendados com contrato publico', async () => {
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const recommended = await createTestUser({
+      name: 'Recomendada Rota Busca',
+      email: 'recommended-search-routes@test.com',
+      username: 'recomendada_rota',
+    });
+    await prisma.user.update({
+      where: {
+        id: recommended.id,
+      },
+      data: {
+        bio: 'Perfil publico recomendado pela busca',
+      },
+    });
+    const sharedClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Recomendacao Rota Clube',
+    });
+
+    await addUserToClub(sharedClub.id, viewer.id);
+    await addUserToClub(sharedClub.id, recommended.id);
+
+    const response = await request(app)
+      .get('/search/recommended/users')
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body).toEqual([
+      expect.objectContaining({
+        id: recommended.id,
+        name: 'Recomendada Rota Busca',
+        username: 'recomendada_rota',
+        bio: 'Perfil publico recomendado pela busca',
+        avatarUrl: null,
+        level: null,
+        mutualCount: 1,
+      }),
+    ]);
+    expect(response.body[0]).not.toHaveProperty('email');
+    expect(response.body[0]).not.toHaveProperty('passwordHash');
+  });
+
+  it('GET /search/recommended/users retorna array vazio estavel sem dados suficientes', async () => {
+    const viewer = await createTestUser();
+
+    const response = await request(app)
+      .get('/search/recommended/users')
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
+  });
+
+  it('GET /search/trending/clubs retorna clubes publicos ativos em alta', async () => {
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const recentMember = await createTestUser();
+    const club = await createTestClub({
+      createdById: owner.id,
+      name: 'Alta Busca Rotas',
+      description: 'Clube publico em alta para rota',
+      tags: ['alta-rota'],
+      memberCount: 5,
+    });
+
+    await addUserToClub(club.id, recentMember.id, {
+      joinedAt: new Date(),
+    });
+    await createTestClubPrompt({
+      clubId: club.id,
+      authorId: owner.id,
+      content: 'Prompt recente para rota em alta.',
+    });
+    await prisma.club.update({
+      where: {
+        id: club.id,
+      },
+      data: {
+        promptCount: 1,
+        lastActivityAt: new Date(),
+      },
+    });
+
+    const response = await request(app)
+      .get('/search/trending/clubs')
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body).toEqual([
+      expect.objectContaining({
+        id: club.id,
+        name: 'Alta Busca Rotas',
+        slug: club.slug,
+        description: 'Clube publico em alta para rota',
+        iconName: 'groups',
+        avatarUrl: null,
+        memberCount: 5,
+        isTrending: true,
+        tags: ['alta-rota'],
+      }),
+    ]);
+  });
+
+  it('GET /search/trending/clubs nao retorna clubes privados, inativos ou bloqueados para o viewer', async () => {
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const recentMember = await createTestUser();
+    const publicClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Alta Visivel Busca',
+      tags: ['alta-filtro'],
+    });
+    const privateClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Alta Privada Busca',
+      visibility: ClubVisibility.private,
+      tags: ['alta-filtro'],
+    });
+    const archivedClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Alta Arquivada Busca',
+      status: ClubStatus.archived,
+      tags: ['alta-filtro'],
+    });
+    const blockedClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Alta Bloqueada Busca',
+      tags: ['alta-filtro'],
+    });
+
+    for (const club of [publicClub, privateClub, archivedClub, blockedClub]) {
+      await addUserToClub(club.id, recentMember.id, {
+        joinedAt: new Date(),
+      });
+      await prisma.club.update({
+        where: {
+          id: club.id,
+        },
+        data: {
+          lastActivityAt: new Date(),
+        },
+      });
+    }
+    await addUserToClub(blockedClub.id, viewer.id, {
+      status: ClubMemberStatus.blocked,
+    });
+
+    const response = await request(app)
+      .get('/search/trending/clubs')
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      expect.objectContaining({
+        id: publicClub.id,
+      }),
+    ]);
+  });
+
+  it('GET /search/trending/clubs retorna array vazio estavel sem clubes elegiveis', async () => {
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Sem Alta Rota',
+    });
+
+    const response = await request(app)
+      .get('/search/trending/clubs')
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
   });
 
   it('traduz erro do servico para resposta HTTP padronizada', async () => {
