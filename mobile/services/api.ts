@@ -13,6 +13,17 @@ import type {
 } from '../types/comments';
 import type { FeedItem } from '../types/feed';
 import type {
+  SearchApiClubsResponse,
+  SearchApiResponse,
+  SearchApiUsersResponse,
+  SearchClubItem,
+  SearchPagination,
+  SearchRecommendedResponse,
+  SearchResultGroup,
+  SearchTrendingResponse,
+  SearchUserItem,
+} from '../types/search';
+import type {
   SubmitDareProofPayload,
   SubmitDareProofResponse,
 } from '../types/action';
@@ -24,6 +35,7 @@ import type {
   VerifyResetCodeResponse,
 } from '../types/authRecovery';
 import type { ToggleClubLikeApi } from '../types/clubsApi';
+import { mapApiClubToItem, mapApiUserToItem } from './searchMappers';
 
 type SignupInput = {
   name: string;
@@ -314,6 +326,163 @@ export async function getUsers(query?: string): Promise<ChallengeUser[]> {
   });
 
   return parseResponse(response);
+}
+
+function buildSearchUrl(
+  baseUrl: string,
+  endpoint: string,
+  params: {
+    query?: string;
+    cursor?: string | null;
+    limit?: number;
+  } = {},
+) {
+  const searchParams = new URLSearchParams();
+
+  if (params.query?.trim()) {
+    searchParams.set('query', params.query.trim());
+  }
+
+  if (params.cursor?.trim()) {
+    searchParams.set('cursor', params.cursor.trim());
+  }
+
+  if (typeof params.limit === 'number' && Number.isFinite(params.limit)) {
+    searchParams.set('limit', String(params.limit));
+  }
+
+  const queryString = searchParams.toString();
+
+  return queryString
+    ? `${baseUrl}${endpoint}?${queryString}`
+    : `${baseUrl}${endpoint}`;
+}
+
+async function getAuthenticatedHeaders() {
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nÃ£o encontrado');
+  }
+
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+function mapSearchUsersResponse(
+  response: SearchApiUsersResponse,
+): SearchPagination<SearchUserItem> {
+  return {
+    items: response.items.map(mapApiUserToItem),
+    nextCursor: response.nextCursor ?? null,
+  };
+}
+
+function mapSearchClubsResponse(
+  response: SearchApiClubsResponse,
+): SearchPagination<SearchClubItem> {
+  return {
+    items: response.items.map(mapApiClubToItem),
+    nextCursor: response.nextCursor ?? null,
+  };
+}
+
+export async function searchAll(
+  query: string,
+  limit?: number,
+  signal?: AbortSignal,
+): Promise<SearchResultGroup> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+  const url = buildSearchUrl(baseUrl, '/search', { query, limit });
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    signal,
+  });
+  const data = (await parseResponse(response)) as SearchApiResponse;
+
+  return {
+    users: data.users.items.map(mapApiUserToItem),
+    clubs: data.clubs.items.map(mapApiClubToItem),
+  };
+}
+
+export async function searchUsers(
+  query: string,
+  cursor?: string | null,
+  limit?: number,
+  signal?: AbortSignal,
+): Promise<SearchPagination<SearchUserItem>> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+  const url = buildSearchUrl(baseUrl, '/search/users', {
+    query,
+    cursor,
+    limit,
+  });
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    signal,
+  });
+  const data = (await parseResponse(response)) as SearchApiUsersResponse;
+
+  return mapSearchUsersResponse(data);
+}
+
+export async function searchClubs(
+  query: string,
+  cursor?: string | null,
+  limit?: number,
+  signal?: AbortSignal,
+): Promise<SearchPagination<SearchClubItem>> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+  const url = buildSearchUrl(baseUrl, '/search/clubs', {
+    query,
+    cursor,
+    limit,
+  });
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    signal,
+  });
+  const data = (await parseResponse(response)) as SearchApiClubsResponse;
+
+  return mapSearchClubsResponse(data);
+}
+
+export async function getRecommendedUsers(): Promise<SearchUserItem[]> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/search/recommended/users`, {
+    method: 'GET',
+    headers,
+  });
+  const data = (await parseResponse(response)) as SearchRecommendedResponse;
+
+  return data.map(mapApiUserToItem);
+}
+
+export async function getTrendingClubs(): Promise<SearchClubItem[]> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/search/trending/clubs`, {
+    method: 'GET',
+    headers,
+  });
+  const data = (await parseResponse(response)) as SearchTrendingResponse;
+
+  return data.map(mapApiClubToItem);
 }
 
 export async function createTruth(data: CreateChallengeInput) {
