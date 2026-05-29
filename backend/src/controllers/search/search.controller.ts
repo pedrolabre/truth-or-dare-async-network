@@ -42,11 +42,69 @@ function getPaginationQuery(req: Request) {
   };
 }
 
+type SearchLogPayload = {
+  searchType: 'users' | 'clubs' | 'unified';
+  userId: string;
+  startedAt: number;
+  query: unknown;
+  limit?: number;
+  cursor?: string;
+  resultCount: number;
+  nextCursorPresent: boolean;
+  usersResultCount?: number;
+  clubsResultCount?: number;
+};
+
+function getQueryLength(query: unknown) {
+  return typeof query === 'string' ? query.trim().length : 0;
+}
+
+function logSearchQuery({
+  searchType,
+  userId,
+  startedAt,
+  query,
+  limit,
+  cursor,
+  resultCount,
+  nextCursorPresent,
+  usersResultCount,
+  clubsResultCount,
+}: SearchLogPayload) {
+  console.info({
+    event: 'search.query_executed',
+    timestamp: new Date().toISOString(),
+    searchType,
+    userId,
+    queryLength: getQueryLength(query),
+    limit: limit ?? null,
+    cursorPresent: Boolean(cursor),
+    resultCount,
+    usersResultCount,
+    clubsResultCount,
+    nextCursorPresent,
+    durationMs: Date.now() - startedAt,
+  });
+}
+
 export async function searchUsersController(req: Request, res: Response) {
+  const startedAt = Date.now();
+
   try {
+    const pagination = getPaginationQuery(req);
     const users = await searchUsers(req.query.query, {
       userId: getAuthenticatedUserId(req),
-      ...getPaginationQuery(req),
+      ...pagination,
+    });
+
+    logSearchQuery({
+      searchType: 'users',
+      userId: getAuthenticatedUserId(req),
+      startedAt,
+      query: req.query.query,
+      ...pagination,
+      resultCount: users.items.length,
+      nextCursorPresent: Boolean(users.nextCursor),
     });
 
     return res.status(200).json(users);
@@ -60,10 +118,23 @@ export async function searchUsersController(req: Request, res: Response) {
 }
 
 export async function searchClubsController(req: Request, res: Response) {
+  const startedAt = Date.now();
+
   try {
+    const pagination = getPaginationQuery(req);
     const clubs = await searchClubs(req.query.query, {
       userId: getAuthenticatedUserId(req),
-      ...getPaginationQuery(req),
+      ...pagination,
+    });
+
+    logSearchQuery({
+      searchType: 'clubs',
+      userId: getAuthenticatedUserId(req),
+      startedAt,
+      query: req.query.query,
+      ...pagination,
+      resultCount: clubs.items.length,
+      nextCursorPresent: Boolean(clubs.nextCursor),
     });
 
     return res.status(200).json(clubs);
@@ -77,6 +148,8 @@ export async function searchClubsController(req: Request, res: Response) {
 }
 
 export async function searchAllController(req: Request, res: Response) {
+  const startedAt = Date.now();
+
   try {
     const pagination = getPaginationQuery(req);
     const userId = getAuthenticatedUserId(req);
@@ -90,6 +163,18 @@ export async function searchAllController(req: Request, res: Response) {
         ...pagination,
       }),
     ]);
+
+    logSearchQuery({
+      searchType: 'unified',
+      userId,
+      startedAt,
+      query: req.query.query,
+      ...pagination,
+      resultCount: users.items.length + clubs.items.length,
+      usersResultCount: users.items.length,
+      clubsResultCount: clubs.items.length,
+      nextCursorPresent: Boolean(users.nextCursor || clubs.nextCursor),
+    });
 
     return res.status(200).json({
       users,

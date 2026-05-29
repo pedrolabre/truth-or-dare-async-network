@@ -36,6 +36,7 @@ function authTokenFor(user: { id: string; email: string; name: string }) {
 
 describe('search.routes', () => {
   const app = createTestApp();
+  let consoleInfoSpy: jest.SpyInstance;
 
   applyTestDatabaseHooks({
     resetBeforeEach: false,
@@ -44,7 +45,14 @@ describe('search.routes', () => {
   });
 
   beforeEach(async () => {
+    consoleInfoSpy = jest
+      .spyOn(console, 'info')
+      .mockImplementation(() => undefined);
     await resetFeedData({ deleteUsers: true });
+  });
+
+  afterEach(() => {
+    consoleInfoSpy.mockRestore();
   });
 
   afterAll(async () => {
@@ -370,6 +378,101 @@ describe('search.routes', () => {
         nextCursor: null,
       },
     });
+  });
+
+  it('registra logs estruturados seguros para buscas por tipo sem expor termo bruto ou dados privados', async () => {
+    const viewer = await createTestUser({
+      email: 'viewer-log-seguro@test.com',
+    });
+    const owner = await createTestUser({
+      email: 'owner-log-seguro@test.com',
+    });
+    await createTestUser({
+      name: 'Log Seguro Usuario',
+      email: 'private-log-user-secret@test.com',
+      username: 'log_seguro_usuario',
+    });
+    await createTestClub({
+      createdById: owner.id,
+      name: 'Log Seguro Clube',
+      description: 'Clube para observabilidade segura',
+      tags: ['observabilidade'],
+    });
+
+    const token = authTokenFor(viewer);
+
+    await request(app)
+      .get('/search/users')
+      .query({ query: 'Log Seguro', limit: 1 })
+      .set('Authorization', `Bearer ${token}`);
+    await request(app)
+      .get('/search/clubs')
+      .query({ query: 'observabilidade', limit: 1 })
+      .set('Authorization', `Bearer ${token}`);
+    await request(app)
+      .get('/search')
+      .query({ query: 'Log Seguro Usuario', limit: 1 })
+      .set('Authorization', `Bearer ${token}`);
+
+    const logs = consoleInfoSpy.mock.calls
+      .map(([payload]) => payload)
+      .filter(
+        (payload) =>
+          typeof payload === 'object' &&
+          payload !== null &&
+          (payload as { event?: string }).event === 'search.query_executed',
+      );
+
+    expect(logs).toHaveLength(3);
+    expect(logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'search.query_executed',
+          searchType: 'users',
+          userId: viewer.id,
+          queryLength: 'Log Seguro'.length,
+          limit: 1,
+          cursorPresent: false,
+          resultCount: 1,
+          nextCursorPresent: false,
+          durationMs: expect.any(Number),
+        }),
+        expect.objectContaining({
+          event: 'search.query_executed',
+          searchType: 'clubs',
+          userId: viewer.id,
+          queryLength: 'observabilidade'.length,
+          limit: 1,
+          cursorPresent: false,
+          resultCount: 1,
+          nextCursorPresent: false,
+          durationMs: expect.any(Number),
+        }),
+        expect.objectContaining({
+          event: 'search.query_executed',
+          searchType: 'unified',
+          userId: viewer.id,
+          queryLength: 'Log Seguro Usuario'.length,
+          limit: 1,
+          cursorPresent: false,
+          resultCount: 1,
+          usersResultCount: 1,
+          clubsResultCount: 0,
+          nextCursorPresent: false,
+          durationMs: expect.any(Number),
+        }),
+      ]),
+    );
+
+    const serializedLogs = JSON.stringify(logs);
+
+    expect(serializedLogs).not.toContain('Log Seguro');
+    expect(serializedLogs).not.toContain('observabilidade');
+    expect(serializedLogs).not.toContain('private-log-user-secret@test.com');
+    expect(serializedLogs).not.toContain('viewer-log-seguro@test.com');
+    expect(serializedLogs).not.toContain('passwordHash');
+    expect(serializedLogs).not.toContain('Authorization');
+    expect(serializedLogs).not.toContain(token);
   });
 
   it('GET /search/recommended/users retorna recomendados com contrato publico', async () => {
