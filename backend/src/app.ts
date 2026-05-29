@@ -15,6 +15,7 @@ import clubFeedRoutes from './routes/clubs/feed.routes';
 import clubPromptsRoutes from './routes/clubs/prompts.routes';
 import clubsRoutes from './routes/clubs/clubs.routes';
 import notificationsRoutes from './routes/notifications.routes';
+import searchRoutes from './routes/search/search.routes';
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/clubs', clubFeedRoutes);
 app.use('/clubs', clubPromptsRoutes);
 app.use('/clubs', clubsRoutes);
 app.use('/notifications', notificationsRoutes);
+app.use('/search', searchRoutes);
 app.use(truthLikesRoutes);
 app.use(truthCommentsLikesRoutes);
 app.use(dareLikesRoutes);
