@@ -151,6 +151,31 @@ describe('search API client', () => {
     );
   });
 
+  it('omite cursor vazio e limit invalido ao montar URL de usuarios', async () => {
+    fetchMock.mockResolvedValue(
+      makeJsonResponse(true, 200, {
+        items: [],
+        nextCursor: null,
+      }),
+    );
+
+    await expect(searchUsers(' marina ', '   ', Number.NaN)).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/search/users?query=marina',
+      expect.objectContaining({
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+      }),
+    );
+  });
+
   it('busca clubes com cursor, limit, token, AbortSignal e preserva nextCursor', async () => {
     const signal = new AbortController().signal;
     fetchMock.mockResolvedValue(

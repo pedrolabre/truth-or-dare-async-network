@@ -164,4 +164,24 @@ describe('search mappers', () => {
     expect(clubItem.memberCountLabel).toBe('0 membros');
     expect(clubItem.tags).toEqual([]);
   });
+
+  it('normaliza numeros negativos ou decimais antes de expor labels', () => {
+    const userItem = mapApiUserToItem(
+      makeApiUser({
+        level: 4.9,
+        mutualCount: -5,
+      }),
+    );
+    const clubItem = mapApiClubToItem(
+      makeApiClub({
+        memberCount: 12.8,
+      }),
+    );
+
+    expect(userItem.level).toBe(4);
+    expect(userItem.levelLabel).toBe('Nivel 4');
+    expect(userItem.mutualCount).toBe(0);
+    expect(clubItem.memberCount).toBe(12);
+    expect(clubItem.memberCountLabel).toBe('12 membros');
+  });
 });

@@ -43,6 +43,22 @@ describe('recent searches service', () => {
     await expect(loadRecentSearches('user-1')).resolves.toEqual([item]);
   });
 
+  it('ignora registros invalidos salvos no storage local', async () => {
+    const validItem = makeRecentSearch(1);
+
+    await AsyncStorage.setItem(
+      '@truth-or-dare/search/recent/user-1',
+      JSON.stringify([
+        validItem,
+        { id: 'sem-reference', label: 'Invalido', type: 'user' },
+        { id: 'tipo-invalido', label: 'Invalido', type: 'content' },
+        null,
+      ]),
+    );
+
+    await expect(loadRecentSearches('user-1')).resolves.toEqual([validItem]);
+  });
+
   it('salva novo item no topo do historico local', async () => {
     const firstItem = makeRecentSearch(1);
     const secondItem = makeRecentSearch(2);
