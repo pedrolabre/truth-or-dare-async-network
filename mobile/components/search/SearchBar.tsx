@@ -15,6 +15,7 @@ type Props = {
   placeholder?: string;
   onClear?: () => void;
   onPressFilter?: () => void;
+  hasActiveFilters?: boolean;
 };
 
 export default function SearchBar({
@@ -24,6 +25,7 @@ export default function SearchBar({
   placeholder = 'Encontre jogadores ou clubes...',
   onClear,
   onPressFilter,
+  hasActiveFilters = false,
 }: Props) {
   const canClear = value.length > 0 && typeof onClear === 'function';
 
@@ -89,6 +91,20 @@ export default function SearchBar({
         ]}
       >
         <MaterialIcons name="tune" size={18} color={colors.white} />
+        {hasActiveFilters ? (
+          <View
+            testID="search-filter-active-indicator"
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={[
+              styles.activeFilterDot,
+              {
+                backgroundColor: colors.white,
+                borderColor: colors.red,
+              },
+            ]}
+          />
+        ) : null}
       </Pressable>
     </View>
   );
@@ -122,6 +138,16 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+  },
+  activeFilterDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 9,
+    height: 9,
+    borderRadius: 999,
+    borderWidth: 1,
   },
   clearButton: {
     width: 44,

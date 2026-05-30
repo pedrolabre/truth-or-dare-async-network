@@ -58,4 +58,21 @@ describe('SearchBar', () => {
 
     expect(onClear).toHaveBeenCalledTimes(1);
   });
+
+  it('exibe indicador visual quando filtros avancados estao ativos', () => {
+    const screen = render(
+      <SearchBar
+        value=""
+        onChangeText={jest.fn()}
+        colors={LIGHT_SEARCH_COLORS}
+        hasActiveFilters
+      />,
+    );
+
+    expect(
+      screen.getByTestId('search-filter-active-indicator', {
+        includeHiddenElements: true,
+      }),
+    ).toBeTruthy();
+  });
 });

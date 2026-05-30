@@ -70,6 +70,7 @@ function makeUser(overrides: Partial<SearchUserItem> = {}): SearchUserItem {
     level: 4,
     levelLabel: 'Nivel 4',
     avatarUrl: 'https://example.com/avatar.png',
+    isOnline: false,
     mutualCount: 2,
     ...overrides,
   };
@@ -254,12 +255,14 @@ describe('useSearchScreen', () => {
       null,
       undefined,
       expect.any(Object),
+      expect.objectContaining({ onlineOnly: false }),
     );
     expect(mockedSearchClubs).toHaveBeenCalledWith(
       'Marina',
       null,
       undefined,
       expect.any(Object),
+      expect.objectContaining({ onlineOnly: false }),
     );
   });
 
@@ -535,12 +538,14 @@ describe('useSearchScreen', () => {
       null,
       undefined,
       expect.any(Object),
+      expect.objectContaining({ onlineOnly: false }),
     );
     expect(mockedSearchClubs).toHaveBeenCalledWith(
       'Marina',
       null,
       undefined,
       expect.any(Object),
+      expect.objectContaining({ onlineOnly: false }),
     );
     expect(mockedSaveRecentSearch).toHaveBeenCalledWith('viewer-1', recent);
     expect(result.current.results.users).toEqual([
@@ -587,6 +592,7 @@ describe('useSearchScreen', () => {
       null,
       undefined,
       expect.any(Object),
+      expect.objectContaining({ onlineOnly: false }),
     );
     expect(result.current.error).toBeNull();
     expect(result.current.results.users).toEqual([makeUser()]);
@@ -675,6 +681,102 @@ describe('useSearchScreen', () => {
     );
   });
 
+  it('aplica e limpa filtros avancados refazendo chamadas com parametros', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    mockedSearchUsers.mockResolvedValue(makeUserPage([makeUser()]));
+    mockedSearchClubs.mockResolvedValue(makeClubPage([makeClub()]));
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('Marina');
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
+    await waitFor(() => {
+      expect(mockedSearchUsers).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      result.current.applyFilters({
+        minLevel: 2,
+        maxLevel: 8,
+        onlineOnly: true,
+        clubVisibility: 'public',
+        clubTag: 'noite',
+      });
+    });
+
+    expect(result.current.hasActiveFilters).toBe(true);
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
+    await waitFor(() => {
+      expect(mockedSearchUsers).toHaveBeenCalledTimes(2);
+      expect(mockedSearchClubs).toHaveBeenCalledTimes(2);
+    });
+    expect(mockedSearchUsers).toHaveBeenLastCalledWith(
+      'Marina',
+      null,
+      undefined,
+      expect.any(Object),
+      expect.objectContaining({
+        minLevel: 2,
+        maxLevel: 8,
+        onlineOnly: true,
+        clubVisibility: 'public',
+        clubTag: 'noite',
+      }),
+    );
+    expect(mockedSearchClubs).toHaveBeenLastCalledWith(
+      'Marina',
+      null,
+      undefined,
+      expect.any(Object),
+      expect.objectContaining({
+        minLevel: 2,
+        maxLevel: 8,
+        onlineOnly: true,
+        clubVisibility: 'public',
+        clubTag: 'noite',
+      }),
+    );
+
+    act(() => {
+      result.current.clearFilters();
+    });
+
+    expect(result.current.hasActiveFilters).toBe(false);
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
+    await waitFor(() => {
+      expect(mockedSearchUsers).toHaveBeenCalledTimes(3);
+    });
+    expect(mockedSearchUsers).toHaveBeenLastCalledWith(
+      'Marina',
+      null,
+      undefined,
+      expect.any(Object),
+      expect.objectContaining({ onlineOnly: false, clubTag: null }),
+    );
+  });
+
   it('pagina usuarios com cursor, concatena resultados e mantem loading separado', async () => {
     mockedLoadRecentSearches.mockResolvedValue([]);
     const nextUsers = createDeferred<SearchPagination<SearchUserItem>>();
@@ -717,6 +819,7 @@ describe('useSearchScreen', () => {
       'user-cursor-2',
       undefined,
       expect.any(Object),
+      expect.objectContaining({ onlineOnly: false }),
     );
 
     await act(async () => {
@@ -777,6 +880,7 @@ describe('useSearchScreen', () => {
       'club-cursor-2',
       undefined,
       expect.any(Object),
+      expect.objectContaining({ onlineOnly: false }),
     );
     expect(result.current.results.users).toEqual([]);
     expect(result.current.results.clubs).toEqual([

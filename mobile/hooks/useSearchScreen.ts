@@ -15,6 +15,7 @@ import {
 } from '../services/recentSearches';
 import type {
   SearchClubItem,
+  SearchFilters,
   SearchFilterKey,
   SearchRecentItem,
   SearchResultGroup,
@@ -24,6 +25,14 @@ import type {
 type SearchResultItem = SearchUserItem | SearchClubItem;
 
 const SEARCH_DEBOUNCE_MS = 350;
+
+const EMPTY_SEARCH_FILTERS: SearchFilters = {
+  minLevel: null,
+  maxLevel: null,
+  onlineOnly: false,
+  clubVisibility: undefined,
+  clubTag: null,
+};
 
 type UseSearchScreenOptions = {
   userId?: string | null;
@@ -47,12 +56,16 @@ export type UseSearchScreenReturn = {
   error: string | null;
   hasMoreUsers: boolean;
   hasMoreClubs: boolean;
+  filters: SearchFilters;
+  hasActiveFilters: boolean;
   loadMoreUsers: () => Promise<void>;
   loadMoreClubs: () => Promise<void>;
   setQuery: (value: string) => void;
   setActiveFilter: (value: SearchFilterKey) => void;
   retry: () => Promise<void>;
   clearQuery: () => void;
+  applyFilters: (filters: SearchFilters) => void;
+  clearFilters: () => void;
   onPressFilter: () => void;
   saveRecentFromResult: (item: SearchResultItem) => Promise<void>;
   removeRecent: (id: string) => Promise<void>;
@@ -89,11 +102,45 @@ function isAbortError(error: unknown): boolean {
   return error instanceof Error && error.name === 'AbortError';
 }
 
+function normalizeFilterNumber(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.max(0, Math.floor(value));
+}
+
+function normalizeFilters(filters: SearchFilters = {}): SearchFilters {
+  const clubTag = filters.clubTag?.trim() || null;
+
+  return {
+    minLevel: normalizeFilterNumber(filters.minLevel),
+    maxLevel: normalizeFilterNumber(filters.maxLevel),
+    onlineOnly: Boolean(filters.onlineOnly),
+    clubVisibility:
+      filters.clubVisibility === 'public' ? 'public' : undefined,
+    clubTag,
+  };
+}
+
+function areSearchFiltersActive(filters: SearchFilters) {
+  return (
+    filters.minLevel !== null ||
+    filters.maxLevel !== null ||
+    Boolean(filters.onlineOnly) ||
+    filters.clubVisibility === 'public' ||
+    Boolean(filters.clubTag?.trim())
+  );
+}
+
 export function useSearchScreen(
   options: UseSearchScreenOptions = {},
 ): UseSearchScreenReturn {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<SearchFilterKey>('all');
+  const [filters, setFilters] = useState<SearchFilters>(
+    EMPTY_SEARCH_FILTERS,
+  );
   const [currentUserId, setCurrentUserId] = useState<string | null>(
     options.userId?.trim() || null,
   );
@@ -121,6 +168,22 @@ export function useSearchScreen(
   const skipNextDebouncedSearchRef = useRef<string | null>(null);
 
   const trimmedQuery = query.trim();
+  const normalizedFilters = useMemo(() => normalizeFilters(filters), [filters]);
+  const filtersKey = useMemo(
+    () =>
+      JSON.stringify({
+        minLevel: normalizedFilters.minLevel,
+        maxLevel: normalizedFilters.maxLevel,
+        onlineOnly: Boolean(normalizedFilters.onlineOnly),
+        clubVisibility: normalizedFilters.clubVisibility ?? null,
+        clubTag: normalizedFilters.clubTag ?? null,
+      }),
+    [normalizedFilters],
+  );
+  const hasActiveFilters = useMemo(
+    () => areSearchFiltersActive(normalizedFilters),
+    [normalizedFilters],
+  );
 
   const clearDebouncedSearch = useCallback(() => {
     if (debounceTimerRef.current) {
@@ -272,8 +335,20 @@ export function useSearchScreen(
 
       try {
         const [nextUsers, nextClubs] = await Promise.all([
-          searchUsers(nextQuery, null, undefined, abortController.signal),
-          searchClubs(nextQuery, null, undefined, abortController.signal),
+          searchUsers(
+            nextQuery,
+            null,
+            undefined,
+            abortController.signal,
+            normalizedFilters,
+          ),
+          searchClubs(
+            nextQuery,
+            null,
+            undefined,
+            abortController.signal,
+            normalizedFilters,
+          ),
         ]);
 
         if (
@@ -309,7 +384,12 @@ export function useSearchScreen(
         }
       }
     },
-    [cancelCurrentPagination, cancelCurrentSearch, clearDebouncedSearch],
+    [
+      cancelCurrentPagination,
+      cancelCurrentSearch,
+      clearDebouncedSearch,
+      normalizedFilters,
+    ],
   );
 
   useEffect(() => {
@@ -345,6 +425,7 @@ export function useSearchScreen(
     cancelCurrentPagination,
     clearDebouncedSearch,
     runImmediateSearch,
+    filtersKey,
     trimmedQuery,
   ]);
 
@@ -458,6 +539,7 @@ export function useSearchScreen(
         cursor,
         undefined,
         abortController.signal,
+        normalizedFilters,
       );
 
       if (
@@ -492,6 +574,7 @@ export function useSearchScreen(
     activeFilter,
     isLoadingMore,
     isSearchingImmediate,
+    normalizedFilters,
     trimmedQuery,
     userNextCursor,
   ]);
@@ -525,6 +608,7 @@ export function useSearchScreen(
         cursor,
         undefined,
         abortController.signal,
+        normalizedFilters,
       );
 
       if (
@@ -560,6 +644,7 @@ export function useSearchScreen(
     clubNextCursor,
     isLoadingMore,
     isSearchingImmediate,
+    normalizedFilters,
     trimmedQuery,
   ]);
 
@@ -575,6 +660,18 @@ export function useSearchScreen(
   const onPressFilter = useCallback(() => {
     options.onPressFilter?.();
   }, [options]);
+
+  const applyFilters = useCallback((nextFilters: SearchFilters) => {
+    cancelCurrentSearch();
+    cancelCurrentPagination();
+    setFilters(normalizeFilters(nextFilters));
+  }, [cancelCurrentPagination, cancelCurrentSearch]);
+
+  const clearFilters = useCallback(() => {
+    cancelCurrentSearch();
+    cancelCurrentPagination();
+    setFilters(EMPTY_SEARCH_FILTERS);
+  }, [cancelCurrentPagination, cancelCurrentSearch]);
 
   const onPressUserResult = useCallback(
     async (user: SearchUserItem) => {
@@ -632,12 +729,16 @@ export function useSearchScreen(
     error,
     hasMoreUsers,
     hasMoreClubs,
+    filters: normalizedFilters,
+    hasActiveFilters,
     loadMoreUsers,
     loadMoreClubs,
     setQuery,
     setActiveFilter,
     retry,
     clearQuery,
+    applyFilters,
+    clearFilters,
     onPressFilter,
     saveRecentFromResult,
     removeRecent,

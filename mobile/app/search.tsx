@@ -25,6 +25,7 @@ import SearchTrendingClubs from '../components/search/SearchTrendingClubs';
 import SearchSkeleton from '../components/search/SearchSkeleton';
 import SearchErrorState from '../components/search/SearchErrorState';
 import SearchLoadMore from '../components/search/SearchLoadMore';
+import SearchFilterModal from '../components/search/SearchFilterModal';
 
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -45,6 +46,8 @@ export default function SearchScreen() {
   const [loadingMoreSection, setLoadingMoreSection] = React.useState<
     'users' | 'clubs' | null
   >(null);
+  const [isFilterModalVisible, setIsFilterModalVisible] =
+    React.useState(false);
 
   const {
     query,
@@ -60,12 +63,16 @@ export default function SearchScreen() {
     error,
     hasMoreUsers,
     hasMoreClubs,
+    filters,
+    hasActiveFilters,
     loadMoreUsers,
     loadMoreClubs,
     setQuery,
     setActiveFilter,
     retry,
     clearQuery,
+    applyFilters,
+    clearFilters,
     onPressFilter,
     removeRecent,
     clearAllRecent,
@@ -73,6 +80,9 @@ export default function SearchScreen() {
     onPressUserResult,
     onPressClubResult,
   } = useSearchScreen({
+    onPressFilter: () => {
+      setIsFilterModalVisible(true);
+    },
     onPressUserResult: (user) => {
       router.push(
         `/profile/${encodeURIComponent(user.id)}` as Parameters<
@@ -250,6 +260,7 @@ export default function SearchScreen() {
                 colors={colors}
                 onClear={clearQuery}
                 onPressFilter={onPressFilter}
+                hasActiveFilters={hasActiveFilters}
               />
 
               <SearchFilterPills
@@ -375,6 +386,15 @@ export default function SearchScreen() {
           activeTextColor="#ffffff"
           inactiveIconColor="rgba(249,249,249,0.72)"
           inactiveTextColor="rgba(249,249,249,0.72)"
+        />
+
+        <SearchFilterModal
+          visible={isFilterModalVisible}
+          filters={filters}
+          colors={colors}
+          onApply={applyFilters}
+          onClear={clearFilters}
+          onClose={() => setIsFilterModalVisible(false)}
         />
       </View>
     </View>

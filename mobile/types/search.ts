@@ -24,6 +24,7 @@ export type SearchApiUserItem = {
   bio: string | null;
   avatarUrl: string | null;
   level: number | null;
+  isOnline?: boolean;
   mutualCount: number;
 };
 
@@ -76,7 +77,7 @@ export type SearchUserItem = {
   level: number | null;
   levelLabel: string;
   avatarUrl?: string;
-  isOnline?: boolean;
+  isOnline: boolean;
   mutualCount?: number;
 };
 

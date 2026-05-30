@@ -94,6 +94,7 @@ export function mapApiUserToItem(apiUser: SearchApiUserItem): SearchUserItem {
     level,
     levelLabel: formatLevelLabel(level),
     avatarUrl: trimToUndefined(apiUser.avatarUrl),
+    isOnline: Boolean(apiUser.isOnline),
     mutualCount: normalizeCount(apiUser.mutualCount),
   };
 }

@@ -177,6 +177,37 @@ describe('search API client', () => {
     );
   });
 
+  it('envia filtros avancados na URL de busca', async () => {
+    const signal = new AbortController().signal;
+    fetchMock.mockResolvedValue(
+      makeJsonResponse(true, 200, {
+        items: [],
+        nextCursor: null,
+      }),
+    );
+
+    await expect(
+      searchUsers(' marina ', null, 10, signal, {
+        minLevel: 2,
+        maxLevel: 8,
+        onlineOnly: true,
+        clubVisibility: 'public',
+        clubTag: 'noite',
+      }),
+    ).resolves.toEqual({
+      items: [],
+      nextCursor: null,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/search/users?query=marina&limit=10&minLevel=2&maxLevel=8&onlineOnly=true&clubVisibility=public&clubTag=noite',
+      expect.objectContaining({
+        method: 'GET',
+        signal,
+      }),
+    );
+  });
+
   it('busca clubes com cursor, limit, token, AbortSignal e preserva nextCursor', async () => {
     const signal = new AbortController().signal;
     fetchMock.mockResolvedValue(

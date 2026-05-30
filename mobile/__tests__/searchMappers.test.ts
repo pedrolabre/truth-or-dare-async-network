@@ -48,6 +48,7 @@ describe('search mappers', () => {
       level: 4,
       levelLabel: 'Nivel 4',
       avatarUrl: 'https://example.com/avatar.png',
+      isOnline: false,
       mutualCount: 2,
     });
   });
@@ -73,6 +74,7 @@ describe('search mappers', () => {
       level: null,
       levelLabel: 'Nivel inicial',
       avatarUrl: undefined,
+      isOnline: false,
       mutualCount: 0,
     });
   });

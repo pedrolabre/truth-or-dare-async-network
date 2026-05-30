@@ -17,6 +17,7 @@ import type {
   SearchApiResponse,
   SearchApiUsersResponse,
   SearchClubItem,
+  SearchFilters,
   SearchPagination,
   SearchRecommendedResponse,
   SearchResultGroup,
@@ -336,6 +337,7 @@ function buildSearchUrl(
     query?: string;
     cursor?: string | null;
     limit?: number;
+    filters?: SearchFilters;
   } = {},
 ) {
   const searchParams = new URLSearchParams();
@@ -350,6 +352,32 @@ function buildSearchUrl(
 
   if (typeof params.limit === 'number' && Number.isFinite(params.limit)) {
     searchParams.set('limit', String(params.limit));
+  }
+
+  if (
+    typeof params.filters?.minLevel === 'number' &&
+    Number.isFinite(params.filters.minLevel)
+  ) {
+    searchParams.set('minLevel', String(params.filters.minLevel));
+  }
+
+  if (
+    typeof params.filters?.maxLevel === 'number' &&
+    Number.isFinite(params.filters.maxLevel)
+  ) {
+    searchParams.set('maxLevel', String(params.filters.maxLevel));
+  }
+
+  if (params.filters?.onlineOnly) {
+    searchParams.set('onlineOnly', 'true');
+  }
+
+  if (params.filters?.clubVisibility === 'public') {
+    searchParams.set('clubVisibility', 'public');
+  }
+
+  if (params.filters?.clubTag?.trim()) {
+    searchParams.set('clubTag', params.filters.clubTag.trim());
   }
 
   const queryString = searchParams.toString();
@@ -394,10 +422,11 @@ export async function searchAll(
   query: string,
   limit?: number,
   signal?: AbortSignal,
+  filters?: SearchFilters,
 ): Promise<SearchResultGroup> {
   const baseUrl = getApiUrl();
   const headers = await getAuthenticatedHeaders();
-  const url = buildSearchUrl(baseUrl, '/search', { query, limit });
+  const url = buildSearchUrl(baseUrl, '/search', { query, limit, filters });
 
   const response = await fetch(url, {
     method: 'GET',
@@ -417,6 +446,7 @@ export async function searchUsers(
   cursor?: string | null,
   limit?: number,
   signal?: AbortSignal,
+  filters?: SearchFilters,
 ): Promise<SearchPagination<SearchUserItem>> {
   const baseUrl = getApiUrl();
   const headers = await getAuthenticatedHeaders();
@@ -424,6 +454,7 @@ export async function searchUsers(
     query,
     cursor,
     limit,
+    filters,
   });
 
   const response = await fetch(url, {
@@ -441,6 +472,7 @@ export async function searchClubs(
   cursor?: string | null,
   limit?: number,
   signal?: AbortSignal,
+  filters?: SearchFilters,
 ): Promise<SearchPagination<SearchClubItem>> {
   const baseUrl = getApiUrl();
   const headers = await getAuthenticatedHeaders();
@@ -448,6 +480,7 @@ export async function searchClubs(
     query,
     cursor,
     limit,
+    filters,
   });
 
   const response = await fetch(url, {
