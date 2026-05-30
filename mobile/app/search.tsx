@@ -17,6 +17,11 @@ import SearchSection from '../components/search/SearchSection';
 import SearchUserResultCard from '../components/search/SearchUserResultCard';
 import SearchClubResultCard from '../components/search/SearchClubResultCard';
 import SearchEmptyState from '../components/search/SearchEmptyState';
+import SearchRecentSearches from '../components/search/SearchRecentSearches';
+import SearchRecommendedUsers from '../components/search/SearchRecommendedUsers';
+import SearchTrendingClubs from '../components/search/SearchTrendingClubs';
+import SearchSkeleton from '../components/search/SearchSkeleton';
+import SearchErrorState from '../components/search/SearchErrorState';
 
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -34,13 +39,27 @@ export default function SearchScreen() {
   const {
     query,
     activeFilter,
+    recentSearches,
+    recommendedUsers,
+    trendingClubs,
     results,
     isLoading,
     isInitialState,
     isEmptyResult,
+    error,
     setQuery,
     setActiveFilter,
+    retry,
+    clearQuery,
+    onPressFilter,
+    removeRecent,
+    clearAllRecent,
+    onPressRecent,
   } = useSearchScreen();
+
+  const shouldShowInitialState = isInitialState && !isLoading && !error;
+  const shouldShowResults = !isInitialState && !isLoading && !error;
+  const shouldShowEmptyState = shouldShowResults && isEmptyResult;
 
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
     switch (key) {
@@ -98,7 +117,7 @@ export default function SearchScreen() {
                 Buscar
               </Text>
               <Text style={[styles.screenSubtitle, { color: colors.subText }]}>
-                Procure usuários e clubes quando o backend dessas áreas estiver disponível.
+                Encontre usuarios, clubes e novas conexoes para jogar.
               </Text>
             </View>
 
@@ -107,9 +126,8 @@ export default function SearchScreen() {
                 value={query}
                 onChangeText={setQuery}
                 colors={colors}
-                onPressFilter={() => {
-                  // filtro avançado futuro
-                }}
+                onClear={clearQuery}
+                onPressFilter={onPressFilter}
               />
 
               <SearchFilterPills
@@ -119,44 +137,56 @@ export default function SearchScreen() {
               />
             </View>
 
-            {isLoading ? (
-              <View
-                style={[
-                  styles.infoCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.cardBorder,
-                  },
-                ]}
-              >
-                <Text style={[styles.infoText, { color: colors.subText }]}>
-                  Carregando resultados...
-                </Text>
-              </View>
+            {isLoading ? <SearchSkeleton colors={colors} /> : null}
+
+            {!isLoading && error ? (
+              <SearchErrorState
+                colors={colors}
+                message={error}
+                onRetry={() => {
+                  void retry();
+                }}
+              />
             ) : null}
 
-            {isInitialState ? (
-              <View
-                style={[
-                  styles.placeholderCard,
-                  {
-                    backgroundColor: colors.surface,
-                    borderColor: colors.cardBorder,
-                  },
-                ]}
-              >
-                <Text style={[styles.placeholderTitle, { color: colors.text }]}>
-                  Busca pronta para integração
-                </Text>
-                <Text style={[styles.placeholderText, { color: colors.subText }]}>
-                  Digite um termo para testar a estrutura da tela. Quando o backend estiver
-                  conectado, os resultados reais de usuários e clubes aparecerão aqui.
-                </Text>
-              </View>
+            {shouldShowInitialState && recentSearches.length > 0 ? (
+              <SearchSection title="Buscas recentes" colors={colors}>
+                <SearchRecentSearches
+                  items={recentSearches}
+                  colors={colors}
+                  onPressItem={(item) => {
+                    void onPressRecent(item);
+                  }}
+                  onRemoveItem={(id) => {
+                    void removeRecent(id);
+                  }}
+                  onClearAll={() => {
+                    void clearAllRecent();
+                  }}
+                />
+              </SearchSection>
             ) : null}
 
-            {!isInitialState && results.users.length > 0 ? (
-              <SearchSection title="Usuários" colors={colors}>
+            {shouldShowInitialState && recommendedUsers.length > 0 ? (
+              <SearchSection title="Usuarios recomendados" colors={colors}>
+                <SearchRecommendedUsers
+                  users={recommendedUsers}
+                  colors={colors}
+                />
+              </SearchSection>
+            ) : null}
+
+            {shouldShowInitialState && trendingClubs.length > 0 ? (
+              <SearchSection title="Clubes em alta" colors={colors}>
+                <SearchTrendingClubs
+                  clubs={trendingClubs}
+                  colors={colors}
+                />
+              </SearchSection>
+            ) : null}
+
+            {shouldShowResults && results.users.length > 0 ? (
+              <SearchSection title="Usuarios" colors={colors}>
                 {results.users.map((user) => (
                   <SearchUserResultCard
                     key={user.id}
@@ -173,7 +203,7 @@ export default function SearchScreen() {
               </SearchSection>
             ) : null}
 
-            {!isInitialState && results.clubs.length > 0 ? (
+            {shouldShowResults && results.clubs.length > 0 ? (
               <SearchSection title="Clubes" colors={colors}>
                 {results.clubs.map((club) => (
                   <SearchClubResultCard
@@ -191,11 +221,11 @@ export default function SearchScreen() {
               </SearchSection>
             ) : null}
 
-            {isEmptyResult ? (
+            {shouldShowEmptyState ? (
               <SearchEmptyState
                 colors={colors}
-                title="Nenhum resultado disponível"
-                description="Ainda não há dados reais conectados para essa busca, ou sua pesquisa não retornou resultados."
+                title="Nenhum resultado encontrado"
+                description="Tente buscar outro nome, usuario ou clube para continuar explorando."
               />
             ) : null}
           </ScrollView>
@@ -256,33 +286,5 @@ const styles = StyleSheet.create({
   },
   searchBlock: {
     gap: 14,
-  },
-  infoCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  infoText: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  placeholderCard: {
-    borderWidth: 1,
-    borderRadius: 22,
-    paddingHorizontal: 18,
-    paddingVertical: 20,
-    gap: 10,
-  },
-  placeholderTitle: {
-    fontSize: 18,
-    lineHeight: 22,
-    fontWeight: '900',
-    letterSpacing: -0.4,
-  },
-  placeholderText: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
   },
 });
