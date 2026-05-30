@@ -16,6 +16,7 @@ import {
 import type {
   SearchClubItem,
   SearchRecentItem,
+  SearchResultGroup,
   SearchUserItem,
 } from '../types/search';
 
@@ -100,8 +101,20 @@ function makeRecent(
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+}
+
 describe('useSearchScreen', () => {
   beforeEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
     mockedGetMyProfile.mockResolvedValue({
       id: 'profile-user-1',
@@ -119,6 +132,10 @@ describe('useSearchScreen', () => {
     mockedRemoveRecentSearch.mockResolvedValue(undefined);
     mockedClearRecentSearches.mockResolvedValue(undefined);
     mockedSearchAll.mockResolvedValue({ users: [], clubs: [] });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('carrega recomendados, clubes em alta e recentes ao montar', async () => {
@@ -169,6 +186,173 @@ describe('useSearchScreen', () => {
     expect(result.current.recentSearches).toEqual([]);
     expect(result.current.isInitialState).toBe(true);
     expect(result.current.error).toBeNull();
+  });
+
+  it('atualiza query imediatamente e dispara busca apos debounce de 350ms', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.recommendedUsers).toEqual([makeUser()]);
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('Marina');
+    });
+
+    expect(result.current.query).toBe('Marina');
+    expect(mockedSearchAll).not.toHaveBeenCalled();
+    expect(result.current.isLoading).toBe(false);
+
+    act(() => {
+      jest.advanceTimersByTime(349);
+    });
+
+    expect(mockedSearchAll).not.toHaveBeenCalled();
+
+    await act(async () => {
+      jest.advanceTimersByTime(1);
+    });
+
+    await waitFor(() => {
+      expect(mockedSearchAll).toHaveBeenCalledTimes(1);
+    });
+    expect(mockedSearchAll).toHaveBeenCalledWith(
+      'Marina',
+      undefined,
+      expect.any(Object),
+    );
+  });
+
+  it('busca resultados remotos apos debounce e expoe estado de resultado vazio', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    mockedSearchAll
+      .mockResolvedValueOnce({
+        users: [makeUser({ id: 'user-resultado' })],
+        clubs: [makeClub({ id: 'club-resultado' })],
+      })
+      .mockResolvedValueOnce({ users: [], clubs: [] });
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.recentSearches).toEqual([]);
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('resultado');
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
+    await waitFor(() => {
+      expect(result.current.results.users).toEqual([
+        expect.objectContaining({ id: 'user-resultado' }),
+      ]);
+    });
+    expect(result.current.results.clubs).toEqual([
+      expect.objectContaining({ id: 'club-resultado' }),
+    ]);
+    expect(result.current.hasAnyResults).toBe(true);
+    expect(result.current.isEmptyResult).toBe(false);
+
+    act(() => {
+      result.current.setQuery('sem resultado');
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
+    await waitFor(() => {
+      expect(result.current.results).toEqual({ users: [], clubs: [] });
+    });
+    expect(result.current.hasAnyResults).toBe(false);
+    expect(result.current.isEmptyResult).toBe(true);
+  });
+
+  it('cancela requisicao antiga e impede resultado desatualizado de sobrescrever o atual', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    const firstSearch = createDeferred<SearchResultGroup>();
+    const secondSearch = createDeferred<SearchResultGroup>();
+    mockedSearchAll.mockImplementation((term) =>
+      term === 'Marina' ? firstSearch.promise : secondSearch.promise,
+    );
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.recentSearches).toEqual([]);
+    });
+
+    jest.useFakeTimers();
+
+    act(() => {
+      result.current.setQuery('Marina');
+    });
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
+    await waitFor(() => {
+      expect(mockedSearchAll).toHaveBeenCalledTimes(1);
+    });
+
+    const firstSignal = mockedSearchAll.mock.calls[0][2] as AbortSignal;
+
+    act(() => {
+      result.current.setQuery('Julia');
+    });
+
+    expect(firstSignal.aborted).toBe(true);
+
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
+    await waitFor(() => {
+      expect(mockedSearchAll).toHaveBeenCalledTimes(2);
+    });
+
+    await act(async () => {
+      secondSearch.resolve({
+        users: [makeUser({ id: 'user-julia', name: 'Julia Atual' })],
+        clubs: [],
+      });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => {
+      expect(result.current.results.users).toEqual([
+        expect.objectContaining({ id: 'user-julia' }),
+      ]);
+    });
+
+    await act(async () => {
+      firstSearch.resolve({
+        users: [makeUser({ id: 'user-marina', name: 'Marina Antiga' })],
+        clubs: [],
+      });
+      await Promise.resolve();
+    });
+
+    expect(result.current.results.users).toEqual([
+      expect.objectContaining({ id: 'user-julia' }),
+    ]);
   });
 
   it('salva resultado de usuario como recente com referenceId e atualiza memoria', async () => {
@@ -290,12 +474,23 @@ describe('useSearchScreen', () => {
       expect(result.current.recentSearches).toEqual([recent]);
     });
 
+    jest.useFakeTimers();
+
     await act(async () => {
       await result.current.onPressRecent(recent);
     });
 
+    await act(async () => {
+      jest.advanceTimersByTime(350);
+    });
+
     expect(result.current.query).toBe('Marina');
-    expect(mockedSearchAll).toHaveBeenCalledWith('Marina');
+    expect(mockedSearchAll).toHaveBeenCalledTimes(1);
+    expect(mockedSearchAll).toHaveBeenCalledWith(
+      'Marina',
+      undefined,
+      expect.any(Object),
+    );
     expect(mockedSaveRecentSearch).toHaveBeenCalledWith('viewer-1', recent);
     expect(result.current.results.users).toEqual([
       expect.objectContaining({ id: 'user-9' }),
@@ -335,7 +530,11 @@ describe('useSearchScreen', () => {
       await result.current.retry();
     });
 
-    expect(mockedSearchAll).toHaveBeenLastCalledWith('Falha');
+    expect(mockedSearchAll).toHaveBeenLastCalledWith(
+      'Falha',
+      undefined,
+      expect.any(Object),
+    );
     expect(result.current.error).toBeNull();
     expect(result.current.results.users).toEqual([makeUser()]);
 
@@ -380,6 +579,7 @@ describe('useSearchScreen', () => {
       result.current.setActiveFilter('users');
     });
 
+    expect(mockedSearchAll).toHaveBeenCalledTimes(1);
     expect(result.current.results.users).toHaveLength(1);
     expect(result.current.results.clubs).toHaveLength(0);
     expect(result.current.isLoadingMore).toBe(false);
@@ -402,6 +602,7 @@ describe('useSearchScreen', () => {
     expect(onPressClubResult).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'club-nav' }),
     );
+    expect(mockedSearchAll).toHaveBeenCalledTimes(1);
     expect(mockedSaveRecentSearch).toHaveBeenCalledWith(
       'viewer-1',
       expect.objectContaining({

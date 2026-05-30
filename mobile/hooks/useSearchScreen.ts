@@ -22,6 +22,8 @@ import type {
 
 type SearchResultItem = SearchUserItem | SearchClubItem;
 
+const SEARCH_DEBOUNCE_MS = 350;
+
 type UseSearchScreenOptions = {
   userId?: string | null;
   onPressFilter?: () => void;
@@ -80,6 +82,10 @@ function getErrorMessage(error: unknown): string {
   return 'Nao foi possivel carregar a busca.';
 }
 
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'AbortError';
+}
+
 export function useSearchScreen(
   options: UseSearchScreenOptions = {},
 ): UseSearchScreenReturn {
@@ -101,8 +107,27 @@ export function useSearchScreen(
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(false);
   const [isSearchingImmediate, setIsSearchingImmediate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const searchAbortControllerRef = useRef<AbortController | null>(null);
+  const searchRequestIdRef = useRef(0);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextDebouncedSearchRef = useRef<string | null>(null);
 
   const trimmedQuery = query.trim();
+
+  const clearDebouncedSearch = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  }, []);
+
+  const cancelCurrentSearch = useCallback(() => {
+    clearDebouncedSearch();
+    searchRequestIdRef.current += 1;
+    searchAbortControllerRef.current?.abort();
+    searchAbortControllerRef.current = null;
+    setIsSearchingImmediate(false);
+  }, [clearDebouncedSearch]);
 
   const resolveRecentSearchesUserId = useCallback(async () => {
     const optionUserId = options.userId?.trim();
@@ -205,29 +230,103 @@ export function useSearchScreen(
     };
   }, [applyResolvedUserId, resolveRecentSearchesUserId]);
 
-  const runImmediateSearch = useCallback(async (term: string) => {
-    const nextQuery = term.trim();
+  const runImmediateSearch = useCallback(
+    async (term: string) => {
+      const nextQuery = term.trim();
 
-    if (!nextQuery) {
-      setBaseResults({ users: [], clubs: [] });
-      setError(null);
-      return;
-    }
+      if (!nextQuery) {
+        cancelCurrentSearch();
+        setBaseResults({ users: [], clubs: [] });
+        setError(null);
+        return;
+      }
 
-    try {
+      clearDebouncedSearch();
+      const requestId = searchRequestIdRef.current + 1;
+      const abortController = new AbortController();
+
+      searchRequestIdRef.current = requestId;
+      searchAbortControllerRef.current?.abort();
+      searchAbortControllerRef.current = abortController;
       setIsSearchingImmediate(true);
       setError(null);
 
-      const nextResults = await searchAll(nextQuery);
+      try {
+        const nextResults = await searchAll(
+          nextQuery,
+          undefined,
+          abortController.signal,
+        );
 
-      setBaseResults(nextResults);
-    } catch (searchError) {
+        if (
+          searchRequestIdRef.current !== requestId ||
+          abortController.signal.aborted
+        ) {
+          return;
+        }
+
+        setBaseResults(nextResults);
+      } catch (searchError) {
+        if (
+          searchRequestIdRef.current !== requestId ||
+          abortController.signal.aborted ||
+          isAbortError(searchError)
+        ) {
+          return;
+        }
+
+        setBaseResults({ users: [], clubs: [] });
+        setError(getErrorMessage(searchError));
+      } finally {
+        if (searchRequestIdRef.current === requestId) {
+          searchAbortControllerRef.current = null;
+          setIsSearchingImmediate(false);
+        }
+      }
+    },
+    [cancelCurrentSearch, clearDebouncedSearch],
+  );
+
+  useEffect(() => {
+    if (!trimmedQuery) {
+      cancelCurrentSearch();
       setBaseResults({ users: [], clubs: [] });
-      setError(getErrorMessage(searchError));
-    } finally {
-      setIsSearchingImmediate(false);
+      setError(null);
+      skipNextDebouncedSearchRef.current = null;
+      return;
     }
-  }, []);
+
+    if (skipNextDebouncedSearchRef.current === trimmedQuery) {
+      skipNextDebouncedSearchRef.current = null;
+      return;
+    }
+
+    skipNextDebouncedSearchRef.current = null;
+    cancelCurrentSearch();
+
+    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = null;
+      runImmediateSearch(trimmedQuery);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      clearDebouncedSearch();
+    };
+  }, [
+    cancelCurrentSearch,
+    clearDebouncedSearch,
+    runImmediateSearch,
+    trimmedQuery,
+  ]);
+
+  useEffect(() => {
+    return () => {
+      searchRequestIdRef.current += 1;
+      clearDebouncedSearch();
+      searchAbortControllerRef.current?.abort();
+      searchAbortControllerRef.current = null;
+    };
+  }, [clearDebouncedSearch]);
 
   const persistRecentItem = useCallback(
     async (item: SearchRecentItem) => {
@@ -279,18 +378,21 @@ export function useSearchScreen(
 
   const onPressRecent = useCallback(
     async (item: SearchRecentItem) => {
+      cancelCurrentSearch();
+      skipNextDebouncedSearchRef.current = item.label.trim();
       setQuery(item.label);
       await persistRecentItem(item);
       await runImmediateSearch(item.label);
     },
-    [persistRecentItem, runImmediateSearch],
+    [cancelCurrentSearch, persistRecentItem, runImmediateSearch],
   );
 
   const clearQuery = useCallback(() => {
+    cancelCurrentSearch();
     setQuery('');
     setBaseResults({ users: [], clubs: [] });
     setError(null);
-  }, []);
+  }, [cancelCurrentSearch]);
 
   const retry = useCallback(async () => {
     if (!trimmedQuery) {
@@ -342,7 +444,7 @@ export function useSearchScreen(
   const isInitialState = trimmedQuery.length === 0;
   const hasAnyResults = results.users.length > 0 || results.clubs.length > 0;
   const isEmptyResult = !isInitialState && !hasAnyResults;
-  const isLoading = isLoadingInitialData || isSearchingImmediate;
+  const isLoading = isSearchingImmediate;
 
   return {
     query,
