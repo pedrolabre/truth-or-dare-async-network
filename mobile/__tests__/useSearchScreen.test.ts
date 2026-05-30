@@ -5,7 +5,8 @@ import {
   getMyProfile,
   getRecommendedUsers,
   getTrendingClubs,
-  searchAll,
+  searchClubs,
+  searchUsers,
 } from '../services/api';
 import {
   clearRecentSearches,
@@ -15,8 +16,8 @@ import {
 } from '../services/recentSearches';
 import type {
   SearchClubItem,
+  SearchPagination,
   SearchRecentItem,
-  SearchResultGroup,
   SearchUserItem,
 } from '../types/search';
 
@@ -24,7 +25,8 @@ jest.mock('../services/api', () => ({
   getMyProfile: jest.fn(),
   getRecommendedUsers: jest.fn(),
   getTrendingClubs: jest.fn(),
-  searchAll: jest.fn(),
+  searchClubs: jest.fn(),
+  searchUsers: jest.fn(),
 }));
 
 jest.mock('../services/recentSearches', () => ({
@@ -44,7 +46,8 @@ const mockedGetRecommendedUsers = getRecommendedUsers as jest.MockedFunction<
 const mockedGetTrendingClubs = getTrendingClubs as jest.MockedFunction<
   typeof getTrendingClubs
 >;
-const mockedSearchAll = searchAll as jest.MockedFunction<typeof searchAll>;
+const mockedSearchUsers = searchUsers as jest.MockedFunction<typeof searchUsers>;
+const mockedSearchClubs = searchClubs as jest.MockedFunction<typeof searchClubs>;
 const mockedLoadRecentSearches = loadRecentSearches as jest.MockedFunction<
   typeof loadRecentSearches
 >;
@@ -112,6 +115,26 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
+function makeUserPage(
+  items: SearchUserItem[] = [],
+  nextCursor: string | null = null,
+): SearchPagination<SearchUserItem> {
+  return {
+    items,
+    nextCursor,
+  };
+}
+
+function makeClubPage(
+  items: SearchClubItem[] = [],
+  nextCursor: string | null = null,
+): SearchPagination<SearchClubItem> {
+  return {
+    items,
+    nextCursor,
+  };
+}
+
 describe('useSearchScreen', () => {
   beforeEach(() => {
     jest.useRealTimers();
@@ -131,7 +154,8 @@ describe('useSearchScreen', () => {
     mockedSaveRecentSearch.mockResolvedValue(undefined);
     mockedRemoveRecentSearch.mockResolvedValue(undefined);
     mockedClearRecentSearches.mockResolvedValue(undefined);
-    mockedSearchAll.mockResolvedValue({ users: [], clubs: [] });
+    mockedSearchUsers.mockResolvedValue(makeUserPage());
+    mockedSearchClubs.mockResolvedValue(makeClubPage());
   });
 
   afterEach(() => {
@@ -206,24 +230,34 @@ describe('useSearchScreen', () => {
     });
 
     expect(result.current.query).toBe('Marina');
-    expect(mockedSearchAll).not.toHaveBeenCalled();
+    expect(mockedSearchUsers).not.toHaveBeenCalled();
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
     expect(result.current.isLoading).toBe(false);
 
     act(() => {
       jest.advanceTimersByTime(349);
     });
 
-    expect(mockedSearchAll).not.toHaveBeenCalled();
+    expect(mockedSearchUsers).not.toHaveBeenCalled();
+    expect(mockedSearchClubs).not.toHaveBeenCalled();
 
     await act(async () => {
       jest.advanceTimersByTime(1);
     });
 
     await waitFor(() => {
-      expect(mockedSearchAll).toHaveBeenCalledTimes(1);
+      expect(mockedSearchUsers).toHaveBeenCalledTimes(1);
+      expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
     });
-    expect(mockedSearchAll).toHaveBeenCalledWith(
+    expect(mockedSearchUsers).toHaveBeenCalledWith(
       'Marina',
+      null,
+      undefined,
+      expect.any(Object),
+    );
+    expect(mockedSearchClubs).toHaveBeenCalledWith(
+      'Marina',
+      null,
       undefined,
       expect.any(Object),
     );
@@ -231,12 +265,16 @@ describe('useSearchScreen', () => {
 
   it('busca resultados remotos apos debounce e expoe estado de resultado vazio', async () => {
     mockedLoadRecentSearches.mockResolvedValue([]);
-    mockedSearchAll
-      .mockResolvedValueOnce({
-        users: [makeUser({ id: 'user-resultado' })],
-        clubs: [makeClub({ id: 'club-resultado' })],
-      })
-      .mockResolvedValueOnce({ users: [], clubs: [] });
+    mockedSearchUsers
+      .mockResolvedValueOnce(
+        makeUserPage([makeUser({ id: 'user-resultado' })], 'user-cursor-1'),
+      )
+      .mockResolvedValueOnce(makeUserPage());
+    mockedSearchClubs
+      .mockResolvedValueOnce(
+        makeClubPage([makeClub({ id: 'club-resultado' })], 'club-cursor-1'),
+      )
+      .mockResolvedValueOnce(makeClubPage());
 
     const { result } = renderHook(() =>
       useSearchScreen({ userId: 'viewer-1' }),
@@ -266,6 +304,8 @@ describe('useSearchScreen', () => {
     ]);
     expect(result.current.hasAnyResults).toBe(true);
     expect(result.current.isEmptyResult).toBe(false);
+    expect(result.current.hasMoreUsers).toBe(true);
+    expect(result.current.hasMoreClubs).toBe(true);
 
     act(() => {
       result.current.setQuery('sem resultado');
@@ -280,15 +320,18 @@ describe('useSearchScreen', () => {
     });
     expect(result.current.hasAnyResults).toBe(false);
     expect(result.current.isEmptyResult).toBe(true);
+    expect(result.current.hasMoreUsers).toBe(false);
+    expect(result.current.hasMoreClubs).toBe(false);
   });
 
   it('cancela requisicao antiga e impede resultado desatualizado de sobrescrever o atual', async () => {
     mockedLoadRecentSearches.mockResolvedValue([]);
-    const firstSearch = createDeferred<SearchResultGroup>();
-    const secondSearch = createDeferred<SearchResultGroup>();
-    mockedSearchAll.mockImplementation((term) =>
+    const firstSearch = createDeferred<SearchPagination<SearchUserItem>>();
+    const secondSearch = createDeferred<SearchPagination<SearchUserItem>>();
+    mockedSearchUsers.mockImplementation((term) =>
       term === 'Marina' ? firstSearch.promise : secondSearch.promise,
     );
+    mockedSearchClubs.mockResolvedValue(makeClubPage());
 
     const { result } = renderHook(() =>
       useSearchScreen({ userId: 'viewer-1' }),
@@ -309,10 +352,11 @@ describe('useSearchScreen', () => {
     });
 
     await waitFor(() => {
-      expect(mockedSearchAll).toHaveBeenCalledTimes(1);
+      expect(mockedSearchUsers).toHaveBeenCalledTimes(1);
+      expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
     });
 
-    const firstSignal = mockedSearchAll.mock.calls[0][2] as AbortSignal;
+    const firstSignal = mockedSearchUsers.mock.calls[0][3] as AbortSignal;
 
     act(() => {
       result.current.setQuery('Julia');
@@ -325,14 +369,14 @@ describe('useSearchScreen', () => {
     });
 
     await waitFor(() => {
-      expect(mockedSearchAll).toHaveBeenCalledTimes(2);
+      expect(mockedSearchUsers).toHaveBeenCalledTimes(2);
+      expect(mockedSearchClubs).toHaveBeenCalledTimes(2);
     });
 
     await act(async () => {
-      secondSearch.resolve({
-        users: [makeUser({ id: 'user-julia', name: 'Julia Atual' })],
-        clubs: [],
-      });
+      secondSearch.resolve(
+        makeUserPage([makeUser({ id: 'user-julia', name: 'Julia Atual' })]),
+      );
       await Promise.resolve();
     });
 
@@ -343,10 +387,9 @@ describe('useSearchScreen', () => {
     });
 
     await act(async () => {
-      firstSearch.resolve({
-        users: [makeUser({ id: 'user-marina', name: 'Marina Antiga' })],
-        clubs: [],
-      });
+      firstSearch.resolve(
+        makeUserPage([makeUser({ id: 'user-marina', name: 'Marina Antiga' })]),
+      );
       await Promise.resolve();
     });
 
@@ -461,10 +504,10 @@ describe('useSearchScreen', () => {
   it('toca em busca recente, preenche query e dispara busca imediata', async () => {
     const recent = makeRecent({ label: 'Marina' });
     mockedLoadRecentSearches.mockResolvedValue([recent]);
-    mockedSearchAll.mockResolvedValue({
-      users: [makeUser({ id: 'user-9', name: 'Marina Resultado' })],
-      clubs: [makeClub({ id: 'club-9' })],
-    });
+    mockedSearchUsers.mockResolvedValue(
+      makeUserPage([makeUser({ id: 'user-9', name: 'Marina Resultado' })]),
+    );
+    mockedSearchClubs.mockResolvedValue(makeClubPage([makeClub({ id: 'club-9' })]));
 
     const { result } = renderHook(() =>
       useSearchScreen({ userId: 'viewer-1' }),
@@ -485,9 +528,17 @@ describe('useSearchScreen', () => {
     });
 
     expect(result.current.query).toBe('Marina');
-    expect(mockedSearchAll).toHaveBeenCalledTimes(1);
-    expect(mockedSearchAll).toHaveBeenCalledWith(
+    expect(mockedSearchUsers).toHaveBeenCalledTimes(1);
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
+    expect(mockedSearchUsers).toHaveBeenCalledWith(
       'Marina',
+      null,
+      undefined,
+      expect.any(Object),
+    );
+    expect(mockedSearchClubs).toHaveBeenCalledWith(
+      'Marina',
+      null,
       undefined,
       expect.any(Object),
     );
@@ -505,9 +556,10 @@ describe('useSearchScreen', () => {
 
   it('expoe vazio, erro, retry e limpar campo de forma coerente', async () => {
     mockedLoadRecentSearches.mockResolvedValue([]);
-    mockedSearchAll
+    mockedSearchUsers
       .mockRejectedValueOnce(new Error('Busca indisponivel'))
-      .mockResolvedValueOnce({ users: [makeUser()], clubs: [] });
+      .mockResolvedValueOnce(makeUserPage([makeUser()], 'user-cursor-retry'));
+    mockedSearchClubs.mockResolvedValue(makeClubPage());
 
     const { result } = renderHook(() =>
       useSearchScreen({ userId: 'viewer-1' }),
@@ -530,13 +582,15 @@ describe('useSearchScreen', () => {
       await result.current.retry();
     });
 
-    expect(mockedSearchAll).toHaveBeenLastCalledWith(
+    expect(mockedSearchUsers).toHaveBeenLastCalledWith(
       'Falha',
+      null,
       undefined,
       expect.any(Object),
     );
     expect(result.current.error).toBeNull();
     expect(result.current.results.users).toEqual([makeUser()]);
+    expect(result.current.hasMoreUsers).toBe(true);
 
     act(() => {
       result.current.clearQuery();
@@ -544,19 +598,19 @@ describe('useSearchScreen', () => {
 
     expect(result.current.query).toBe('');
     expect(result.current.results).toEqual({ users: [], clubs: [] });
+    expect(result.current.hasMoreUsers).toBe(false);
+    expect(result.current.hasMoreClubs).toBe(false);
     expect(result.current.isInitialState).toBe(true);
     expect(result.current.isEmptyResult).toBe(false);
   });
 
-  it('expoe filtros, flags futuras e callbacks publicos do contrato', async () => {
+  it('expoe filtros, flags de paginacao e callbacks publicos do contrato', async () => {
     const onPressFilter = jest.fn();
     const onPressUserResult = jest.fn();
     const onPressClubResult = jest.fn();
     mockedLoadRecentSearches.mockResolvedValue([]);
-    mockedSearchAll.mockResolvedValue({
-      users: [makeUser()],
-      clubs: [makeClub()],
-    });
+    mockedSearchUsers.mockResolvedValue(makeUserPage([makeUser()]));
+    mockedSearchClubs.mockResolvedValue(makeClubPage([makeClub()]));
 
     const { result } = renderHook(() =>
       useSearchScreen({
@@ -579,7 +633,8 @@ describe('useSearchScreen', () => {
       result.current.setActiveFilter('users');
     });
 
-    expect(mockedSearchAll).toHaveBeenCalledTimes(1);
+    expect(mockedSearchUsers).toHaveBeenCalledTimes(1);
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
     expect(result.current.results.users).toHaveLength(1);
     expect(result.current.results.clubs).toHaveLength(0);
     expect(result.current.isLoadingMore).toBe(false);
@@ -602,7 +657,8 @@ describe('useSearchScreen', () => {
     expect(onPressClubResult).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'club-nav' }),
     );
-    expect(mockedSearchAll).toHaveBeenCalledTimes(1);
+    expect(mockedSearchUsers).toHaveBeenCalledTimes(1);
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
     expect(mockedSaveRecentSearch).toHaveBeenCalledWith(
       'viewer-1',
       expect.objectContaining({
@@ -617,5 +673,184 @@ describe('useSearchScreen', () => {
         referenceId: 'club-nav',
       }),
     );
+  });
+
+  it('pagina usuarios com cursor, concatena resultados e mantem loading separado', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    const nextUsers = createDeferred<SearchPagination<SearchUserItem>>();
+    mockedSearchUsers
+      .mockResolvedValueOnce(
+        makeUserPage([makeUser({ id: 'user-1' })], 'user-cursor-2'),
+      )
+      .mockReturnValueOnce(nextUsers.promise);
+    mockedSearchClubs.mockResolvedValue(
+      makeClubPage([makeClub({ id: 'club-1' })], 'club-cursor-2'),
+    );
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.onPressRecent(makeRecent({ label: 'Marina' }));
+    });
+
+    expect(result.current.hasMoreUsers).toBe(true);
+    expect(result.current.hasMoreClubs).toBe(true);
+
+    let loadMorePromise: Promise<void>;
+
+    act(() => {
+      loadMorePromise = result.current.loadMoreUsers();
+    });
+
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isLoadingMore).toBe(true);
+    expect(mockedSearchUsers).toHaveBeenCalledTimes(2);
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
+    expect(mockedSearchUsers).toHaveBeenLastCalledWith(
+      'Marina',
+      'user-cursor-2',
+      undefined,
+      expect.any(Object),
+    );
+
+    await act(async () => {
+      nextUsers.resolve(
+        makeUserPage([makeUser({ id: 'user-2', name: 'Julia Pagina' })]),
+      );
+      await loadMorePromise!;
+    });
+
+    expect(result.current.results.users).toEqual([
+      expect.objectContaining({ id: 'user-1' }),
+      expect.objectContaining({ id: 'user-2' }),
+    ]);
+    expect(result.current.results.clubs).toEqual([
+      expect.objectContaining({ id: 'club-1' }),
+    ]);
+    expect(result.current.hasMoreUsers).toBe(false);
+    expect(result.current.hasMoreClubs).toBe(true);
+    expect(result.current.isLoadingMore).toBe(false);
+  });
+
+  it('pagina clubes com cursor e respeita o filtro ativo', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    mockedSearchUsers.mockResolvedValue(
+      makeUserPage([makeUser({ id: 'user-1' })], 'user-cursor-2'),
+    );
+    mockedSearchClubs
+      .mockResolvedValueOnce(
+        makeClubPage([makeClub({ id: 'club-1' })], 'club-cursor-2'),
+      )
+      .mockResolvedValueOnce(
+        makeClubPage([makeClub({ id: 'club-2', name: 'Clube Pagina' })]),
+      );
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.onPressRecent(makeRecent({ label: 'Desafios' }));
+    });
+
+    act(() => {
+      result.current.setActiveFilter('clubs');
+    });
+
+    await act(async () => {
+      await result.current.loadMoreClubs();
+    });
+
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(2);
+    expect(mockedSearchClubs).toHaveBeenLastCalledWith(
+      'Desafios',
+      'club-cursor-2',
+      undefined,
+      expect.any(Object),
+    );
+    expect(result.current.results.users).toEqual([]);
+    expect(result.current.results.clubs).toEqual([
+      expect.objectContaining({ id: 'club-1' }),
+      expect.objectContaining({ id: 'club-2' }),
+    ]);
+    expect(result.current.hasMoreClubs).toBe(false);
+
+    act(() => {
+      result.current.setActiveFilter('users');
+    });
+
+    await act(async () => {
+      await result.current.loadMoreClubs();
+    });
+
+    expect(mockedSearchClubs).toHaveBeenCalledTimes(2);
+    expect(result.current.results.users).toEqual([
+      expect.objectContaining({ id: 'user-1' }),
+    ]);
+    expect(result.current.results.clubs).toEqual([]);
+  });
+
+  it('limpa query cancelando paginacao pendente, resultados e cursores', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    const nextUsers = createDeferred<SearchPagination<SearchUserItem>>();
+    mockedSearchUsers
+      .mockResolvedValueOnce(
+        makeUserPage([makeUser({ id: 'user-1' })], 'user-cursor-2'),
+      )
+      .mockReturnValueOnce(nextUsers.promise);
+    mockedSearchClubs.mockResolvedValue(
+      makeClubPage([makeClub({ id: 'club-1' })], 'club-cursor-2'),
+    );
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.onPressRecent(makeRecent({ label: 'Marina' }));
+    });
+
+    let loadMorePromise: Promise<void>;
+
+    act(() => {
+      loadMorePromise = result.current.loadMoreUsers();
+    });
+
+    const paginationSignal = mockedSearchUsers.mock.calls[1][3] as AbortSignal;
+
+    act(() => {
+      result.current.clearQuery();
+    });
+
+    expect(paginationSignal.aborted).toBe(true);
+    expect(result.current.query).toBe('');
+    expect(result.current.results).toEqual({ users: [], clubs: [] });
+    expect(result.current.hasMoreUsers).toBe(false);
+    expect(result.current.hasMoreClubs).toBe(false);
+    expect(result.current.isLoadingMore).toBe(false);
+    expect(result.current.error).toBeNull();
+
+    await act(async () => {
+      nextUsers.resolve(
+        makeUserPage([makeUser({ id: 'user-2', name: 'Resultado Antigo' })]),
+      );
+      await loadMorePromise!;
+    });
+
+    expect(result.current.results).toEqual({ users: [], clubs: [] });
   });
 });

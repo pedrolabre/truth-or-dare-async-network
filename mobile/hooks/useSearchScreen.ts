@@ -3,7 +3,8 @@ import {
   getMyProfile,
   getRecommendedUsers,
   getTrendingClubs,
-  searchAll,
+  searchClubs,
+  searchUsers,
 } from '../services/api';
 import {
   clearRecentSearches,
@@ -46,6 +47,8 @@ export type UseSearchScreenReturn = {
   error: string | null;
   hasMoreUsers: boolean;
   hasMoreClubs: boolean;
+  loadMoreUsers: () => Promise<void>;
+  loadMoreClubs: () => Promise<void>;
   setQuery: (value: string) => void;
   setActiveFilter: (value: SearchFilterKey) => void;
   retry: () => Promise<void>;
@@ -106,9 +109,14 @@ export function useSearchScreen(
   });
   const [isLoadingInitialData, setIsLoadingInitialData] = useState(false);
   const [isSearchingImmediate, setIsSearchingImmediate] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [userNextCursor, setUserNextCursor] = useState<string | null>(null);
+  const [clubNextCursor, setClubNextCursor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const searchAbortControllerRef = useRef<AbortController | null>(null);
+  const paginationAbortControllerRef = useRef<AbortController | null>(null);
   const searchRequestIdRef = useRef(0);
+  const paginationRequestIdRef = useRef(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextDebouncedSearchRef = useRef<string | null>(null);
 
@@ -128,6 +136,13 @@ export function useSearchScreen(
     searchAbortControllerRef.current = null;
     setIsSearchingImmediate(false);
   }, [clearDebouncedSearch]);
+
+  const cancelCurrentPagination = useCallback(() => {
+    paginationRequestIdRef.current += 1;
+    paginationAbortControllerRef.current?.abort();
+    paginationAbortControllerRef.current = null;
+    setIsLoadingMore(false);
+  }, []);
 
   const resolveRecentSearchesUserId = useCallback(async () => {
     const optionUserId = options.userId?.trim();
@@ -236,12 +251,16 @@ export function useSearchScreen(
 
       if (!nextQuery) {
         cancelCurrentSearch();
+        cancelCurrentPagination();
         setBaseResults({ users: [], clubs: [] });
+        setUserNextCursor(null);
+        setClubNextCursor(null);
         setError(null);
         return;
       }
 
       clearDebouncedSearch();
+      cancelCurrentPagination();
       const requestId = searchRequestIdRef.current + 1;
       const abortController = new AbortController();
 
@@ -252,11 +271,10 @@ export function useSearchScreen(
       setError(null);
 
       try {
-        const nextResults = await searchAll(
-          nextQuery,
-          undefined,
-          abortController.signal,
-        );
+        const [nextUsers, nextClubs] = await Promise.all([
+          searchUsers(nextQuery, null, undefined, abortController.signal),
+          searchClubs(nextQuery, null, undefined, abortController.signal),
+        ]);
 
         if (
           searchRequestIdRef.current !== requestId ||
@@ -265,7 +283,12 @@ export function useSearchScreen(
           return;
         }
 
-        setBaseResults(nextResults);
+        setBaseResults({
+          users: nextUsers.items,
+          clubs: nextClubs.items,
+        });
+        setUserNextCursor(nextUsers.nextCursor);
+        setClubNextCursor(nextClubs.nextCursor);
       } catch (searchError) {
         if (
           searchRequestIdRef.current !== requestId ||
@@ -276,6 +299,8 @@ export function useSearchScreen(
         }
 
         setBaseResults({ users: [], clubs: [] });
+        setUserNextCursor(null);
+        setClubNextCursor(null);
         setError(getErrorMessage(searchError));
       } finally {
         if (searchRequestIdRef.current === requestId) {
@@ -284,13 +309,16 @@ export function useSearchScreen(
         }
       }
     },
-    [cancelCurrentSearch, clearDebouncedSearch],
+    [cancelCurrentPagination, cancelCurrentSearch, clearDebouncedSearch],
   );
 
   useEffect(() => {
     if (!trimmedQuery) {
       cancelCurrentSearch();
+      cancelCurrentPagination();
       setBaseResults({ users: [], clubs: [] });
+      setUserNextCursor(null);
+      setClubNextCursor(null);
       setError(null);
       skipNextDebouncedSearchRef.current = null;
       return;
@@ -314,6 +342,7 @@ export function useSearchScreen(
     };
   }, [
     cancelCurrentSearch,
+    cancelCurrentPagination,
     clearDebouncedSearch,
     runImmediateSearch,
     trimmedQuery,
@@ -322,9 +351,12 @@ export function useSearchScreen(
   useEffect(() => {
     return () => {
       searchRequestIdRef.current += 1;
+      paginationRequestIdRef.current += 1;
       clearDebouncedSearch();
       searchAbortControllerRef.current?.abort();
       searchAbortControllerRef.current = null;
+      paginationAbortControllerRef.current?.abort();
+      paginationAbortControllerRef.current = null;
     };
   }, [clearDebouncedSearch]);
 
@@ -389,10 +421,147 @@ export function useSearchScreen(
 
   const clearQuery = useCallback(() => {
     cancelCurrentSearch();
+    cancelCurrentPagination();
     setQuery('');
     setBaseResults({ users: [], clubs: [] });
+    setUserNextCursor(null);
+    setClubNextCursor(null);
     setError(null);
-  }, [cancelCurrentSearch]);
+  }, [cancelCurrentPagination, cancelCurrentSearch]);
+
+  const loadMoreUsers = useCallback(async () => {
+    const nextQuery = trimmedQuery;
+    const cursor = userNextCursor?.trim();
+
+    if (
+      !nextQuery ||
+      !cursor ||
+      activeFilter === 'clubs' ||
+      isLoadingMore ||
+      isSearchingImmediate
+    ) {
+      return;
+    }
+
+    const requestId = paginationRequestIdRef.current + 1;
+    const abortController = new AbortController();
+
+    paginationRequestIdRef.current = requestId;
+    paginationAbortControllerRef.current?.abort();
+    paginationAbortControllerRef.current = abortController;
+    setIsLoadingMore(true);
+    setError(null);
+
+    try {
+      const nextUsers = await searchUsers(
+        nextQuery,
+        cursor,
+        undefined,
+        abortController.signal,
+      );
+
+      if (
+        paginationRequestIdRef.current !== requestId ||
+        abortController.signal.aborted
+      ) {
+        return;
+      }
+
+      setBaseResults((currentResults) => ({
+        ...currentResults,
+        users: [...currentResults.users, ...nextUsers.items],
+      }));
+      setUserNextCursor(nextUsers.nextCursor);
+    } catch (paginationError) {
+      if (
+        paginationRequestIdRef.current !== requestId ||
+        abortController.signal.aborted ||
+        isAbortError(paginationError)
+      ) {
+        return;
+      }
+
+      setError(getErrorMessage(paginationError));
+    } finally {
+      if (paginationRequestIdRef.current === requestId) {
+        paginationAbortControllerRef.current = null;
+        setIsLoadingMore(false);
+      }
+    }
+  }, [
+    activeFilter,
+    isLoadingMore,
+    isSearchingImmediate,
+    trimmedQuery,
+    userNextCursor,
+  ]);
+
+  const loadMoreClubs = useCallback(async () => {
+    const nextQuery = trimmedQuery;
+    const cursor = clubNextCursor?.trim();
+
+    if (
+      !nextQuery ||
+      !cursor ||
+      activeFilter === 'users' ||
+      isLoadingMore ||
+      isSearchingImmediate
+    ) {
+      return;
+    }
+
+    const requestId = paginationRequestIdRef.current + 1;
+    const abortController = new AbortController();
+
+    paginationRequestIdRef.current = requestId;
+    paginationAbortControllerRef.current?.abort();
+    paginationAbortControllerRef.current = abortController;
+    setIsLoadingMore(true);
+    setError(null);
+
+    try {
+      const nextClubs = await searchClubs(
+        nextQuery,
+        cursor,
+        undefined,
+        abortController.signal,
+      );
+
+      if (
+        paginationRequestIdRef.current !== requestId ||
+        abortController.signal.aborted
+      ) {
+        return;
+      }
+
+      setBaseResults((currentResults) => ({
+        ...currentResults,
+        clubs: [...currentResults.clubs, ...nextClubs.items],
+      }));
+      setClubNextCursor(nextClubs.nextCursor);
+    } catch (paginationError) {
+      if (
+        paginationRequestIdRef.current !== requestId ||
+        abortController.signal.aborted ||
+        isAbortError(paginationError)
+      ) {
+        return;
+      }
+
+      setError(getErrorMessage(paginationError));
+    } finally {
+      if (paginationRequestIdRef.current === requestId) {
+        paginationAbortControllerRef.current = null;
+        setIsLoadingMore(false);
+      }
+    }
+  }, [
+    activeFilter,
+    clubNextCursor,
+    isLoadingMore,
+    isSearchingImmediate,
+    trimmedQuery,
+  ]);
 
   const retry = useCallback(async () => {
     if (!trimmedQuery) {
@@ -445,6 +614,8 @@ export function useSearchScreen(
   const hasAnyResults = results.users.length > 0 || results.clubs.length > 0;
   const isEmptyResult = !isInitialState && !hasAnyResults;
   const isLoading = isSearchingImmediate;
+  const hasMoreUsers = Boolean(userNextCursor);
+  const hasMoreClubs = Boolean(clubNextCursor);
 
   return {
     query,
@@ -454,13 +625,15 @@ export function useSearchScreen(
     trendingClubs,
     results,
     isLoading,
-    isLoadingMore: false,
+    isLoadingMore,
     isInitialState,
     isEmptyResult,
     hasAnyResults,
     error,
-    hasMoreUsers: false,
-    hasMoreClubs: false,
+    hasMoreUsers,
+    hasMoreClubs,
+    loadMoreUsers,
+    loadMoreClubs,
     setQuery,
     setActiveFilter,
     retry,
