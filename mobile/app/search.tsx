@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -22,6 +24,7 @@ import SearchRecommendedUsers from '../components/search/SearchRecommendedUsers'
 import SearchTrendingClubs from '../components/search/SearchTrendingClubs';
 import SearchSkeleton from '../components/search/SearchSkeleton';
 import SearchErrorState from '../components/search/SearchErrorState';
+import SearchLoadMore from '../components/search/SearchLoadMore';
 
 import { useTheme } from '../context/ThemeContext';
 import {
@@ -30,11 +33,18 @@ import {
 } from '../constants/searchTheme';
 import { useSearchScreen } from '../hooks/useSearchScreen';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
+import type { SearchClubItem, SearchUserItem } from '../types/search';
+
+const SCROLL_END_THRESHOLD = 96;
 
 export default function SearchScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = isDark ? DARK_SEARCH_COLORS : LIGHT_SEARCH_COLORS;
+  const loadingMoreSectionRef = React.useRef<'users' | 'clubs' | null>(null);
+  const [loadingMoreSection, setLoadingMoreSection] = React.useState<
+    'users' | 'clubs' | null
+  >(null);
 
   const {
     query,
@@ -44,9 +54,14 @@ export default function SearchScreen() {
     trendingClubs,
     results,
     isLoading,
+    isLoadingMore,
     isInitialState,
     isEmptyResult,
     error,
+    hasMoreUsers,
+    hasMoreClubs,
+    loadMoreUsers,
+    loadMoreClubs,
     setQuery,
     setActiveFilter,
     retry,
@@ -55,11 +70,35 @@ export default function SearchScreen() {
     removeRecent,
     clearAllRecent,
     onPressRecent,
-  } = useSearchScreen();
+    onPressUserResult,
+    onPressClubResult,
+  } = useSearchScreen({
+    onPressUserResult: (user) => {
+      router.push(
+        `/profile/${encodeURIComponent(user.id)}` as Parameters<
+          typeof router.push
+        >[0],
+      );
+    },
+    onPressClubResult: (club) => {
+      router.push({
+        pathname: '/clubs/[id]',
+        params: { id: club.id },
+      });
+    },
+  });
 
   const shouldShowInitialState = isInitialState && !isLoading && !error;
   const shouldShowResults = !isInitialState && !isLoading && !error;
   const shouldShowEmptyState = shouldShowResults && isEmptyResult;
+  const shouldShowUserLoadMore =
+    shouldShowResults &&
+    results.users.length > 0 &&
+    loadingMoreSection === 'users';
+  const shouldShowClubLoadMore =
+    shouldShowResults &&
+    results.clubs.length > 0 &&
+    loadingMoreSection === 'clubs';
 
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
     switch (key) {
@@ -77,6 +116,87 @@ export default function SearchScreen() {
       default:
         return;
     }
+  }
+
+  async function handleLoadMoreUsers() {
+    if (
+      !shouldShowResults ||
+      !hasMoreUsers ||
+      activeFilter === 'clubs' ||
+      isLoadingMore ||
+      loadingMoreSectionRef.current
+    ) {
+      return;
+    }
+
+    loadingMoreSectionRef.current = 'users';
+    setLoadingMoreSection('users');
+
+    try {
+      await loadMoreUsers();
+    } finally {
+      loadingMoreSectionRef.current = null;
+      setLoadingMoreSection(null);
+    }
+  }
+
+  async function handleLoadMoreClubs() {
+    if (
+      !shouldShowResults ||
+      !hasMoreClubs ||
+      activeFilter === 'users' ||
+      isLoadingMore ||
+      loadingMoreSectionRef.current
+    ) {
+      return;
+    }
+
+    loadingMoreSectionRef.current = 'clubs';
+    setLoadingMoreSection('clubs');
+
+    try {
+      await loadMoreClubs();
+    } finally {
+      loadingMoreSectionRef.current = null;
+      setLoadingMoreSection(null);
+    }
+  }
+
+  function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    const distanceFromEnd =
+      contentSize.height - (contentOffset.y + layoutMeasurement.height);
+
+    if (distanceFromEnd > SCROLL_END_THRESHOLD) {
+      return;
+    }
+
+    if (activeFilter === 'users') {
+      void handleLoadMoreUsers();
+      return;
+    }
+
+    if (activeFilter === 'clubs') {
+      void handleLoadMoreClubs();
+      return;
+    }
+
+    if (hasMoreUsers) {
+      void handleLoadMoreUsers();
+      return;
+    }
+
+    if (hasMoreClubs) {
+      void handleLoadMoreClubs();
+    }
+  }
+
+  function handlePressUser(user: SearchUserItem) {
+    void onPressUserResult(user);
+  }
+
+  function handlePressClub(club: SearchClubItem) {
+    void onPressClubResult(club);
   }
 
   return (
@@ -111,6 +231,8 @@ export default function SearchScreen() {
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            scrollEventThrottle={16}
+            onScroll={handleScroll}
           >
             <View style={styles.introSection}>
               <Text style={[styles.screenTitle, { color: colors.text }]}>
@@ -172,6 +294,8 @@ export default function SearchScreen() {
                 <SearchRecommendedUsers
                   users={recommendedUsers}
                   colors={colors}
+                  onPressUser={handlePressUser}
+                  onPressPrimaryAction={handlePressUser}
                 />
               </SearchSection>
             ) : null}
@@ -181,6 +305,7 @@ export default function SearchScreen() {
                 <SearchTrendingClubs
                   clubs={trendingClubs}
                   colors={colors}
+                  onPressClub={handlePressClub}
                 />
               </SearchSection>
             ) : null}
@@ -192,14 +317,17 @@ export default function SearchScreen() {
                     key={user.id}
                     user={user}
                     colors={colors}
-                    onPress={() => {
-                      // abrir perfil real quando existir rota/endpoint
-                    }}
-                    onPressAction={() => {
-                      // abrir perfil real quando existir rota/endpoint
-                    }}
+                    onPress={handlePressUser}
+                    onPressAction={handlePressUser}
                   />
                 ))}
+
+                {shouldShowUserLoadMore ? (
+                  <SearchLoadMore
+                    colors={colors}
+                    label="Carregando mais usuarios"
+                  />
+                ) : null}
               </SearchSection>
             ) : null}
 
@@ -210,14 +338,17 @@ export default function SearchScreen() {
                     key={club.id}
                     club={club}
                     colors={colors}
-                    onPress={() => {
-                      // abrir clube real quando existir rota/endpoint
-                    }}
-                    onPressAction={() => {
-                      // abrir clube real quando existir rota/endpoint
-                    }}
+                    onPress={handlePressClub}
+                    onPressAction={handlePressClub}
                   />
                 ))}
+
+                {shouldShowClubLoadMore ? (
+                  <SearchLoadMore
+                    colors={colors}
+                    label="Carregando mais clubes"
+                  />
+                ) : null}
               </SearchSection>
             ) : null}
 

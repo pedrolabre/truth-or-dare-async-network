@@ -23,6 +23,7 @@ import type {
   SearchTrendingResponse,
   SearchUserItem,
 } from '../types/search';
+import type { PublicUserProfile } from '../types/user';
 import type {
   SubmitDareProofPayload,
   SubmitDareProofResponse,
@@ -623,6 +624,21 @@ export async function getMyProfile(): Promise<MyProfileResponse> {
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return parseResponse(response);
+}
+
+export async function getPublicUserProfile(
+  userId: string,
+): Promise<PublicUserProfile> {
+  const baseUrl = getApiUrl();
+
+  const response = await fetch(`${baseUrl}/users/${userId}/public`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
     },
   });
 

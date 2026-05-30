@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
+  getPublicUserProfile,
   getRecommendedUsers,
   getTrendingClubs,
   searchAll,
@@ -275,6 +276,44 @@ describe('search API client', () => {
         headers: {
           'Content-Type': 'application/json',
           Authorization: 'Bearer token-123',
+        },
+      },
+    );
+  });
+
+  it('busca perfil publico de usuario sem exigir token', async () => {
+    fetchMock.mockResolvedValue(
+      makeJsonResponse(true, 200, {
+        id: 'user-public-1',
+        name: 'Perfil Publico',
+        username: 'perfil_publico',
+        bio: 'Bio publica',
+        avatarUrl: null,
+        level: null,
+        levelLabel: 'Nivel indisponivel',
+        stats: {
+          createdTruthsCount: 1,
+          createdDaresCount: 2,
+          activePublicClubsCount: 3,
+          publishedClubPromptsCount: 4,
+        },
+      }),
+    );
+
+    await expect(getPublicUserProfile('user-public-1')).resolves.toMatchObject({
+      id: 'user-public-1',
+      stats: {
+        activePublicClubsCount: 3,
+      },
+    });
+
+    expect(AsyncStorage.getItem).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/users/user-public-1/public',
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
         },
       },
     );

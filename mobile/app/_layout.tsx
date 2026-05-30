@@ -32,6 +32,7 @@ export default function RootLayout() {
             name="profile"
             options={{ animation: 'none' }}
           />
+          <Stack.Screen name="profile/[id]" />
 
           <Stack.Screen name="feed-comments" />
           <Stack.Screen name="proof-detail" />
