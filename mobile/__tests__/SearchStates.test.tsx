@@ -2,12 +2,18 @@ import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
 import SearchErrorState from '../components/search/SearchErrorState';
+import SearchClubResultCard from '../components/search/SearchClubResultCard';
 import SearchContentResultCard from '../components/search/SearchContentResultCard';
 import SearchFilterPills from '../components/search/SearchFilterPills';
 import SearchLoadMore from '../components/search/SearchLoadMore';
 import SearchSkeleton from '../components/search/SearchSkeleton';
+import SearchUserResultCard from '../components/search/SearchUserResultCard';
 import { LIGHT_SEARCH_COLORS } from '../constants/searchTheme';
-import type { SearchContentItem } from '../types/search';
+import type {
+  SearchClubItem,
+  SearchContentItem,
+  SearchUserItem,
+} from '../types/search';
 
 jest.mock('@expo/vector-icons', () => {
   const React = require('react');
@@ -109,12 +115,79 @@ describe('estados visuais da busca', () => {
       />,
     );
 
-    fireEvent.press(screen.getByLabelText(/Abrir Verdade/));
+    fireEvent.press(screen.getByLabelText(/Conteudo Verdade/));
 
     expect(screen.getByText('Verdade encontrada')).toBeTruthy();
     expect(
       screen.getByText('Trecho legivel da verdade encontrada na busca.'),
     ).toBeTruthy();
     expect(onPress).toHaveBeenCalledWith(content);
+  });
+
+  it('anuncia resultados com nome, tipo e acao disponivel', () => {
+    const user: SearchUserItem = {
+      id: 'user-1',
+      name: 'Usuario com nome muito longo para validar truncamento do card',
+      username: 'usuario_com_username_extenso',
+      level: 12,
+      levelLabel: 'Nivel 12',
+      isOnline: true,
+      mutualCount: 3,
+    };
+    const club: SearchClubItem = {
+      id: 'club-1',
+      slug: 'clube-com-nome-longo',
+      name: 'Clube com nome muito longo para validar truncamento do card',
+      memberCount: 1200,
+      memberCountLabel: '1.200 membros',
+      description: 'Descricao longa do clube para validar quebra segura no layout.',
+      iconName: 'groups',
+      badgeLabel: 'Em alta',
+      isTrending: true,
+      tags: ['regressao'],
+    };
+    const content: SearchContentItem = {
+      id: 'truth:truth-2',
+      sourceId: 'truth-2',
+      sourceType: 'truth',
+      contentType: 'truth',
+      parentId: 'truth-2',
+      clubId: null,
+      title: 'Conteudo com titulo longo para regressao',
+      snippet: 'Trecho longo para validar o card de conteudo em leitores de tela.',
+      badgeLabel: 'Verdade',
+      authorName: 'Marina',
+      commentsCount: 4,
+      likesCount: 2,
+      createdAt: '2026-05-30T12:00:00.000Z',
+      route: 'feed-comments',
+    };
+
+    const screen = render(
+      <>
+        <SearchUserResultCard user={user} colors={LIGHT_SEARCH_COLORS} />
+        <SearchClubResultCard club={club} colors={LIGHT_SEARCH_COLORS} />
+        <SearchContentResultCard
+          content={content}
+          colors={LIGHT_SEARCH_COLORS}
+        />
+      </>,
+    );
+
+    expect(
+      screen.getByLabelText(
+        'Usuario Usuario com nome muito longo para validar truncamento do card. Abrir perfil disponivel.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText(
+        'Clube Clube com nome muito longo para validar truncamento do card. Abrir clube disponivel.',
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByLabelText(
+        'Conteudo Verdade: Conteudo com titulo longo para regressao. Abrir resultado disponivel.',
+      ),
+    ).toBeTruthy();
   });
 });

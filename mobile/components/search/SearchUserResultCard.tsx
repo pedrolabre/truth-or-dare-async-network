@@ -35,7 +35,7 @@ export default function SearchUserResultCard({
     <Pressable
       onPress={() => onPress?.(user)}
       accessibilityRole="button"
-      accessibilityLabel={`Abrir perfil de ${user.name}`}
+      accessibilityLabel={`Usuario ${user.name}. Abrir perfil disponivel.`}
       style={({ pressed }) => [
         styles.card,
         {
@@ -130,6 +130,7 @@ const styles = StyleSheet.create({
   },
   left: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -160,6 +161,7 @@ const styles = StyleSheet.create({
   },
   textWrap: {
     flex: 1,
+    minWidth: 0,
     gap: 3,
   },
   name: {

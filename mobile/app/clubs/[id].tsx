@@ -392,7 +392,10 @@ export default function ClubDetailScreen() {
         router.replace('/feed');
         return;
       case 'search':
-        router.replace('/search');
+        router.replace({
+          pathname: '/search',
+          params: { focus: '1' },
+        });
         return;
       case 'clubs':
         router.replace('/clubs');

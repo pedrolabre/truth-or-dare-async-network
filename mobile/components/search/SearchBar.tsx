@@ -13,6 +13,7 @@ type Props = {
   onChangeText: (value: string) => void;
   colors: SearchThemeColors;
   placeholder?: string;
+  autoFocus?: boolean;
   onClear?: () => void;
   onPressFilter?: () => void;
   hasActiveFilters?: boolean;
@@ -23,6 +24,7 @@ export default function SearchBar({
   onChangeText,
   colors,
   placeholder = 'Encontre jogadores ou clubes...',
+  autoFocus = false,
   onClear,
   onPressFilter,
   hasActiveFilters = false,
@@ -58,6 +60,7 @@ export default function SearchBar({
         selectionColor={colors.green}
         autoCapitalize="none"
         autoCorrect={false}
+        autoFocus={autoFocus}
         returnKeyType="search"
       />
 
@@ -80,7 +83,11 @@ export default function SearchBar({
       <Pressable
         onPress={onPressFilter}
         accessibilityRole="button"
-        accessibilityLabel="Abrir filtros de busca"
+        accessibilityLabel={
+          hasActiveFilters
+            ? 'Abrir filtros de busca. Filtros ativos.'
+            : 'Abrir filtros de busca'
+        }
         hitSlop={8}
         style={({ pressed }) => [
           styles.filterButton,

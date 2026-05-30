@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Keyboard,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -8,7 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 
 import FeedHeader from '../components/feed/FeedHeader';
 import FeedBottomNav from '../components/feed/FeedBottomNav';
@@ -45,8 +46,10 @@ const SCROLL_END_THRESHOLD = 96;
 
 export default function SearchScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ focus?: string }>();
   const { isDark } = useTheme();
   const colors = isDark ? DARK_SEARCH_COLORS : LIGHT_SEARCH_COLORS;
+  const shouldAutoFocusSearchBar = params.focus === '1';
   const loadingMoreSectionRef = React.useRef<
     'users' | 'clubs' | 'content' | null
   >(null);
@@ -280,6 +283,10 @@ export default function SearchScreen() {
     }
   }
 
+  function handleScrollBeginDrag() {
+    Keyboard.dismiss();
+  }
+
   function handlePressUser(user: SearchUserItem) {
     void onPressUserResult(user);
   }
@@ -323,8 +330,10 @@ export default function SearchScreen() {
             style={styles.scroll}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={false}
+            keyboardDismissMode="on-drag"
             keyboardShouldPersistTaps="handled"
             scrollEventThrottle={16}
+            onScrollBeginDrag={handleScrollBeginDrag}
             onScroll={handleScroll}
           >
             <View style={styles.introSection}>
@@ -344,6 +353,7 @@ export default function SearchScreen() {
                 onClear={clearQuery}
                 onPressFilter={onPressFilter}
                 hasActiveFilters={hasActiveFilters}
+                autoFocus={shouldAutoFocusSearchBar}
               />
 
               <SearchFilterPills

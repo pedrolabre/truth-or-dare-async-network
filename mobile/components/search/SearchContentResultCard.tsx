@@ -44,7 +44,7 @@ export default function SearchContentResultCard({
     <Pressable
       onPress={() => onPress?.(content)}
       accessibilityRole="button"
-      accessibilityLabel={`Abrir ${content.badgeLabel}: ${content.snippet}`}
+      accessibilityLabel={`Conteudo ${content.badgeLabel}: ${content.title}. Abrir resultado disponivel.`}
       style={({ pressed }) => [
         styles.card,
         {
@@ -90,7 +90,9 @@ export default function SearchContentResultCard({
                   styles.badgeText,
                   {
                     color:
-                      content.contentType === 'dare' ? colors.red : colors.green,
+                      content.contentType === 'dare'
+                        ? colors.redText
+                        : colors.greenText,
                   },
                 ]}
               >
@@ -159,6 +161,7 @@ const styles = StyleSheet.create({
   },
   left: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -172,14 +175,17 @@ const styles = StyleSheet.create({
   },
   textWrap: {
     flex: 1,
+    minWidth: 0,
     gap: 6,
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    minWidth: 0,
     gap: 8,
   },
   badge: {
+    flexShrink: 0,
     maxWidth: 150,
     minHeight: 22,
     borderRadius: 999,

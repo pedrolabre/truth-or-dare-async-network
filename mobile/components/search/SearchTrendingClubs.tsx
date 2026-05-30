@@ -36,7 +36,7 @@ export default function SearchTrendingClubs({
           key={club.id}
           onPress={() => onPressClub?.(club)}
           accessibilityRole="button"
-          accessibilityLabel={`Abrir clube ${club.name}`}
+          accessibilityLabel={`Clube em alta ${club.name}. Abrir clube disponivel.`}
           style={({ pressed }) => [
             styles.card,
             {
@@ -80,9 +80,10 @@ export default function SearchTrendingClubs({
                 ]}
               >
                 <Text
+                  numberOfLines={1}
                   style={[
                     styles.badgeText,
-                    { color: club.isTrending ? colors.green : colors.red },
+                    { color: club.isTrending ? colors.greenText : colors.redText },
                   ]}
                 >
                   {club.badgeLabel ?? 'Clube'}
@@ -154,6 +155,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   badge: {
+    maxWidth: 164,
     minHeight: 26,
     borderRadius: 999,
     paddingHorizontal: 10,

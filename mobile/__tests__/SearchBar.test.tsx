@@ -74,5 +74,21 @@ describe('SearchBar', () => {
         includeHiddenElements: true,
       }),
     ).toBeTruthy();
+    expect(
+      screen.getByLabelText('Abrir filtros de busca. Filtros ativos.'),
+    ).toBeTruthy();
+  });
+
+  it('repassa foco automatico para abertura explicita da busca', () => {
+    const screen = render(
+      <SearchBar
+        value=""
+        onChangeText={jest.fn()}
+        colors={LIGHT_SEARCH_COLORS}
+        autoFocus
+      />,
+    );
+
+    expect(screen.getByLabelText('Campo de busca').props.autoFocus).toBe(true);
   });
 });

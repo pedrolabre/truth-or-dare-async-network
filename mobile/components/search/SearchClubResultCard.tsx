@@ -35,7 +35,7 @@ export default function SearchClubResultCard({
     <Pressable
       onPress={() => onPress?.(club)}
       accessibilityRole="button"
-      accessibilityLabel={`Abrir clube ${club.name}`}
+      accessibilityLabel={`Clube ${club.name}. Abrir clube disponivel.`}
       style={({ pressed }) => [
         styles.card,
         {
@@ -78,7 +78,7 @@ export default function SearchClubResultCard({
                   style={[
                     styles.badgeText,
                     {
-                      color: club.isTrending ? colors.green : colors.red,
+                      color: club.isTrending ? colors.greenText : colors.redText,
                     },
                   ]}
                 >
@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
   },
   left: {
     flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -155,11 +156,13 @@ const styles = StyleSheet.create({
   },
   textWrap: {
     flex: 1,
+    minWidth: 0,
     gap: 6,
   },
   titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    minWidth: 0,
     gap: 8,
   },
   name: {
@@ -168,6 +171,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   badge: {
+    flexShrink: 0,
+    maxWidth: 104,
     minHeight: 22,
     borderRadius: 999,
     paddingHorizontal: 8,

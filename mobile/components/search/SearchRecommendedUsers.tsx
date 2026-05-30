@@ -50,7 +50,7 @@ export default function SearchRecommendedUsers({
             key={user.id}
             onPress={() => onPressUser?.(user)}
             accessibilityRole="button"
-            accessibilityLabel={`Abrir perfil de ${user.name}`}
+            accessibilityLabel={`Usuario recomendado ${user.name}. Abrir perfil disponivel.`}
             style={({ pressed }) => [
               styles.card,
               {
@@ -145,6 +145,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: 170,
+    minHeight: 214,
     borderRadius: 20,
     borderWidth: 1,
     padding: 16,

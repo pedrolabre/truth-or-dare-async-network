@@ -489,7 +489,10 @@ export default function FeedScreen() {
             }
 
             if (key === 'search') {
-              router.push('/search');
+              router.push({
+                pathname: '/search',
+                params: { focus: '1' },
+              });
               return;
             }
 
