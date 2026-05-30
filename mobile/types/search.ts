@@ -107,6 +107,13 @@ export type SearchScreenState = {
   trendingClubs: SearchClubItem[];
   results: SearchResultGroup;
   isLoading: boolean;
+  isLoadingMore: boolean;
+  isInitialState: boolean;
+  isEmptyResult: boolean;
+  hasAnyResults: boolean;
+  error: string | null;
+  hasMoreUsers: boolean;
+  hasMoreClubs: boolean;
 };
 
 export type SearchSectionKey =
