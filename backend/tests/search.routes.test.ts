@@ -2,6 +2,7 @@ import express from 'express';
 import request from 'supertest';
 import {
   ClubMemberStatus,
+  ClubPromptType,
   ClubStatus,
   ClubVisibility,
 } from '../src/generated/prisma/client';
@@ -11,6 +12,8 @@ import {
   addUserToClub,
   createTestClub,
   createTestClubPrompt,
+  createTestDare,
+  createTestTruth,
   createTestUser,
   resetFeedData,
 } from '../src/test-utils/factories';
@@ -67,6 +70,9 @@ describe('search.routes', () => {
     const clubsResponse = await request(app)
       .get('/search/clubs')
       .query({ query: 'rota' });
+    const contentResponse = await request(app)
+      .get('/search/content')
+      .query({ query: 'rota' });
     const recommendedResponse = await request(app).get(
       '/search/recommended/users',
     );
@@ -77,6 +83,7 @@ describe('search.routes', () => {
 
     expect(usersResponse.status).toBe(401);
     expect(clubsResponse.status).toBe(401);
+    expect(contentResponse.status).toBe(401);
     expect(recommendedResponse.status).toBe(401);
     expect(trendingResponse.status).toBe(401);
     expect(allResponse.status).toBe(401);
@@ -353,6 +360,11 @@ describe('search.routes', () => {
       name: 'Resultado Unificado Clube',
       tags: ['unificado'],
     });
+    const truth = await createTestTruth({
+      authorId: owner.id,
+      targetUserId: viewer.id,
+      content: 'Resultado unificado conteudo',
+    });
 
     const response = await request(app)
       .get('/search')
@@ -377,7 +389,252 @@ describe('search.routes', () => {
         ],
         nextCursor: null,
       },
+      content: {
+        items: [
+          expect.objectContaining({
+            id: `truth:${truth.id}`,
+            sourceType: 'truth',
+          }),
+        ],
+        nextCursor: null,
+      },
     });
+  });
+
+  it('GET /search/users aplica filtros de nivel e onlineOnly', async () => {
+    const now = new Date();
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const onlineUser = await createTestUser({
+      name: 'Filtro Rota Usuario Online',
+      email: 'search-route-filter-online@test.com',
+    });
+    const lowLevelUser = await createTestUser({
+      name: 'Filtro Rota Usuario Baixo',
+      email: 'search-route-filter-low@test.com',
+    });
+    const club = await createTestClub({
+      createdById: owner.id,
+      name: 'Filtro Rota Online Clube',
+    });
+
+    await addUserToClub(club.id, onlineUser.id, {
+      lastSeenAt: now,
+    });
+    await createTestTruth({
+      authorId: onlineUser.id,
+      targetUserId: viewer.id,
+      content: 'Atividade publica um.',
+    });
+    await createTestDare({
+      authorId: onlineUser.id,
+      targetUserId: viewer.id,
+      content: 'Atividade publica dois.',
+    });
+    await createTestTruth({
+      authorId: lowLevelUser.id,
+      targetUserId: viewer.id,
+      content: 'Atividade insuficiente.',
+    });
+
+    const response = await request(app)
+      .get('/search/users')
+      .query({
+        query: 'Filtro Rota Usuario',
+        minLevel: 2,
+        onlineOnly: 'true',
+      })
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.items).toEqual([
+      expect.objectContaining({
+        id: onlineUser.id,
+        level: 2,
+        isOnline: true,
+      }),
+    ]);
+  });
+
+  it('GET /search/clubs aplica filtros de visibilidade publica e tag', async () => {
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const taggedClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Filtro Rota Clube Noite',
+      tags: ['noite'],
+    });
+    await createTestClub({
+      createdById: owner.id,
+      name: 'Filtro Rota Clube Escola',
+      tags: ['escola'],
+    });
+    await createTestClub({
+      createdById: owner.id,
+      name: 'Filtro Rota Clube Privado',
+      visibility: ClubVisibility.private,
+      tags: ['noite'],
+    });
+
+    const response = await request(app)
+      .get('/search/clubs')
+      .query({
+        query: 'Filtro Rota Clube',
+        clubVisibility: 'public',
+        clubTag: 'noite',
+      })
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.items).toEqual([
+      expect.objectContaining({
+        id: taggedClub.id,
+        tags: ['noite'],
+      }),
+    ]);
+  });
+
+  it('GET /search/content retorna conteudo permitido com contrato publico', async () => {
+    const viewer = await createTestUser();
+    const owner = await createTestUser({
+      name: 'Autora Rota Conteudo',
+      email: 'search-route-content-author@test.com',
+    });
+    const truth = await createTestTruth({
+      authorId: owner.id,
+      targetUserId: viewer.id,
+      content: 'Conteudo rota verdade encontrado.',
+    });
+    const club = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Rota Conteudo',
+      visibility: ClubVisibility.public,
+    });
+    const prompt = await createTestClubPrompt({
+      clubId: club.id,
+      authorId: owner.id,
+      type: ClubPromptType.dare,
+      content: 'Conteudo rota desafio de clube.',
+    });
+    await prisma.clubPrompt.update({
+      where: {
+        id: prompt.id,
+      },
+      data: {
+        isMembersOnly: false,
+      },
+    });
+
+    const response = await request(app)
+      .get('/search/content')
+      .query({ query: 'conteudo rota', limit: 10 })
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `truth:${truth.id}`,
+          sourceType: 'truth',
+          contentType: 'truth',
+          parentId: truth.id,
+          clubId: null,
+          badgeLabel: 'Verdade',
+          authorName: 'Autora Rota Conteudo',
+          route: 'feed-comments',
+        }),
+        expect.objectContaining({
+          id: `club_prompt:${prompt.id}`,
+          sourceType: 'club_prompt',
+          contentType: 'dare',
+          clubId: club.id,
+          clubName: 'Clube Rota Conteudo',
+          route: 'club-detail',
+        }),
+      ]),
+    );
+    expect(response.body.items[0]).not.toHaveProperty('email');
+    expect(response.body.items[0]).not.toHaveProperty('passwordHash');
+  });
+
+  it('GET /search/content retorna vazio sem resultados', async () => {
+    const viewer = await createTestUser();
+
+    const response = await request(app)
+      .get('/search/content')
+      .query({ query: 'semconteudo' })
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      items: [],
+      nextCursor: null,
+    });
+  });
+
+  it('GET /search/content exclui conteudo privado, removido e indisponivel', async () => {
+    const now = new Date();
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const publicClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Conteudo Permitido Rota',
+      visibility: ClubVisibility.public,
+    });
+    const visiblePrompt = await createTestClubPrompt({
+      clubId: publicClub.id,
+      authorId: owner.id,
+      content: 'Filtro rota conteudo permitido.',
+    });
+    await prisma.clubPrompt.update({
+      where: {
+        id: visiblePrompt.id,
+      },
+      data: {
+        isMembersOnly: false,
+      },
+    });
+    const privateClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Conteudo Privado Rota',
+      visibility: ClubVisibility.private,
+    });
+    await createTestClubPrompt({
+      clubId: privateClub.id,
+      authorId: owner.id,
+      content: 'Filtro rota conteudo privado.',
+    });
+    const removedPrompt = await createTestClubPrompt({
+      clubId: publicClub.id,
+      authorId: owner.id,
+      content: 'Filtro rota conteudo removido.',
+    });
+    await prisma.clubPrompt.update({
+      where: {
+        id: removedPrompt.id,
+      },
+      data: {
+        removedAt: now,
+      },
+    });
+    await createTestDare({
+      authorId: owner.id,
+      targetUserId: viewer.id,
+      content: 'Filtro rota conteudo expirado.',
+      expiresAt: new Date(now.getTime() - 60_000),
+    });
+
+    const response = await request(app)
+      .get('/search/content')
+      .query({ query: 'filtro rota conteudo', limit: 10 })
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body.items).toEqual([
+      expect.objectContaining({
+        id: `club_prompt:${visiblePrompt.id}`,
+      }),
+    ]);
   });
 
   it('registra logs estruturados seguros para buscas por tipo sem expor termo bruto ou dados privados', async () => {

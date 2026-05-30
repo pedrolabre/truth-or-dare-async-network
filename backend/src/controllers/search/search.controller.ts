@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import {
   getRecommendedUsers,
   getTrendingClubs,
+  searchContent,
   searchClubs,
   SearchServiceError,
   searchUsers,
@@ -42,8 +43,34 @@ function getPaginationQuery(req: Request) {
   };
 }
 
+function getSearchFiltersQuery(req: Request) {
+  const minLevel =
+    typeof req.query.minLevel === 'string'
+      ? Number(req.query.minLevel)
+      : undefined;
+  const maxLevel =
+    typeof req.query.maxLevel === 'string'
+      ? Number(req.query.maxLevel)
+      : undefined;
+  const onlineOnly = req.query.onlineOnly;
+  const clubVisibility =
+    typeof req.query.clubVisibility === 'string'
+      ? req.query.clubVisibility
+      : undefined;
+  const clubTag =
+    typeof req.query.clubTag === 'string' ? req.query.clubTag : undefined;
+
+  return {
+    minLevel,
+    maxLevel,
+    onlineOnly,
+    clubVisibility,
+    clubTag,
+  };
+}
+
 type SearchLogPayload = {
-  searchType: 'users' | 'clubs' | 'unified';
+  searchType: 'users' | 'clubs' | 'content' | 'unified';
   userId: string;
   startedAt: number;
   query: unknown;
@@ -53,6 +80,7 @@ type SearchLogPayload = {
   nextCursorPresent: boolean;
   usersResultCount?: number;
   clubsResultCount?: number;
+  contentResultCount?: number;
 };
 
 function getQueryLength(query: unknown) {
@@ -70,6 +98,7 @@ function logSearchQuery({
   nextCursorPresent,
   usersResultCount,
   clubsResultCount,
+  contentResultCount,
 }: SearchLogPayload) {
   console.info({
     event: 'search.query_executed',
@@ -82,6 +111,7 @@ function logSearchQuery({
     resultCount,
     usersResultCount,
     clubsResultCount,
+    contentResultCount,
     nextCursorPresent,
     durationMs: Date.now() - startedAt,
   });
@@ -92,9 +122,13 @@ export async function searchUsersController(req: Request, res: Response) {
 
   try {
     const pagination = getPaginationQuery(req);
+    const filters = getSearchFiltersQuery(req);
     const users = await searchUsers(req.query.query, {
       userId: getAuthenticatedUserId(req),
       ...pagination,
+      minLevel: filters.minLevel,
+      maxLevel: filters.maxLevel,
+      onlineOnly: filters.onlineOnly === 'true' || filters.onlineOnly === '1',
     });
 
     logSearchQuery({
@@ -122,9 +156,13 @@ export async function searchClubsController(req: Request, res: Response) {
 
   try {
     const pagination = getPaginationQuery(req);
+    const filters = getSearchFiltersQuery(req);
     const clubs = await searchClubs(req.query.query, {
       userId: getAuthenticatedUserId(req),
       ...pagination,
+      clubVisibility:
+        filters.clubVisibility === 'public' ? 'public' : undefined,
+      clubTag: filters.clubTag,
     });
 
     logSearchQuery({
@@ -152,13 +190,25 @@ export async function searchAllController(req: Request, res: Response) {
 
   try {
     const pagination = getPaginationQuery(req);
+    const filters = getSearchFiltersQuery(req);
     const userId = getAuthenticatedUserId(req);
-    const [users, clubs] = await Promise.all([
+    const [users, clubs, content] = await Promise.all([
       searchUsers(req.query.query, {
         userId,
         ...pagination,
+        minLevel: filters.minLevel,
+        maxLevel: filters.maxLevel,
+        onlineOnly:
+          filters.onlineOnly === 'true' || filters.onlineOnly === '1',
       }),
       searchClubs(req.query.query, {
+        userId,
+        ...pagination,
+        clubVisibility:
+          filters.clubVisibility === 'public' ? 'public' : undefined,
+        clubTag: filters.clubTag,
+      }),
+      searchContent(req.query.query, {
         userId,
         ...pagination,
       }),
@@ -170,21 +220,55 @@ export async function searchAllController(req: Request, res: Response) {
       startedAt,
       query: req.query.query,
       ...pagination,
-      resultCount: users.items.length + clubs.items.length,
+      resultCount: users.items.length + clubs.items.length + content.items.length,
       usersResultCount: users.items.length,
       clubsResultCount: clubs.items.length,
-      nextCursorPresent: Boolean(users.nextCursor || clubs.nextCursor),
+      contentResultCount: content.items.length,
+      nextCursorPresent: Boolean(
+        users.nextCursor || clubs.nextCursor || content.nextCursor,
+      ),
     });
 
     return res.status(200).json({
       users,
       clubs,
+      content,
     });
   } catch (error) {
     return handleSearchControllerError(
       res,
       error,
       'Erro interno ao buscar resultados',
+    );
+  }
+}
+
+export async function searchContentController(req: Request, res: Response) {
+  const startedAt = Date.now();
+
+  try {
+    const pagination = getPaginationQuery(req);
+    const content = await searchContent(req.query.query, {
+      userId: getAuthenticatedUserId(req),
+      ...pagination,
+    });
+
+    logSearchQuery({
+      searchType: 'content',
+      userId: getAuthenticatedUserId(req),
+      startedAt,
+      query: req.query.query,
+      ...pagination,
+      resultCount: content.items.length,
+      nextCursorPresent: Boolean(content.nextCursor),
+    });
+
+    return res.status(200).json(content);
+  } catch (error) {
+    return handleSearchControllerError(
+      res,
+      error,
+      'Erro interno ao buscar conteudo',
     );
   }
 }

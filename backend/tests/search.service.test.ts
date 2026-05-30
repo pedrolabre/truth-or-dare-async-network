@@ -1,5 +1,6 @@
 import {
   ClubMemberStatus,
+  ClubPromptType,
   ClubStatus,
   ClubVisibility,
 } from '../src/generated/prisma/client';
@@ -9,6 +10,7 @@ import {
   getRecommendedUsers,
   getTrendingClubs,
   SearchServiceError,
+  searchContent,
   searchUsers,
 } from '../src/services/search/search.service';
 import {
@@ -310,6 +312,316 @@ describe('search.service', () => {
         }),
       ]),
     );
+  });
+
+  it('aplica filtros de nivel minimo e maximo de usuarios', async () => {
+    const viewer = await createTestUser();
+    const lowLevelUser = await createTestUser({
+      name: 'Nivel Busca Baixo',
+      email: 'search-level-low@test.com',
+    });
+    const highLevelUser = await createTestUser({
+      name: 'Nivel Busca Alto',
+      email: 'search-level-high@test.com',
+    });
+
+    await createTestTruth({
+      authorId: lowLevelUser.id,
+      targetUserId: viewer.id,
+      content: 'Atividade de nivel baixo.',
+    });
+    await createTestTruth({
+      authorId: highLevelUser.id,
+      targetUserId: viewer.id,
+      content: 'Atividade de nivel alto um.',
+    });
+    await createTestDare({
+      authorId: highLevelUser.id,
+      targetUserId: viewer.id,
+      content: 'Atividade de nivel alto dois.',
+    });
+
+    const minResult = await searchUsers('Nivel Busca', {
+      userId: viewer.id,
+      minLevel: 2,
+    });
+    const maxResult = await searchUsers('Nivel Busca', {
+      userId: viewer.id,
+      maxLevel: 1,
+    });
+
+    expect(minResult.items).toEqual([
+      expect.objectContaining({
+        id: highLevelUser.id,
+        level: 2,
+      }),
+    ]);
+    expect(maxResult.items).toEqual([
+      expect.objectContaining({
+        id: lowLevelUser.id,
+        level: 1,
+      }),
+    ]);
+  });
+
+  it('aplica filtro de usuarios online usando atividade recente em clube ativo', async () => {
+    const now = new Date('2026-05-30T15:00:00.000Z');
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const onlineUser = await createTestUser({
+      name: 'Online Busca Presente',
+      email: 'search-online-present@test.com',
+    });
+    const offlineUser = await createTestUser({
+      name: 'Online Busca Ausente',
+      email: 'search-online-absent@test.com',
+    });
+    const club = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Online Busca',
+    });
+
+    await addUserToClub(club.id, onlineUser.id, {
+      lastSeenAt: new Date('2026-05-30T14:57:00.000Z'),
+    });
+    await addUserToClub(club.id, offlineUser.id, {
+      lastSeenAt: new Date('2026-05-30T14:40:00.000Z'),
+    });
+
+    const result = await searchUsers('Online Busca', {
+      userId: viewer.id,
+      onlineOnly: true,
+      now,
+    });
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: onlineUser.id,
+        isOnline: true,
+      }),
+    ]);
+  });
+
+  it('aplica filtros de visibilidade publica e tag de clube sem vazar clubes privados', async () => {
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const taggedClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Filtro Clube Noite',
+      tags: ['noite', 'desafio'],
+    });
+    await createTestClub({
+      createdById: owner.id,
+      name: 'Filtro Clube Escola',
+      tags: ['escola'],
+    });
+    await createTestClub({
+      createdById: owner.id,
+      name: 'Filtro Clube Privado',
+      visibility: ClubVisibility.private,
+      tags: ['noite'],
+    });
+
+    const result = await searchClubs('Filtro Clube', {
+      userId: viewer.id,
+      clubVisibility: 'public',
+      clubTag: 'noite',
+    });
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: taggedClub.id,
+        tags: ['noite', 'desafio'],
+      }),
+    ]);
+  });
+
+  it('busca conteudo em verdades, desafios e comentarios permitidos', async () => {
+    const viewer = await createTestUser();
+    const author = await createTestUser({
+      name: 'Autora Conteudo',
+      email: 'search-content-author@test.com',
+    });
+    const truth = await createTestTruth({
+      authorId: author.id,
+      targetUserId: viewer.id,
+      content: 'Verdade com palavra mosaico para busca.',
+    });
+    const dare = await createTestDare({
+      authorId: author.id,
+      targetUserId: viewer.id,
+      content: 'Desafio mosaico ainda ativo.',
+      expiresAt: new Date('2026-06-01T12:00:00.000Z'),
+    });
+    const truthComment = await prisma.truthComment.create({
+      data: {
+        truthId: truth.id,
+        userId: viewer.id,
+        text: 'Comentario mosaico em verdade publica.',
+      },
+    });
+    const club = await createTestClub({
+      createdById: author.id,
+      name: 'Clube Conteudo',
+      visibility: ClubVisibility.public,
+    });
+    const prompt = await createTestClubPrompt({
+      clubId: club.id,
+      authorId: author.id,
+      type: ClubPromptType.truth,
+      content: 'Prompt mosaico aberto para todos.',
+      expiresAt: new Date('2026-06-01T12:00:00.000Z'),
+    });
+    await prisma.clubPrompt.update({
+      where: {
+        id: prompt.id,
+      },
+      data: {
+        isMembersOnly: false,
+      },
+    });
+    const promptComment = await prisma.clubPromptComment.create({
+      data: {
+        clubId: club.id,
+        promptId: prompt.id,
+        userId: viewer.id,
+        text: 'Comentario mosaico em prompt visivel.',
+      },
+    });
+
+    const result = await searchContent('mosaico', {
+      userId: viewer.id,
+      now: new Date('2026-05-30T12:00:00.000Z'),
+      limit: 10,
+    });
+
+    expect(result.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `truth:${truth.id}`,
+          sourceType: 'truth',
+          contentType: 'truth',
+          route: 'feed-comments',
+        }),
+        expect.objectContaining({
+          id: `dare:${dare.id}`,
+          sourceType: 'dare',
+          contentType: 'dare',
+          route: 'action-screen',
+        }),
+        expect.objectContaining({
+          id: `truth_comment:${truthComment.id}`,
+          sourceType: 'truth_comment',
+          contentType: 'comment',
+          parentId: truth.id,
+        }),
+        expect.objectContaining({
+          id: `club_prompt:${prompt.id}`,
+          sourceType: 'club_prompt',
+          clubId: club.id,
+          route: 'club-detail',
+        }),
+        expect.objectContaining({
+          id: `club_prompt_comment:${promptComment.id}`,
+          sourceType: 'club_prompt_comment',
+          parentId: prompt.id,
+          clubId: club.id,
+        }),
+      ]),
+    );
+    expect(result.nextCursor).toBeNull();
+  });
+
+  it('retorna conteudo vazio sem resultados', async () => {
+    const viewer = await createTestUser();
+
+    const result = await searchContent('semconteudo', {
+      userId: viewer.id,
+    });
+
+    expect(result).toEqual({
+      items: [],
+      nextCursor: null,
+    });
+  });
+
+  it('exclui conteudo de clube privado, removido, expirado e bloqueado', async () => {
+    const now = new Date('2026-05-30T12:00:00.000Z');
+    const viewer = await createTestUser();
+    const owner = await createTestUser();
+    const visibleClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Conteudo Visivel',
+      visibility: ClubVisibility.public,
+    });
+    const visiblePrompt = await createTestClubPrompt({
+      clubId: visibleClub.id,
+      authorId: owner.id,
+      content: 'Seguranca conteudo visivel.',
+      expiresAt: new Date('2026-06-01T12:00:00.000Z'),
+    });
+    await prisma.clubPrompt.update({
+      where: {
+        id: visiblePrompt.id,
+      },
+      data: {
+        isMembersOnly: false,
+      },
+    });
+    const privateClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Conteudo Privado',
+      visibility: ClubVisibility.private,
+    });
+    await createTestClubPrompt({
+      clubId: privateClub.id,
+      authorId: owner.id,
+      content: 'Seguranca conteudo privado.',
+    });
+    const removedPrompt = await createTestClubPrompt({
+      clubId: visibleClub.id,
+      authorId: owner.id,
+      content: 'Seguranca conteudo removido.',
+    });
+    await prisma.clubPrompt.update({
+      where: {
+        id: removedPrompt.id,
+      },
+      data: {
+        removedAt: now,
+      },
+    });
+    await createTestDare({
+      authorId: owner.id,
+      targetUserId: viewer.id,
+      content: 'Seguranca conteudo expirado.',
+      expiresAt: new Date('2026-05-01T12:00:00.000Z'),
+    });
+    const blockedClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Conteudo Bloqueado',
+      visibility: ClubVisibility.public,
+    });
+    await addUserToClub(blockedClub.id, viewer.id, {
+      status: ClubMemberStatus.blocked,
+    });
+    await createTestClubPrompt({
+      clubId: blockedClub.id,
+      authorId: owner.id,
+      content: 'Seguranca conteudo bloqueado.',
+    });
+
+    const result = await searchContent('seguranca', {
+      userId: viewer.id,
+      now,
+      limit: 10,
+    });
+
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        id: `club_prompt:${visiblePrompt.id}`,
+      }),
+    ]);
   });
 
   it('traduz falhas de persistencia para SEARCH_UNAVAILABLE', async () => {

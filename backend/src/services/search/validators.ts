@@ -7,6 +7,7 @@ export const SEARCH_DEFAULT_LIMIT = 20;
 export const SEARCH_MAX_LIMIT = 50;
 export const SEARCH_TRENDING_WINDOW_HOURS = 48;
 export const SEARCH_TRENDING_MEMBER_GROWTH_THRESHOLD = 5;
+export const SEARCH_ONLINE_WINDOW_MINUTES = 5;
 
 export function normalizeSearchQuery(query: unknown) {
   if (typeof query !== 'string') {
@@ -70,4 +71,32 @@ export function normalizeTrendingWindowHours(value: unknown) {
   }
 
   return Math.trunc(numericValue);
+}
+
+export function normalizeSearchLevel(value: unknown) {
+  const numericValue = Number(value);
+
+  if (!Number.isFinite(numericValue) || numericValue < 0) {
+    return undefined;
+  }
+
+  return Math.trunc(numericValue);
+}
+
+export function normalizeBooleanFilter(value: unknown) {
+  return value === true || value === 'true' || value === '1';
+}
+
+export function normalizeClubVisibilityFilter(value: unknown) {
+  return value === 'public' ? 'public' : undefined;
+}
+
+export function normalizeClubTagFilter(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const normalizedTag = value.trim().toLowerCase();
+
+  return normalizedTag || undefined;
 }

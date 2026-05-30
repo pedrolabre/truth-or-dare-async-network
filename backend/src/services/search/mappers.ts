@@ -8,6 +8,8 @@ import {
 export function mapUserToSearchResult(
   user: SearchUserRecord,
   mutualCount = 0,
+  level: number | null = null,
+  isOnline = false,
 ): SearchUserResult {
   return {
     id: user.id,
@@ -15,7 +17,8 @@ export function mapUserToSearchResult(
     username: user.username,
     bio: user.bio,
     avatarUrl: null,
-    level: null,
+    level,
+    isOnline,
     mutualCount,
   };
 }

@@ -6,9 +6,14 @@ import {
   getTrendingClubs,
   searchAll,
   searchClubs,
+  searchContent,
   searchUsers,
 } from '../services/api';
-import type { SearchApiClubItem, SearchApiUserItem } from '../types/search';
+import type {
+  SearchApiClubItem,
+  SearchApiContentItem,
+  SearchApiUserItem,
+} from '../types/search';
 
 function makeJsonResponse(
   ok: boolean,
@@ -55,6 +60,29 @@ function makeApiClub(
   };
 }
 
+function makeApiContent(
+  overrides: Partial<SearchApiContentItem> = {},
+): SearchApiContentItem {
+  return {
+    id: 'truth:truth-1',
+    sourceId: 'truth-1',
+    sourceType: 'truth',
+    contentType: 'truth',
+    parentId: 'truth-1',
+    clubId: null,
+    clubName: null,
+    title: 'Qual verdade voce escolheria?',
+    snippet: 'Qual verdade voce escolheria?',
+    badgeLabel: 'Verdade',
+    authorName: 'Marina',
+    commentsCount: 3,
+    likesCount: 5,
+    createdAt: '2026-05-30T12:00:00.000Z',
+    route: 'feed-comments',
+    ...overrides,
+  };
+}
+
 describe('search API client', () => {
   const originalApiUrl = process.env.EXPO_PUBLIC_API_URL;
   const fetchMock = jest.fn();
@@ -82,6 +110,10 @@ describe('search API client', () => {
           items: [makeApiClub()],
           nextCursor: null,
         },
+        content: {
+          items: [makeApiContent()],
+          nextCursor: null,
+        },
       }),
     );
 
@@ -100,6 +132,13 @@ describe('search API client', () => {
           name: 'Noite dos Desafios',
           memberCountLabel: '42 membros',
           badgeLabel: 'Em alta',
+        }),
+      ],
+      content: [
+        expect.objectContaining({
+          id: 'truth:truth-1',
+          badgeLabel: 'Verdade',
+          commentsCount: 3,
         }),
       ],
     });
@@ -239,6 +278,53 @@ describe('search API client', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.test/search/clubs?query=desafios&cursor=cursor-2&limit=6',
+      expect.objectContaining({
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+        signal,
+      }),
+    );
+  });
+
+  it('busca conteudo com cursor, limit, token, AbortSignal e preserva nextCursor', async () => {
+    const signal = new AbortController().signal;
+    fetchMock.mockResolvedValue(
+      makeJsonResponse(true, 200, {
+        items: [
+          makeApiContent({
+            id: 'club_prompt:prompt-1',
+            sourceId: 'prompt-1',
+            sourceType: 'club_prompt',
+            contentType: 'dare',
+            parentId: 'prompt-1',
+            clubId: 'club-1',
+            clubName: 'Noite dos Desafios',
+            route: 'club-detail',
+          }),
+        ],
+        nextCursor: 'club_prompt:prompt-1',
+      }),
+    );
+
+    await expect(
+      searchContent(' desafio ', 'cursor-3', 6, signal),
+    ).resolves.toEqual({
+      items: [
+        expect.objectContaining({
+          id: 'club_prompt:prompt-1',
+          contentType: 'dare',
+          clubName: 'Noite dos Desafios',
+          route: 'club-detail',
+        }),
+      ],
+      nextCursor: 'club_prompt:prompt-1',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/search/content?query=desafio&cursor=cursor-3&limit=6',
       expect.objectContaining({
         method: 'GET',
         headers: {

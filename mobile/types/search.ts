@@ -1,6 +1,6 @@
-export type SearchFilterKey = 'all' | 'users' | 'clubs';
+export type SearchFilterKey = 'all' | 'users' | 'clubs' | 'content';
 
-export type SearchResultType = 'user' | 'club';
+export type SearchResultType = 'user' | 'club' | 'content';
 
 export type SearchClubIconName =
   | 'groups'
@@ -44,9 +44,42 @@ export type SearchApiUsersResponse = SearchPagination<SearchApiUserItem>;
 
 export type SearchApiClubsResponse = SearchPagination<SearchApiClubItem>;
 
+export type SearchContentSourceType =
+  | 'truth'
+  | 'dare'
+  | 'truth_comment'
+  | 'club_prompt'
+  | 'club_prompt_comment';
+
+export type SearchContentRoute =
+  | 'feed-comments'
+  | 'action-screen'
+  | 'club-detail';
+
+export type SearchApiContentItem = {
+  id: string;
+  sourceId: string;
+  sourceType: SearchContentSourceType;
+  contentType: 'truth' | 'dare' | 'comment';
+  parentId: string | null;
+  clubId: string | null;
+  clubName: string | null;
+  title: string;
+  snippet: string;
+  badgeLabel: string;
+  authorName: string | null;
+  commentsCount: number;
+  likesCount: number;
+  createdAt: string;
+  route: SearchContentRoute;
+};
+
+export type SearchApiContentResponse = SearchPagination<SearchApiContentItem>;
+
 export type SearchApiResponse = {
   users: SearchApiUsersResponse;
   clubs: SearchApiClubsResponse;
+  content: SearchApiContentResponse;
 };
 
 export type SearchRecommendedResponse = SearchApiUserItem[];
@@ -95,9 +128,28 @@ export type SearchClubItem = {
   tags: string[];
 };
 
+export type SearchContentItem = {
+  id: string;
+  sourceId: string;
+  sourceType: SearchContentSourceType;
+  contentType: 'truth' | 'dare' | 'comment';
+  parentId: string | null;
+  clubId: string | null;
+  clubName?: string;
+  title: string;
+  snippet: string;
+  badgeLabel: string;
+  authorName?: string;
+  commentsCount: number;
+  likesCount: number;
+  createdAt: string;
+  route: SearchContentRoute;
+};
+
 export type SearchResultGroup = {
   users: SearchUserItem[];
   clubs: SearchClubItem[];
+  content: SearchContentItem[];
 };
 
 export type SearchScreenState = {
@@ -115,6 +167,7 @@ export type SearchScreenState = {
   error: string | null;
   hasMoreUsers: boolean;
   hasMoreClubs: boolean;
+  hasMoreContent: boolean;
 };
 
 export type SearchSectionKey =
@@ -122,4 +175,5 @@ export type SearchSectionKey =
   | 'recommended-users'
   | 'trending-clubs'
   | 'result-users'
-  | 'result-clubs';
+  | 'result-clubs'
+  | 'result-content';

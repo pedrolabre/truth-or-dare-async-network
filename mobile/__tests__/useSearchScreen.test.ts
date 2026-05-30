@@ -6,6 +6,7 @@ import {
   getRecommendedUsers,
   getTrendingClubs,
   searchClubs,
+  searchContent,
   searchUsers,
 } from '../services/api';
 import {
@@ -16,6 +17,7 @@ import {
 } from '../services/recentSearches';
 import type {
   SearchClubItem,
+  SearchContentItem,
   SearchPagination,
   SearchRecentItem,
   SearchUserItem,
@@ -26,6 +28,7 @@ jest.mock('../services/api', () => ({
   getRecommendedUsers: jest.fn(),
   getTrendingClubs: jest.fn(),
   searchClubs: jest.fn(),
+  searchContent: jest.fn(),
   searchUsers: jest.fn(),
 }));
 
@@ -48,6 +51,9 @@ const mockedGetTrendingClubs = getTrendingClubs as jest.MockedFunction<
 >;
 const mockedSearchUsers = searchUsers as jest.MockedFunction<typeof searchUsers>;
 const mockedSearchClubs = searchClubs as jest.MockedFunction<typeof searchClubs>;
+const mockedSearchContent = searchContent as jest.MockedFunction<
+  typeof searchContent
+>;
 const mockedLoadRecentSearches = loadRecentSearches as jest.MockedFunction<
   typeof loadRecentSearches
 >;
@@ -89,6 +95,28 @@ function makeClub(overrides: Partial<SearchClubItem> = {}): SearchClubItem {
     badgeLabel: 'Em alta',
     isTrending: true,
     tags: ['noite'],
+    ...overrides,
+  };
+}
+
+function makeContent(
+  overrides: Partial<SearchContentItem> = {},
+): SearchContentItem {
+  return {
+    id: 'truth:truth-1',
+    sourceId: 'truth-1',
+    sourceType: 'truth',
+    contentType: 'truth',
+    parentId: 'truth-1',
+    clubId: null,
+    title: 'Verdade de busca',
+    snippet: 'Verdade de busca com conteudo encontrado.',
+    badgeLabel: 'Verdade',
+    authorName: 'Marina',
+    commentsCount: 2,
+    likesCount: 1,
+    createdAt: '2026-05-30T12:00:00.000Z',
+    route: 'feed-comments',
     ...overrides,
   };
 }
@@ -136,6 +164,16 @@ function makeClubPage(
   };
 }
 
+function makeContentPage(
+  items: SearchContentItem[] = [],
+  nextCursor: string | null = null,
+): SearchPagination<SearchContentItem> {
+  return {
+    items,
+    nextCursor,
+  };
+}
+
 describe('useSearchScreen', () => {
   beforeEach(() => {
     jest.useRealTimers();
@@ -157,6 +195,7 @@ describe('useSearchScreen', () => {
     mockedClearRecentSearches.mockResolvedValue(undefined);
     mockedSearchUsers.mockResolvedValue(makeUserPage());
     mockedSearchClubs.mockResolvedValue(makeClubPage());
+    mockedSearchContent.mockResolvedValue(makeContentPage());
   });
 
   afterEach(() => {
@@ -233,6 +272,7 @@ describe('useSearchScreen', () => {
     expect(result.current.query).toBe('Marina');
     expect(mockedSearchUsers).not.toHaveBeenCalled();
     expect(mockedSearchClubs).not.toHaveBeenCalled();
+    expect(mockedSearchContent).not.toHaveBeenCalled();
     expect(result.current.isLoading).toBe(false);
 
     act(() => {
@@ -241,6 +281,7 @@ describe('useSearchScreen', () => {
 
     expect(mockedSearchUsers).not.toHaveBeenCalled();
     expect(mockedSearchClubs).not.toHaveBeenCalled();
+    expect(mockedSearchContent).not.toHaveBeenCalled();
 
     await act(async () => {
       jest.advanceTimersByTime(1);
@@ -249,6 +290,7 @@ describe('useSearchScreen', () => {
     await waitFor(() => {
       expect(mockedSearchUsers).toHaveBeenCalledTimes(1);
       expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
+      expect(mockedSearchContent).toHaveBeenCalledTimes(1);
     });
     expect(mockedSearchUsers).toHaveBeenCalledWith(
       'Marina',
@@ -264,6 +306,12 @@ describe('useSearchScreen', () => {
       expect.any(Object),
       expect.objectContaining({ onlineOnly: false }),
     );
+    expect(mockedSearchContent).toHaveBeenCalledWith(
+      'Marina',
+      null,
+      undefined,
+      expect.any(Object),
+    );
   });
 
   it('busca resultados remotos apos debounce e expoe estado de resultado vazio', async () => {
@@ -278,6 +326,14 @@ describe('useSearchScreen', () => {
         makeClubPage([makeClub({ id: 'club-resultado' })], 'club-cursor-1'),
       )
       .mockResolvedValueOnce(makeClubPage());
+    mockedSearchContent
+      .mockResolvedValueOnce(
+        makeContentPage(
+          [makeContent({ id: 'truth:truth-resultado' })],
+          'truth:truth-resultado',
+        ),
+      )
+      .mockResolvedValueOnce(makeContentPage());
 
     const { result } = renderHook(() =>
       useSearchScreen({ userId: 'viewer-1' }),
@@ -305,10 +361,14 @@ describe('useSearchScreen', () => {
     expect(result.current.results.clubs).toEqual([
       expect.objectContaining({ id: 'club-resultado' }),
     ]);
+    expect(result.current.results.content).toEqual([
+      expect.objectContaining({ id: 'truth:truth-resultado' }),
+    ]);
     expect(result.current.hasAnyResults).toBe(true);
     expect(result.current.isEmptyResult).toBe(false);
     expect(result.current.hasMoreUsers).toBe(true);
     expect(result.current.hasMoreClubs).toBe(true);
+    expect(result.current.hasMoreContent).toBe(true);
 
     act(() => {
       result.current.setQuery('sem resultado');
@@ -319,12 +379,17 @@ describe('useSearchScreen', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.results).toEqual({ users: [], clubs: [] });
+      expect(result.current.results).toEqual({
+        users: [],
+        clubs: [],
+        content: [],
+      });
     });
     expect(result.current.hasAnyResults).toBe(false);
     expect(result.current.isEmptyResult).toBe(true);
     expect(result.current.hasMoreUsers).toBe(false);
     expect(result.current.hasMoreClubs).toBe(false);
+    expect(result.current.hasMoreContent).toBe(false);
   });
 
   it('cancela requisicao antiga e impede resultado desatualizado de sobrescrever o atual', async () => {
@@ -580,7 +645,11 @@ describe('useSearchScreen', () => {
 
     expect(result.current.query).toBe('Falha');
     expect(result.current.error).toBe('Busca indisponivel');
-    expect(result.current.results).toEqual({ users: [], clubs: [] });
+    expect(result.current.results).toEqual({
+      users: [],
+      clubs: [],
+      content: [],
+    });
     expect(result.current.isEmptyResult).toBe(true);
 
     await act(async () => {
@@ -603,7 +672,11 @@ describe('useSearchScreen', () => {
     });
 
     expect(result.current.query).toBe('');
-    expect(result.current.results).toEqual({ users: [], clubs: [] });
+    expect(result.current.results).toEqual({
+      users: [],
+      clubs: [],
+      content: [],
+    });
     expect(result.current.hasMoreUsers).toBe(false);
     expect(result.current.hasMoreClubs).toBe(false);
     expect(result.current.isInitialState).toBe(true);
@@ -614,9 +687,11 @@ describe('useSearchScreen', () => {
     const onPressFilter = jest.fn();
     const onPressUserResult = jest.fn();
     const onPressClubResult = jest.fn();
+    const onPressContentResult = jest.fn();
     mockedLoadRecentSearches.mockResolvedValue([]);
     mockedSearchUsers.mockResolvedValue(makeUserPage([makeUser()]));
     mockedSearchClubs.mockResolvedValue(makeClubPage([makeClub()]));
+    mockedSearchContent.mockResolvedValue(makeContentPage([makeContent()]));
 
     const { result } = renderHook(() =>
       useSearchScreen({
@@ -624,6 +699,7 @@ describe('useSearchScreen', () => {
         onPressFilter,
         onPressUserResult,
         onPressClubResult,
+        onPressContentResult,
       }),
     );
 
@@ -643,6 +719,7 @@ describe('useSearchScreen', () => {
     expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
     expect(result.current.results.users).toHaveLength(1);
     expect(result.current.results.clubs).toHaveLength(0);
+    expect(result.current.results.content).toHaveLength(0);
     expect(result.current.isLoadingMore).toBe(false);
     expect(result.current.hasMoreUsers).toBe(false);
     expect(result.current.hasMoreClubs).toBe(false);
@@ -654,6 +731,9 @@ describe('useSearchScreen', () => {
     await act(async () => {
       await result.current.onPressUserResult(makeUser({ id: 'user-nav' }));
       await result.current.onPressClubResult(makeClub({ id: 'club-nav' }));
+      await result.current.onPressContentResult(
+        makeContent({ id: 'truth:content-nav' }),
+      );
     });
 
     expect(onPressFilter).toHaveBeenCalledTimes(1);
@@ -663,8 +743,21 @@ describe('useSearchScreen', () => {
     expect(onPressClubResult).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'club-nav' }),
     );
+    expect(onPressContentResult).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'truth:content-nav' }),
+    );
     expect(mockedSearchUsers).toHaveBeenCalledTimes(1);
     expect(mockedSearchClubs).toHaveBeenCalledTimes(1);
+    expect(mockedSearchContent).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.setActiveFilter('content');
+    });
+
+    expect(result.current.results.users).toHaveLength(0);
+    expect(result.current.results.clubs).toHaveLength(0);
+    expect(result.current.results.content).toEqual([makeContent()]);
+    expect(mockedSearchContent).toHaveBeenCalledTimes(1);
     expect(mockedSaveRecentSearch).toHaveBeenCalledWith(
       'viewer-1',
       expect.objectContaining({
@@ -904,6 +997,74 @@ describe('useSearchScreen', () => {
     expect(result.current.results.clubs).toEqual([]);
   });
 
+  it('pagina conteudo com cursor e respeita o filtro ativo', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    mockedSearchUsers.mockResolvedValue(makeUserPage([makeUser()]));
+    mockedSearchClubs.mockResolvedValue(makeClubPage([makeClub()]));
+    mockedSearchContent
+      .mockResolvedValueOnce(
+        makeContentPage(
+          [makeContent({ id: 'truth:content-1' })],
+          'truth:content-cursor-2',
+        ),
+      )
+      .mockResolvedValueOnce(
+        makeContentPage([
+          makeContent({
+            id: 'truth_comment:comment-2',
+            sourceType: 'truth_comment',
+            contentType: 'comment',
+            snippet: 'Comentario paginado',
+          }),
+        ]),
+      );
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    await act(async () => {
+      await result.current.onPressRecent(makeRecent({ label: 'Conteudo' }));
+    });
+
+    act(() => {
+      result.current.setActiveFilter('content');
+    });
+
+    await act(async () => {
+      await result.current.loadMoreContent();
+    });
+
+    expect(mockedSearchContent).toHaveBeenCalledTimes(2);
+    expect(mockedSearchContent).toHaveBeenLastCalledWith(
+      'Conteudo',
+      'truth:content-cursor-2',
+      undefined,
+      expect.any(Object),
+    );
+    expect(result.current.results.users).toEqual([]);
+    expect(result.current.results.clubs).toEqual([]);
+    expect(result.current.results.content).toEqual([
+      expect.objectContaining({ id: 'truth:content-1' }),
+      expect.objectContaining({ id: 'truth_comment:comment-2' }),
+    ]);
+    expect(result.current.hasMoreContent).toBe(false);
+
+    act(() => {
+      result.current.setActiveFilter('users');
+    });
+
+    await act(async () => {
+      await result.current.loadMoreContent();
+    });
+
+    expect(mockedSearchContent).toHaveBeenCalledTimes(2);
+  });
+
   it('limpa query cancelando paginacao pendente, resultados e cursores', async () => {
     mockedLoadRecentSearches.mockResolvedValue([]);
     const nextUsers = createDeferred<SearchPagination<SearchUserItem>>();
@@ -942,7 +1103,11 @@ describe('useSearchScreen', () => {
 
     expect(paginationSignal.aborted).toBe(true);
     expect(result.current.query).toBe('');
-    expect(result.current.results).toEqual({ users: [], clubs: [] });
+    expect(result.current.results).toEqual({
+      users: [],
+      clubs: [],
+      content: [],
+    });
     expect(result.current.hasMoreUsers).toBe(false);
     expect(result.current.hasMoreClubs).toBe(false);
     expect(result.current.isLoadingMore).toBe(false);
@@ -955,6 +1120,10 @@ describe('useSearchScreen', () => {
       await loadMorePromise!;
     });
 
-    expect(result.current.results).toEqual({ users: [], clubs: [] });
+    expect(result.current.results).toEqual({
+      users: [],
+      clubs: [],
+      content: [],
+    });
   });
 });

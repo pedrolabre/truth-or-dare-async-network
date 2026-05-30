@@ -1,8 +1,10 @@
 import type {
   SearchApiClubItem,
+  SearchApiContentItem,
   SearchApiUserItem,
   SearchClubIconName,
   SearchClubItem,
+  SearchContentItem,
   SearchUserItem,
 } from '../types/search';
 
@@ -116,5 +118,27 @@ export function mapApiClubToItem(apiClub: SearchApiClubItem): SearchClubItem {
     badgeLabel: isTrending ? 'Em alta' : undefined,
     isTrending,
     tags: Array.isArray(apiClub.tags) ? apiClub.tags : [],
+  };
+}
+
+export function mapApiContentToItem(
+  apiContent: SearchApiContentItem,
+): SearchContentItem {
+  return {
+    id: apiContent.id,
+    sourceId: apiContent.sourceId,
+    sourceType: apiContent.sourceType,
+    contentType: apiContent.contentType,
+    parentId: apiContent.parentId ?? null,
+    clubId: apiContent.clubId ?? null,
+    clubName: trimToUndefined(apiContent.clubName),
+    title: normalizeName(apiContent.title, 'Conteudo encontrado'),
+    snippet: normalizeName(apiContent.snippet, apiContent.title),
+    badgeLabel: normalizeName(apiContent.badgeLabel, 'Conteudo'),
+    authorName: trimToUndefined(apiContent.authorName),
+    commentsCount: normalizeCount(apiContent.commentsCount),
+    likesCount: normalizeCount(apiContent.likesCount),
+    createdAt: apiContent.createdAt,
+    route: apiContent.route,
   };
 }

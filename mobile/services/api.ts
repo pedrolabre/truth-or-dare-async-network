@@ -14,9 +14,11 @@ import type {
 import type { FeedItem } from '../types/feed';
 import type {
   SearchApiClubsResponse,
+  SearchApiContentResponse,
   SearchApiResponse,
   SearchApiUsersResponse,
   SearchClubItem,
+  SearchContentItem,
   SearchFilters,
   SearchPagination,
   SearchRecommendedResponse,
@@ -37,7 +39,11 @@ import type {
   VerifyResetCodeResponse,
 } from '../types/authRecovery';
 import type { ToggleClubLikeApi } from '../types/clubsApi';
-import { mapApiClubToItem, mapApiUserToItem } from './searchMappers';
+import {
+  mapApiClubToItem,
+  mapApiContentToItem,
+  mapApiUserToItem,
+} from './searchMappers';
 
 type SignupInput = {
   name: string;
@@ -418,6 +424,15 @@ function mapSearchClubsResponse(
   };
 }
 
+function mapSearchContentResponse(
+  response: SearchApiContentResponse,
+): SearchPagination<SearchContentItem> {
+  return {
+    items: response.items.map(mapApiContentToItem),
+    nextCursor: response.nextCursor ?? null,
+  };
+}
+
 export async function searchAll(
   query: string,
   limit?: number,
@@ -438,6 +453,7 @@ export async function searchAll(
   return {
     users: data.users.items.map(mapApiUserToItem),
     clubs: data.clubs.items.map(mapApiClubToItem),
+    content: data.content.items.map(mapApiContentToItem),
   };
 }
 
@@ -491,6 +507,30 @@ export async function searchClubs(
   const data = (await parseResponse(response)) as SearchApiClubsResponse;
 
   return mapSearchClubsResponse(data);
+}
+
+export async function searchContent(
+  query: string,
+  cursor?: string | null,
+  limit?: number,
+  signal?: AbortSignal,
+): Promise<SearchPagination<SearchContentItem>> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+  const url = buildSearchUrl(baseUrl, '/search/content', {
+    query,
+    cursor,
+    limit,
+  });
+
+  const response = await fetch(url, {
+    method: 'GET',
+    headers,
+    signal,
+  });
+  const data = (await parseResponse(response)) as SearchApiContentResponse;
+
+  return mapSearchContentResponse(data);
 }
 
 export async function getRecommendedUsers(): Promise<SearchUserItem[]> {

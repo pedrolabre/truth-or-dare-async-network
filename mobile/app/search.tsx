@@ -18,6 +18,7 @@ import SearchFilterPills from '../components/search/SearchFilterPills';
 import SearchSection from '../components/search/SearchSection';
 import SearchUserResultCard from '../components/search/SearchUserResultCard';
 import SearchClubResultCard from '../components/search/SearchClubResultCard';
+import SearchContentResultCard from '../components/search/SearchContentResultCard';
 import SearchEmptyState from '../components/search/SearchEmptyState';
 import SearchRecentSearches from '../components/search/SearchRecentSearches';
 import SearchRecommendedUsers from '../components/search/SearchRecommendedUsers';
@@ -34,7 +35,11 @@ import {
 } from '../constants/searchTheme';
 import { useSearchScreen } from '../hooks/useSearchScreen';
 import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
-import type { SearchClubItem, SearchUserItem } from '../types/search';
+import type {
+  SearchClubItem,
+  SearchContentItem,
+  SearchUserItem,
+} from '../types/search';
 
 const SCROLL_END_THRESHOLD = 96;
 
@@ -42,9 +47,11 @@ export default function SearchScreen() {
   const router = useRouter();
   const { isDark } = useTheme();
   const colors = isDark ? DARK_SEARCH_COLORS : LIGHT_SEARCH_COLORS;
-  const loadingMoreSectionRef = React.useRef<'users' | 'clubs' | null>(null);
+  const loadingMoreSectionRef = React.useRef<
+    'users' | 'clubs' | 'content' | null
+  >(null);
   const [loadingMoreSection, setLoadingMoreSection] = React.useState<
-    'users' | 'clubs' | null
+    'users' | 'clubs' | 'content' | null
   >(null);
   const [isFilterModalVisible, setIsFilterModalVisible] =
     React.useState(false);
@@ -63,10 +70,12 @@ export default function SearchScreen() {
     error,
     hasMoreUsers,
     hasMoreClubs,
+    hasMoreContent,
     filters,
     hasActiveFilters,
     loadMoreUsers,
     loadMoreClubs,
+    loadMoreContent,
     setQuery,
     setActiveFilter,
     retry,
@@ -79,6 +88,7 @@ export default function SearchScreen() {
     onPressRecent,
     onPressUserResult,
     onPressClubResult,
+    onPressContentResult,
   } = useSearchScreen({
     onPressFilter: () => {
       setIsFilterModalVisible(true);
@@ -96,6 +106,38 @@ export default function SearchScreen() {
         params: { id: club.id },
       });
     },
+    onPressContentResult: (content) => {
+      if (content.route === 'action-screen') {
+        router.push({
+          pathname: '/action-screen',
+          params: {
+            dareId: content.parentId ?? content.sourceId,
+            title: content.title,
+            challenger: content.authorName ?? '',
+          },
+        });
+        return;
+      }
+
+      if (content.route === 'club-detail' && content.clubId) {
+        router.push({
+          pathname: '/clubs/[id]',
+          params: { id: content.clubId },
+        });
+        return;
+      }
+
+      router.push({
+        pathname: '/feed-comments',
+        params: {
+          itemId: content.parentId ?? content.sourceId,
+          itemType: 'truth',
+          title: content.title,
+          commentsCount: String(content.commentsCount),
+          likesCount: String(content.likesCount),
+        },
+      });
+    },
   });
 
   const shouldShowInitialState = isInitialState && !isLoading && !error;
@@ -109,6 +151,10 @@ export default function SearchScreen() {
     shouldShowResults &&
     results.clubs.length > 0 &&
     loadingMoreSection === 'clubs';
+  const shouldShowContentLoadMore =
+    shouldShowResults &&
+    results.content.length > 0 &&
+    loadingMoreSection === 'content';
 
   function handleBottomNavSelect(key: 'play' | 'search' | 'clubs' | 'profile') {
     switch (key) {
@@ -172,6 +218,29 @@ export default function SearchScreen() {
     }
   }
 
+  async function handleLoadMoreContent() {
+    if (
+      !shouldShowResults ||
+      !hasMoreContent ||
+      activeFilter === 'users' ||
+      activeFilter === 'clubs' ||
+      isLoadingMore ||
+      loadingMoreSectionRef.current
+    ) {
+      return;
+    }
+
+    loadingMoreSectionRef.current = 'content';
+    setLoadingMoreSection('content');
+
+    try {
+      await loadMoreContent();
+    } finally {
+      loadingMoreSectionRef.current = null;
+      setLoadingMoreSection(null);
+    }
+  }
+
   function handleScroll(event: NativeSyntheticEvent<NativeScrollEvent>) {
     const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
     const distanceFromEnd =
@@ -191,6 +260,11 @@ export default function SearchScreen() {
       return;
     }
 
+    if (activeFilter === 'content') {
+      void handleLoadMoreContent();
+      return;
+    }
+
     if (hasMoreUsers) {
       void handleLoadMoreUsers();
       return;
@@ -198,6 +272,11 @@ export default function SearchScreen() {
 
     if (hasMoreClubs) {
       void handleLoadMoreClubs();
+      return;
+    }
+
+    if (hasMoreContent) {
+      void handleLoadMoreContent();
     }
   }
 
@@ -207,6 +286,10 @@ export default function SearchScreen() {
 
   function handlePressClub(club: SearchClubItem) {
     void onPressClubResult(club);
+  }
+
+  function handlePressContent(content: SearchContentItem) {
+    void onPressContentResult(content);
   }
 
   return (
@@ -267,6 +350,7 @@ export default function SearchScreen() {
                 activeFilter={activeFilter}
                 onSelect={setActiveFilter}
                 colors={colors}
+                isContentEnabled
               />
             </View>
 
@@ -363,11 +447,32 @@ export default function SearchScreen() {
               </SearchSection>
             ) : null}
 
+            {shouldShowResults && results.content.length > 0 ? (
+              <SearchSection title="Conteudo" colors={colors}>
+                {results.content.map((content) => (
+                  <SearchContentResultCard
+                    key={content.id}
+                    content={content}
+                    colors={colors}
+                    onPress={handlePressContent}
+                    onPressAction={handlePressContent}
+                  />
+                ))}
+
+                {shouldShowContentLoadMore ? (
+                  <SearchLoadMore
+                    colors={colors}
+                    label="Carregando mais conteudo"
+                  />
+                ) : null}
+              </SearchSection>
+            ) : null}
+
             {shouldShowEmptyState ? (
               <SearchEmptyState
                 colors={colors}
                 title="Nenhum resultado encontrado"
-                description="Tente buscar outro nome, usuario ou clube para continuar explorando."
+                description="Tente buscar outro nome, usuario, clube ou conteudo para continuar explorando."
               />
             ) : null}
           </ScrollView>

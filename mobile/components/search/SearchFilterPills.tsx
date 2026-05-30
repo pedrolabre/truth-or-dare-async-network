@@ -12,22 +12,30 @@ type Props = {
   activeFilter: SearchFilterKey;
   onSelect: (filter: SearchFilterKey) => void;
   colors: SearchThemeColors;
+  isContentEnabled?: boolean;
 };
 
-const FILTERS: FilterItem[] = [
+const BASE_FILTERS: FilterItem[] = [
   { key: 'all', label: 'Tudo' },
   { key: 'users', label: 'Usuários' },
   { key: 'clubs', label: 'Clubes' },
 ];
 
+const CONTENT_FILTER: FilterItem = { key: 'content', label: 'Conteudo' };
+
 export default function SearchFilterPills({
   activeFilter,
   onSelect,
   colors,
+  isContentEnabled = false,
 }: Props) {
+  const filters = isContentEnabled
+    ? [...BASE_FILTERS, CONTENT_FILTER]
+    : BASE_FILTERS;
+
   return (
     <View style={styles.container}>
-      {FILTERS.map((filter) => {
+      {filters.map((filter) => {
         const isActive = filter.key === activeFilter;
 
         return (
