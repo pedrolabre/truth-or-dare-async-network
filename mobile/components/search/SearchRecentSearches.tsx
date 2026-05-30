@@ -31,9 +31,20 @@ export default function SearchRecentSearches({
   return (
     <View style={styles.wrapper}>
       <View style={styles.header}>
-        <Text style={[styles.clearText, { color: colors.red }]} onPress={onClearAll}>
-          Limpar tudo
-        </Text>
+        <Pressable
+          onPress={onClearAll}
+          accessibilityRole="button"
+          accessibilityLabel="Limpar todas as buscas recentes"
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.clearButton,
+            pressed && styles.iconPressed,
+          ]}
+        >
+          <Text style={[styles.clearText, { color: colors.red }]}>
+            Limpar tudo
+          </Text>
+        </Pressable>
       </View>
 
       <View style={styles.list}>
@@ -41,6 +52,8 @@ export default function SearchRecentSearches({
           <Pressable
             key={item.id}
             onPress={() => onPressItem?.(item)}
+            accessibilityRole="button"
+            accessibilityLabel={`Buscar novamente por ${item.label}`}
             style={({ pressed }) => [
               styles.row,
               {
@@ -63,7 +76,12 @@ export default function SearchRecentSearches({
             <Pressable
               hitSlop={8}
               onPress={() => onRemoveItem(item.id)}
-              style={({ pressed }) => [pressed && styles.iconPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Remover ${item.label} das buscas recentes`}
+              style={({ pressed }) => [
+                styles.removeButton,
+                pressed && styles.iconPressed,
+              ]}
             >
               <MaterialIcons name="close" size={18} color={colors.muted} />
             </Pressable>
@@ -80,6 +98,12 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'flex-end',
+  },
+  clearButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   clearText: {
     fontSize: 12,
@@ -109,6 +133,13 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
+  },
+  removeButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: -10,
   },
   pressed: {
     opacity: 0.9,

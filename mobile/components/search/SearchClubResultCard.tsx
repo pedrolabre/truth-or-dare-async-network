@@ -34,6 +34,8 @@ export default function SearchClubResultCard({
   return (
     <Pressable
       onPress={() => onPress?.(club)}
+      accessibilityRole="button"
+      accessibilityLabel={`Abrir clube ${club.name}`}
       style={({ pressed }) => [
         styles.card,
         {
@@ -107,6 +109,8 @@ export default function SearchClubResultCard({
 
       <Pressable
         onPress={() => onPressAction?.(club)}
+        accessibilityRole="button"
+        accessibilityLabel={`Ver clube ${club.name}`}
         style={({ pressed }) => [
           styles.actionButton,
           { backgroundColor: colors.surfaceSoft },
@@ -147,7 +151,7 @@ const styles = StyleSheet.create({
   iconText: {
     fontSize: 18,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    letterSpacing: 0,
   },
   textWrap: {
     flex: 1,
@@ -175,7 +179,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0,
   },
   description: {
     fontSize: 12,
@@ -193,8 +197,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   actionButton: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',

@@ -49,6 +49,8 @@ export default function SearchRecommendedUsers({
           <Pressable
             key={user.id}
             onPress={() => onPressUser?.(user)}
+            accessibilityRole="button"
+            accessibilityLabel={`Abrir perfil de ${user.name}`}
             style={({ pressed }) => [
               styles.card,
               {
@@ -99,6 +101,12 @@ export default function SearchRecommendedUsers({
 
             <Pressable
               onPress={() => onPressPrimaryAction?.(user)}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isPrimaryAction
+                  ? `Desafiar ${user.name}`
+                  : `Ver perfil de ${user.name}`
+              }
               style={({ pressed }) => [
                 styles.actionButton,
                 {
@@ -157,7 +165,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 22,
     fontWeight: '900',
-    letterSpacing: -0.4,
+    letterSpacing: 0,
   },
   statusDot: {
     position: 'absolute',
@@ -178,12 +186,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textAlign: 'center',
     textTransform: 'uppercase',
-    letterSpacing: 0.4,
+    letterSpacing: 0,
     minHeight: 30,
   },
   actionButton: {
     marginTop: 4,
-    minHeight: 38,
+    minHeight: 44,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -197,7 +205,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0,
   },
   pressed: {
     opacity: 0.92,

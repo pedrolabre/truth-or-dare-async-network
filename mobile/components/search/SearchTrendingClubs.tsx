@@ -35,6 +35,8 @@ export default function SearchTrendingClubs({
         <Pressable
           key={club.id}
           onPress={() => onPressClub?.(club)}
+          accessibilityRole="button"
+          accessibilityLabel={`Abrir clube ${club.name}`}
           style={({ pressed }) => [
             styles.card,
             {
@@ -132,13 +134,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0,
   },
   memberCount: {
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0,
   },
   body: {
     paddingHorizontal: 14,
@@ -163,7 +165,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0,
   },
   description: {
     fontSize: 13,

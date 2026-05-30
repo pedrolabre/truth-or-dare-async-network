@@ -34,6 +34,8 @@ export default function SearchFilterPills({
           <Pressable
             key={filter.key}
             onPress={() => onSelect(filter.key)}
+            accessibilityRole="button"
+            accessibilityLabel={`Filtrar busca por ${filter.label}`}
             style={({ pressed }) => [
               styles.pill,
               {
@@ -67,7 +69,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   pill: {
-    minHeight: 38,
+    minHeight: 44,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 999,
@@ -78,7 +80,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.2,
+    letterSpacing: 0,
   },
   pressed: {
     opacity: 0.9,

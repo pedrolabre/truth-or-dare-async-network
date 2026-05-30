@@ -13,6 +13,7 @@ type Props = {
   onChangeText: (value: string) => void;
   colors: SearchThemeColors;
   placeholder?: string;
+  onClear?: () => void;
   onPressFilter?: () => void;
 };
 
@@ -21,8 +22,11 @@ export default function SearchBar({
   onChangeText,
   colors,
   placeholder = 'Encontre jogadores ou clubes...',
+  onClear,
   onPressFilter,
 }: Props) {
+  const canClear = value.length > 0 && typeof onClear === 'function';
+
   return (
     <View
       style={[
@@ -40,6 +44,7 @@ export default function SearchBar({
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        accessibilityLabel="Campo de busca"
         placeholder={placeholder}
         placeholderTextColor={colors.muted}
         style={[
@@ -54,8 +59,26 @@ export default function SearchBar({
         returnKeyType="search"
       />
 
+      {canClear ? (
+        <Pressable
+          onPress={onClear}
+          accessibilityRole="button"
+          accessibilityLabel="Limpar campo de busca"
+          hitSlop={8}
+          style={({ pressed }) => [
+            styles.clearButton,
+            { backgroundColor: colors.surfaceStrong },
+            pressed && styles.pressed,
+          ]}
+        >
+          <MaterialIcons name="close" size={18} color={colors.subText} />
+        </Pressable>
+      ) : null}
+
       <Pressable
         onPress={onPressFilter}
+        accessibilityRole="button"
+        accessibilityLabel="Abrir filtros de busca"
         hitSlop={8}
         style={({ pressed }) => [
           styles.filterButton,
@@ -94,8 +117,15 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   filterButton: {
-    width: 42,
-    height: 42,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearButton: {
+    width: 44,
+    height: 44,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',

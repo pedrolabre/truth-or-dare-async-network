@@ -34,6 +34,8 @@ export default function SearchUserResultCard({
   return (
     <Pressable
       onPress={() => onPress?.(user)}
+      accessibilityRole="button"
+      accessibilityLabel={`Abrir perfil de ${user.name}`}
       style={({ pressed }) => [
         styles.card,
         {
@@ -100,6 +102,8 @@ export default function SearchUserResultCard({
 
       <Pressable
         onPress={() => onPressAction?.(user)}
+        accessibilityRole="button"
+        accessibilityLabel={`Ver perfil de ${user.name}`}
         style={({ pressed }) => [
           styles.actionButton,
           { backgroundColor: colors.surfaceSoft },
@@ -143,7 +147,7 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 18,
     fontWeight: '900',
-    letterSpacing: -0.3,
+    letterSpacing: 0,
   },
   statusDot: {
     position: 'absolute',
@@ -174,7 +178,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0,
   },
   mutualWrap: {
     flexDirection: 'row',
@@ -186,8 +190,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   actionButton: {
-    width: 38,
-    height: 38,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
