@@ -161,3 +161,13 @@ export async function saveThemeMode(mode: ThemeMode): Promise<void> {
 
   await saveSettings({ themeMode: mode });
 }
+
+export async function clearLocalSettings(): Promise<void> {
+  const storageKey = await getSettingsStorageKey();
+
+  try {
+    await AsyncStorage.removeItem(storageKey);
+  } catch {
+    return;
+  }
+}

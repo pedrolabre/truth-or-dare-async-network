@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
+  clearLocalSettings,
   loadAllSettings,
   loadThemeMode,
   saveSettings,
@@ -149,5 +150,20 @@ describe('settings storage service', () => {
     await saveThemeMode('sepia' as never);
 
     await expect(loadThemeMode()).resolves.toBe('system');
+  });
+
+  it('limpa somente as configuracoes locais do namespace autenticado atual', async () => {
+    await authenticateAs('user-1');
+    await saveThemeMode('dark');
+
+    await authenticateAs('user-2');
+    await saveThemeMode('light');
+
+    await clearLocalSettings();
+
+    await expect(loadThemeMode()).resolves.toBe('system');
+
+    await authenticateAs('user-1');
+    await expect(loadThemeMode()).resolves.toBe('dark');
   });
 });
