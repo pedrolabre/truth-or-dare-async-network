@@ -15,6 +15,7 @@ model User {
   createdAt       DateTime       @default(now())
   bio             String?
   username        String?        @unique
+  isPrivate       Boolean        @default(false)
   clubsCreated    Club[]
   clubInvitesReceived ClubInvite[] @relation("ClubInviteInvitee")
   clubInvitesSent     ClubInvite[] @relation("ClubInviteInviter")

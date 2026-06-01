@@ -3,8 +3,10 @@ import {
   getMyProfile,
   getPublicUserProfile,
   listUsersForChallenge,
+  updateMyAccount,
   updateMyProfile,
 } from '../../services/users/users.service';
+import { UserSettingsServiceError } from '../../services/users/settings.errors';
 
 export async function listUsersController(req: Request, res: Response) {
   try {
@@ -41,6 +43,13 @@ export async function getMyProfileController(req: Request, res: Response) {
 
     return res.status(200).json(profile);
   } catch (error) {
+    if (error instanceof UserSettingsServiceError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+
     const message =
       error instanceof Error
         ? error.message
@@ -96,6 +105,13 @@ export async function updateMyProfileController(req: Request, res: Response) {
 
     return res.status(200).json(updatedProfile);
   } catch (error) {
+    if (error instanceof UserSettingsServiceError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+
     const message =
       error instanceof Error
         ? error.message
@@ -115,6 +131,40 @@ export async function updateMyProfileController(req: Request, res: Response) {
 
     return res.status(status).json({
       error: message,
+    });
+  }
+}
+
+export async function patchMyAccountController(req: Request, res: Response) {
+  try {
+    const userId = req.user?.sub ?? '';
+    const body = req.body ?? {};
+    const { name, username, bio, isPrivate } = body;
+
+    const updatedProfile = await updateMyAccount(userId, {
+      ...(Object.prototype.hasOwnProperty.call(body, 'name')
+        ? { name }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, 'username')
+        ? { username }
+        : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, 'bio') ? { bio } : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, 'isPrivate')
+        ? { isPrivate }
+        : {}),
+    });
+
+    return res.status(200).json(updatedProfile);
+  } catch (error) {
+    if (error instanceof UserSettingsServiceError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Erro interno ao atualizar configuracoes da conta',
     });
   }
 }

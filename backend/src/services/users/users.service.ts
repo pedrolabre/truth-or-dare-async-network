@@ -5,6 +5,14 @@ import {
   ClubVisibility,
 } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
+import {
+  userNotFoundError,
+  usernameAlreadyInUseError,
+} from './settings.errors';
+import {
+  type UpdateMyAccountInput,
+  validateMyAccountUpdate,
+} from './settings.validators';
 
 type ListUsersInput = {
   currentUserId: string;
@@ -23,8 +31,17 @@ export type MyProfile = {
   email: string;
   username: string | null;
   bio: string | null;
+  avatarUrl: string | null;
+  isPrivate: boolean;
+  createdAt: Date;
   createdTruthsCount: number;
   createdDaresCount: number;
+  stats: {
+    createdTruthsCount: number;
+    createdDaresCount: number;
+    activePublicClubsCount: number;
+    publishedClubPromptsCount: number;
+  };
 };
 
 export type PublicUserProfile = {
@@ -91,7 +108,7 @@ export async function listUsersForChallenge({
 
 export async function getMyProfile(userId: string): Promise<MyProfile> {
   if (!userId) {
-    throw new Error('Usuário autenticado não encontrado');
+    userNotFoundError();
   }
 
   const user = await prisma.user.findUnique({
@@ -104,14 +121,21 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
       email: true,
       username: true,
       bio: true,
+      isPrivate: true,
+      createdAt: true,
     },
   });
 
   if (!user) {
-    throw new Error('Usuário não encontrado');
+    userNotFoundError();
   }
 
-  const [createdTruthsCount, createdDaresCount] = await Promise.all([
+  const [
+    createdTruthsCount,
+    createdDaresCount,
+    activePublicClubsCount,
+    publishedClubPromptsCount,
+  ] = await Promise.all([
     prisma.truth.count({
       where: {
         authorId: userId,
@@ -122,6 +146,30 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
         authorId: userId,
       },
     }),
+    prisma.clubMember.count({
+      where: {
+        userId,
+        status: ClubMemberStatus.active,
+        club: {
+          visibility: ClubVisibility.public,
+          status: ClubStatus.active,
+          deletedAt: null,
+        },
+      },
+    }),
+    prisma.clubPrompt.count({
+      where: {
+        authorId: userId,
+        status: ClubPromptStatus.published,
+        archivedAt: null,
+        removedAt: null,
+        club: {
+          visibility: ClubVisibility.public,
+          status: ClubStatus.active,
+          deletedAt: null,
+        },
+      },
+    }),
   ]);
 
   return {
@@ -130,8 +178,17 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
     email: user.email,
     username: user.username,
     bio: user.bio,
+    avatarUrl: null,
+    isPrivate: user.isPrivate,
+    createdAt: user.createdAt,
     createdTruthsCount,
     createdDaresCount,
+    stats: {
+      createdTruthsCount,
+      createdDaresCount,
+      activePublicClubsCount,
+      publishedClubPromptsCount,
+    },
   };
 }
 
@@ -279,6 +336,38 @@ if (
   } catch (error: any) {
     if (error.code === 'P2002' && error.meta?.target?.includes('username')) {
       throw new Error('Username já está em uso');
+    }
+
+    throw error;
+  }
+
+  return getMyProfile(userId);
+}
+
+export async function updateMyAccount(
+  userId: string,
+  data: UpdateMyAccountInput,
+): Promise<MyProfile> {
+  if (!userId) {
+    userNotFoundError();
+  }
+
+  const updateData = validateMyAccountUpdate(data);
+
+  try {
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: updateData,
+    });
+  } catch (error: any) {
+    if (error.code === 'P2002' && error.meta?.target?.includes('username')) {
+      usernameAlreadyInUseError();
+    }
+
+    if (error.code === 'P2025') {
+      userNotFoundError();
     }
 
     throw error;
