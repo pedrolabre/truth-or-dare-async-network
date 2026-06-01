@@ -39,6 +39,12 @@ import type {
   VerifyResetCodeResponse,
 } from '../types/authRecovery';
 import type { ToggleClubLikeApi } from '../types/clubsApi';
+import type {
+  ChangeEmailPayload,
+  ChangePasswordPayload,
+  UpdateAccountPayload,
+  UserAccountData,
+} from '../types/settings';
 import {
   mapApiClubToItem,
   mapApiContentToItem,
@@ -741,6 +747,73 @@ export async function updateMyProfile(
       Authorization: `Bearer ${token}`,
     },
     body: JSON.stringify(data),
+  });
+
+  return parseResponse(response);
+}
+
+export async function getMe(): Promise<UserAccountData> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/users/me`, {
+    method: 'GET',
+    headers,
+  });
+
+  return parseResponse(response);
+}
+
+export async function updateMe(
+  payload: UpdateAccountPayload,
+): Promise<UserAccountData> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/users/me`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function changeEmail(payload: ChangeEmailPayload) {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/auth/change-email`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function changePassword(payload: ChangePasswordPayload) {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/auth/change-password`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function deleteAccount() {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/users/me`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: headers.Authorization,
+    },
   });
 
   return parseResponse(response);

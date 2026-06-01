@@ -7,3 +7,35 @@ export type LocalSettings = {
   themeMode: ThemeMode;
   [preference: string]: unknown;
 };
+
+export type SettingsState = {
+  privateAccountEnabled: boolean;
+};
+
+export type UserAccountData = {
+  id: string;
+  name: string;
+  email: string;
+  username: string | null;
+  bio: string | null;
+  avatarUrl: string | null;
+  isPrivate: boolean;
+  createdAt: string;
+};
+
+export type ChangeEmailPayload = {
+  newEmail: string;
+  currentPassword: string;
+};
+
+export type ChangePasswordPayload = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+export type UpdateAccountPayload = {
+  name?: string;
+  username?: string | null;
+  bio?: string | null;
+  isPrivate?: boolean;
+};
