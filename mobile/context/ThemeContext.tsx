@@ -1,7 +1,19 @@
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useColorScheme } from 'react-native';
+import {
+  loadThemeMode,
+  saveThemeMode as persistThemeMode,
+} from '../services/settingsStorage';
+import type { ThemeMode } from '../types/settings';
 
-export type ThemeMode = 'system' | 'light' | 'dark';
+export type { ThemeMode } from '../types/settings';
 
 type ThemeContextType = {
   themeMode: ThemeMode;
@@ -18,6 +30,27 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
 
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
+  const themeModeRef = useRef<ThemeMode>('system');
+  const hasUserChangedThemeRef = useRef(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void loadThemeMode()
+      .then((savedThemeMode) => {
+        if (!isMounted || hasUserChangedThemeRef.current) {
+          return;
+        }
+
+        themeModeRef.current = savedThemeMode;
+        setThemeModeState(savedThemeMode);
+      })
+      .catch(() => undefined);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const isDark =
     themeMode === 'system'
@@ -26,32 +59,44 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const useSystemTheme = themeMode === 'system';
 
-  function setThemeMode(mode: ThemeMode) {
+  function applyThemeMode(mode: ThemeMode) {
+    themeModeRef.current = mode;
     setThemeModeState(mode);
+    void persistThemeMode(mode).catch(() => undefined);
+  }
+
+  function setThemeMode(mode: ThemeMode) {
+    hasUserChangedThemeRef.current = true;
+    applyThemeMode(mode);
   }
 
   function setUseSystemTheme(value: boolean) {
-    setThemeModeState((current) => {
-      if (value) {
-        return 'system';
-      }
+    const current = themeModeRef.current;
+    let nextThemeMode = current;
 
-      if (current === 'system') {
-        return systemScheme === 'dark' ? 'dark' : 'light';
-      }
+    if (value) {
+      nextThemeMode = 'system';
+    } else if (current === 'system') {
+      nextThemeMode = systemScheme === 'dark' ? 'dark' : 'light';
+    }
 
-      return current;
-    });
+    hasUserChangedThemeRef.current = true;
+    applyThemeMode(nextThemeMode);
   }
 
   function toggleManualTheme() {
-    setThemeModeState((current) => {
-      if (current === 'system') {
-        return systemScheme === 'dark' ? 'light' : 'dark';
-      }
+    const current = themeModeRef.current;
+    const nextThemeMode =
+      current === 'system'
+        ? systemScheme === 'dark'
+          ? 'light'
+          : 'dark'
+        : current === 'dark'
+          ? 'light'
+          : 'dark';
 
-      return current === 'dark' ? 'light' : 'dark';
-    });
+    hasUserChangedThemeRef.current = true;
+    applyThemeMode(nextThemeMode);
   }
 
   const value = useMemo(
