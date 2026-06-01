@@ -1,14 +1,17 @@
 import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Pressable,
   ScrollView,
   StatusBar,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { removeToken } from '../services/api';
 
 import { useTheme } from '../context/ThemeContext';
+import { useSettingsScreen } from '../hooks/useSettingsScreen';
 import AccountScreenHeader from '../components/account/AccountScreenHeader';
 import AccountSection from '../components/account/AccountSection';
 import AccountMenuRow from '../components/account/AccountMenuRow';
@@ -54,81 +57,50 @@ const DARK = {
   switchThumb: '#ffffff',
 };
 
-type SettingsState = {
-  privateAccountEnabled: boolean;
-};
-
-type ActiveModal =
-  | 'about'
-  | 'help'
-  | 'logout'
-  | 'privacy'
-  | 'change-email'
-  | 'email-success'
-  | 'change-password'
-  | 'password-success'
-  | 'private-account'
-  | null;
-
 export default function SettingsScreen() {
   const router = useRouter();
   const { isDark, useSystemTheme, setUseSystemTheme, toggleManualTheme } = useTheme();
+  const {
+    user,
+    isLoadingUser,
+    userError,
+    retryLoadUser,
+    settings,
+    activeModal,
+    openModal,
+    closeModal,
+    switchModal,
+    emailForm,
+    setEmailForm,
+    handleCancelChangeEmail,
+    isSubmittingEmail,
+    emailError,
+    handleChangeEmail,
+    passwordForm,
+    setPasswordForm,
+    handleCancelChangePassword,
+    isSubmittingPassword,
+    passwordError,
+    handleChangePassword,
+    handleTogglePrivateAccount,
+    handleLogout,
+  } = useSettingsScreen();
 
   const colors = useMemo(
     () => (isDark ? DARK : LIGHT),
     [isDark],
   );
 
-  const [settings, setSettings] = useState<SettingsState>({
-    privateAccountEnabled: false,
-  });
-
-  const [activeModal, setActiveModal] = useState<ActiveModal>(null);
   const [pendingPrivateValue, setPendingPrivateValue] = useState<boolean | null>(null);
 
-  const [emailForm, setEmailForm] = useState({
-    newEmail: '',
-    password: '',
-  });
-
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-  });
-
-  function updateSetting<Key extends keyof SettingsState>(
-    key: Key,
-    value: SettingsState[Key],
-  ) {
-    setSettings((current) => ({
-      ...current,
-      [key]: value,
-    }));
-
-    // backend futuro:
-    // updateUserSettings({ [key]: value })
-  }
-
-  function openModal(modal: ActiveModal) {
-    setActiveModal(modal);
-  }
-
-  function closeModal() {
-    setActiveModal(null);
-  }
-
-  function switchModal(modal: ActiveModal) {
-    setActiveModal(modal);
-  }
-
-  function handleTogglePrivateAccount() {
-    setPendingPrivateValue(!settings.privateAccountEnabled);
+  function handleRequestTogglePrivateAccount(newValue: boolean) {
+    setPendingPrivateValue(newValue);
     openModal('private-account');
   }
 
-  function handleConfirmPrivateAccount() {
+  async function handleConfirmPrivateAccount() {
     if (pendingPrivateValue !== null) {
-      updateSetting('privateAccountEnabled', pendingPrivateValue);
+      await handleTogglePrivateAccount(pendingPrivateValue);
     }
 
     setPendingPrivateValue(null);
@@ -140,29 +112,19 @@ export default function SettingsScreen() {
     closeModal();
   }
 
-  function handleSubmitChangeEmail() {
-    setEmailForm({
-      newEmail: '',
-      password: '',
-    });
-    switchModal('email-success');
+  async function handleSubmitChangeEmail() {
+    const success = await handleChangeEmail(emailForm);
+
+    if (success) {
+      switchModal('email-success');
+    }
   }
 
-  function handleSubmitChangePassword() {
-    setPasswordForm({
-      currentPassword: '',
-      newPassword: '',
-    });
-    switchModal('password-success');
-  }
+  async function handleSubmitChangePassword() {
+    const success = await handleChangePassword(passwordForm);
 
-  async function handleConfirmLogout() {
-    try {
-      closeModal();
-      await removeToken();
-      router.replace('/login');
-    } catch (error) {
-      console.error('Erro ao fazer logout:', error);
+    if (success) {
+      switchModal('password-success');
     }
   }
 
@@ -196,6 +158,56 @@ export default function SettingsScreen() {
             titleColor={colors.text}
             subtitleColor={colors.sub}
           />
+
+          {isLoadingUser ? (
+            <View
+              testID="settings-user-loading"
+              style={[
+                styles.userStatus,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.outline,
+                },
+              ]}
+            >
+              <ActivityIndicator color={colors.green} />
+              <Text style={[styles.userStatusText, { color: colors.sub }]}>
+                Carregando sua conta...
+              </Text>
+            </View>
+          ) : null}
+
+          {userError ? (
+            <View
+              testID="settings-user-error"
+              style={[
+                styles.userStatus,
+                styles.userErrorStatus,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.outline,
+                },
+              ]}
+            >
+              <View style={styles.userErrorTextWrap}>
+                <Text style={[styles.userErrorTitle, { color: colors.text }]}>
+                  Nao foi possivel carregar sua conta
+                </Text>
+                <Text style={[styles.userStatusText, { color: colors.sub }]}>
+                  {userError}
+                </Text>
+              </View>
+
+              <Pressable
+                onPress={retryLoadUser}
+                style={[styles.retryButton, { backgroundColor: colors.green }]}
+              >
+                <Text style={[styles.retryText, { color: colors.white }]}>
+                  TENTAR NOVAMENTE
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           <AccountSection title="Visual e App" titleColor={colors.sub}>
             <SettingsSwitchRow
@@ -261,7 +273,7 @@ export default function SettingsScreen() {
               title="Conta Privada"
               description={privateAccountDescription}
               value={settings.privateAccountEnabled}
-              onValueChange={handleTogglePrivateAccount}
+              onValueChange={handleRequestTogglePrivateAccount}
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
@@ -341,13 +353,13 @@ export default function SettingsScreen() {
 
       <SettingsLogoutModal
         visible={activeModal === 'logout'}
-        onConfirm={handleConfirmLogout}
+        onConfirm={handleLogout}
         onCancel={closeModal}
       />
 
       <SettingsPrivacyModal
         visible={activeModal === 'privacy'}
-        currentEmail=""
+        currentEmail={user?.email ?? ''}
         onClose={closeModal}
         onPressChangeEmail={() => switchModal('change-email')}
       />
@@ -355,15 +367,17 @@ export default function SettingsScreen() {
       <SettingsChangeEmailModal
         visible={activeModal === 'change-email'}
         email={emailForm.newEmail}
-        password={emailForm.password}
+        password={emailForm.currentPassword}
         onChangeEmail={(value) =>
           setEmailForm((current) => ({ ...current, newEmail: value }))
         }
         onChangePassword={(value) =>
-          setEmailForm((current) => ({ ...current, password: value }))
+          setEmailForm((current) => ({ ...current, currentPassword: value }))
         }
         onSubmit={handleSubmitChangeEmail}
-        onBack={() => switchModal('privacy')}
+        onBack={() => handleCancelChangeEmail('privacy')}
+        isSubmitting={isSubmittingEmail}
+        errorMessage={emailError}
       />
 
       <SettingsEmailSuccessModal
@@ -382,7 +396,9 @@ export default function SettingsScreen() {
           setPasswordForm((current) => ({ ...current, newPassword: value }))
         }
         onSubmit={handleSubmitChangePassword}
-        onCancel={closeModal}
+        onCancel={() => handleCancelChangePassword(null)}
+        isSubmitting={isSubmittingPassword}
+        errorMessage={passwordError}
       />
 
       <SettingsPasswordSuccessModal
@@ -418,5 +434,45 @@ const styles = StyleSheet.create({
   },
   logoutWrap: {
     paddingTop: 8,
+  },
+  userStatus: {
+    minHeight: 58,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  userErrorStatus: {
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  userErrorTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  userErrorTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  userStatusText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+  },
+  retryButton: {
+    minHeight: 38,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryText: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.4,
   },
 });

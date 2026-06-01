@@ -1,5 +1,13 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useColorScheme,
+} from 'react-native';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -10,6 +18,8 @@ type Props = {
   onChangeNewPassword: (value: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
+  errorMessage?: string | null;
 };
 
 export default function SettingsChangePasswordModal({
@@ -20,6 +30,8 @@ export default function SettingsChangePasswordModal({
   onChangeNewPassword,
   onSubmit,
   onCancel,
+  isSubmitting = false,
+  errorMessage = null,
 }: Props) {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
@@ -45,6 +57,7 @@ export default function SettingsChangePasswordModal({
             ]}
             placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
             secureTextEntry
+            editable={!isSubmitting}
           />
 
           <TextInput
@@ -60,14 +73,39 @@ export default function SettingsChangePasswordModal({
             ]}
             placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
             secureTextEntry
+            editable={!isSubmitting}
           />
         </View>
 
-        <Pressable style={styles.primaryButton} onPress={onSubmit}>
-          <Text style={styles.primaryText}>ATUALIZAR SENHA</Text>
+        {errorMessage ? (
+          <Text testID="settings-change-password-error" style={styles.errorText}>
+            {errorMessage}
+          </Text>
+        ) : null}
+
+        <Pressable
+          disabled={isSubmitting}
+          style={[
+            styles.primaryButton,
+            isSubmitting && styles.primaryButtonDisabled,
+          ]}
+          onPress={onSubmit}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator
+              testID="settings-change-password-loading"
+              color="#ffffff"
+            />
+          ) : (
+            <Text style={styles.primaryText}>ATUALIZAR SENHA</Text>
+          )}
         </Pressable>
 
-        <Pressable onPress={onCancel} style={styles.secondaryButton}>
+        <Pressable
+          disabled={isSubmitting}
+          onPress={onCancel}
+          style={styles.secondaryButton}
+        >
           <Text
             style={[
               styles.secondaryText,
@@ -106,6 +144,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  primaryButtonDisabled: {
+    opacity: 0.68,
+  },
   primaryText: {
     color: '#ffffff',
     fontSize: 13,
@@ -122,5 +163,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  errorText: {
+    marginTop: 12,
+    color: '#D70015',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '800',
   },
 });

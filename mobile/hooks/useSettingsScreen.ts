@@ -115,6 +115,32 @@ export function useSettingsScreen() {
     setActiveModal(modal);
   }, []);
 
+  const resetEmailForm = useCallback(() => {
+    setEmailForm(EMPTY_EMAIL_FORM);
+    setEmailError(null);
+  }, []);
+
+  const resetPasswordForm = useCallback(() => {
+    setPasswordForm(EMPTY_PASSWORD_FORM);
+    setPasswordError(null);
+  }, []);
+
+  const handleCancelChangeEmail = useCallback(
+    (nextModal: SettingsScreenModal = 'privacy') => {
+      resetEmailForm();
+      setActiveModal(nextModal);
+    },
+    [resetEmailForm],
+  );
+
+  const handleCancelChangePassword = useCallback(
+    (nextModal: SettingsScreenModal = null) => {
+      resetPasswordForm();
+      setActiveModal(nextModal);
+    },
+    [resetPasswordForm],
+  );
+
   const handleTogglePrivateAccount = useCallback(
     async (newValue: boolean) => {
       const updatedUser = await updateMe({ isPrivate: newValue });
@@ -208,8 +234,12 @@ export function useSettingsScreen() {
     switchModal,
     emailForm,
     setEmailForm,
+    resetEmailForm,
+    handleCancelChangeEmail,
     passwordForm,
     setPasswordForm,
+    resetPasswordForm,
+    handleCancelChangePassword,
     isSubmittingEmail,
     emailError,
     handleChangeEmail,

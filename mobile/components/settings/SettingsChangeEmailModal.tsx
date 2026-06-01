@@ -1,5 +1,13 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View, useColorScheme } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useColorScheme,
+} from 'react-native';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -10,6 +18,8 @@ type Props = {
   onChangePassword: (value: string) => void;
   onSubmit: () => void;
   onBack: () => void;
+  isSubmitting?: boolean;
+  errorMessage?: string | null;
 };
 
 export default function SettingsChangeEmailModal({
@@ -20,6 +30,8 @@ export default function SettingsChangeEmailModal({
   onChangePassword,
   onSubmit,
   onBack,
+  isSubmitting = false,
+  errorMessage = null,
 }: Props) {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
@@ -46,6 +58,7 @@ export default function SettingsChangeEmailModal({
             placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
             autoCapitalize="none"
             keyboardType="email-address"
+            editable={!isSubmitting}
           />
 
           <TextInput
@@ -61,14 +74,39 @@ export default function SettingsChangeEmailModal({
             ]}
             placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
             secureTextEntry
+            editable={!isSubmitting}
           />
         </View>
 
-        <Pressable style={styles.primaryButton} onPress={onSubmit}>
-          <Text style={styles.primaryText}>CONFIRMAR MUDANÇA</Text>
+        {errorMessage ? (
+          <Text testID="settings-change-email-error" style={styles.errorText}>
+            {errorMessage}
+          </Text>
+        ) : null}
+
+        <Pressable
+          disabled={isSubmitting}
+          style={[
+            styles.primaryButton,
+            isSubmitting && styles.primaryButtonDisabled,
+          ]}
+          onPress={onSubmit}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator
+              testID="settings-change-email-loading"
+              color="#ffffff"
+            />
+          ) : (
+            <Text style={styles.primaryText}>CONFIRMAR MUDANCA</Text>
+          )}
         </Pressable>
 
-        <Pressable onPress={onBack} style={styles.secondaryButton}>
+        <Pressable
+          disabled={isSubmitting}
+          onPress={onBack}
+          style={styles.secondaryButton}
+        >
           <Text
             style={[
               styles.secondaryText,
@@ -107,6 +145,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  primaryButtonDisabled: {
+    opacity: 0.68,
+  },
   primaryText: {
     color: '#ffffff',
     fontSize: 13,
@@ -123,5 +164,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  errorText: {
+    marginTop: 12,
+    color: '#D70015',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '800',
   },
 });
