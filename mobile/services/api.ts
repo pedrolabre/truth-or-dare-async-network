@@ -46,10 +46,12 @@ import type {
   DeleteAccountPayload,
   ReportAbusePayload,
   ReportAbuseResponse,
+  RevokeUserSessionsResponse,
   UpdateAccountPayload,
   UpdateUserPreferencesPayload,
   UserAccountData,
   UserPreferencesResponse,
+  UserSessionsResponse,
 } from '../types/settings';
 import {
   mapApiClubToItem,
@@ -66,6 +68,8 @@ type SignupInput = {
 type LoginInput = {
   email: string;
   password: string;
+  deviceName?: string;
+  platform?: string;
 };
 
 type LoginResponse = {
@@ -822,6 +826,44 @@ export async function updateUserPreferences(
     body: JSON.stringify({
       preferences: payload,
     }),
+  });
+
+  return parseResponse(response);
+}
+
+export async function getUserSessions(): Promise<UserSessionsResponse> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/users/me/sessions`, {
+    method: 'GET',
+    headers,
+  });
+
+  return parseResponse(response);
+}
+
+export async function revokeUserSession(
+  sessionId: string,
+): Promise<RevokeUserSessionsResponse> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/users/me/sessions/${sessionId}`, {
+    method: 'DELETE',
+    headers,
+  });
+
+  return parseResponse(response);
+}
+
+export async function revokeOtherUserSessions(): Promise<RevokeUserSessionsResponse> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/users/me/sessions`, {
+    method: 'DELETE',
+    headers,
   });
 
   return parseResponse(response);

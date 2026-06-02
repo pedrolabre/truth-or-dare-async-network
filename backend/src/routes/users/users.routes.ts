@@ -11,10 +11,18 @@ import {
   getUserPreferencesController,
   updateUserPreferencesController,
 } from '../../controllers/users/preferences.controller';
+import {
+  listUserSessionsController,
+  revokeOtherUserSessionsController,
+  revokeUserSessionController,
+} from '../../controllers/users/sessions.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 
 const router = Router();
 
+router.get('/me/sessions', authMiddleware, listUserSessionsController);
+router.delete('/me/sessions', authMiddleware, revokeOtherUserSessionsController);
+router.delete('/me/sessions/:id', authMiddleware, revokeUserSessionController);
 router.get('/me/preferences', authMiddleware, getUserPreferencesController);
 router.put('/me/preferences', authMiddleware, updateUserPreferencesController);
 router.get('/me', authMiddleware, getMyProfileController);

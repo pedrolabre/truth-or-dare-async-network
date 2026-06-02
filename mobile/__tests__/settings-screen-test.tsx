@@ -81,10 +81,30 @@ function makeHookState(
     settings: {
       privateAccountEnabled: true,
     },
+    sessions: [
+      {
+        id: 'session-1',
+        userId: 'user-1',
+        deviceName: 'iPhone 15',
+        platform: 'ios',
+        ipAddress: '203.0.113.10',
+        lastActiveAt: '2026-06-02T12:00:00.000Z',
+        createdAt: '2026-06-02T12:00:00.000Z',
+        revokedAt: null,
+        isCurrent: true,
+      },
+    ],
+    isLoadingSessions: false,
+    sessionsError: null,
+    sessionsSuccessMessage: null,
+    revokingSessionId: null,
+    isRevokingOtherSessions: false,
+    loadSessions: jest.fn().mockResolvedValue(undefined),
     activeModal: null,
     openModal: jest.fn(),
     closeModal: jest.fn(),
     switchModal: jest.fn(),
+    openSessionsModal: jest.fn(),
     openReportAbuseModal: jest.fn(),
     emailForm: {
       newEmail: '',
@@ -136,6 +156,8 @@ function makeHookState(
     handleContactDevs: jest.fn().mockResolvedValue(true),
     openDeleteAccountModal: jest.fn(),
     handleTogglePrivateAccount: jest.fn().mockResolvedValue(makeUser()),
+    handleRevokeSession: jest.fn().mockResolvedValue(true),
+    handleRevokeOtherSessions: jest.fn().mockResolvedValue(true),
     handleLogout: jest.fn().mockResolvedValue(undefined),
     handleDeleteAccount: jest.fn().mockResolvedValue(true),
     ...overrides,
@@ -338,6 +360,69 @@ describe('SettingsScreen', () => {
     fireEvent.press(getByText('Denunciar Abuso'));
 
     expect(openReportAbuseModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('abre o modal de sessoes ativas a partir da secao Conta', () => {
+    const openSessionsModal = jest.fn();
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        openSessionsModal,
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    fireEvent.press(getByText('Sessoes Ativas'));
+
+    expect(openSessionsModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('renderiza modal de sessoes e delega revogacao', async () => {
+    const handleRevokeSession = jest.fn().mockResolvedValue(true);
+    const handleRevokeOtherSessions = jest.fn().mockResolvedValue(true);
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'sessions',
+        sessions: [
+          {
+            id: 'session-1',
+            userId: 'user-1',
+            deviceName: 'iPhone 15',
+            platform: 'ios',
+            ipAddress: '203.0.113.10',
+            lastActiveAt: '2026-06-02T12:00:00.000Z',
+            createdAt: '2026-06-02T12:00:00.000Z',
+            revokedAt: null,
+            isCurrent: true,
+          },
+          {
+            id: 'session-2',
+            userId: 'user-1',
+            deviceName: 'Notebook',
+            platform: 'web',
+            ipAddress: null,
+            lastActiveAt: '2026-06-02T10:00:00.000Z',
+            createdAt: '2026-06-02T10:00:00.000Z',
+            revokedAt: null,
+            isCurrent: false,
+          },
+        ],
+        handleRevokeSession,
+        handleRevokeOtherSessions,
+      }),
+    );
+
+    const { getByTestId, getByText } = render(<SettingsScreen />);
+
+    expect(getByText('iPhone 15')).toBeTruthy();
+
+    fireEvent.press(getByTestId('settings-session-revoke-session-1'));
+    fireEvent.press(getByText('REVOGAR OUTRAS SESSOES'));
+
+    await waitFor(() => {
+      expect(handleRevokeSession).toHaveBeenCalledWith('session-1');
+      expect(handleRevokeOtherSessions).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('delega contato com desenvolvedores ao hook e exibe fallback', () => {

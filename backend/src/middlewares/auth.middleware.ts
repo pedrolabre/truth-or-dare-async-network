@@ -5,6 +5,7 @@ type JwtPayload = {
   sub: string;
   email: string;
   name: string;
+  sessionId?: string;
   iat?: number;
   exp?: number;
 };

@@ -58,6 +58,27 @@ export type UserAccountData = {
   createdAt: string;
 };
 
+export type UserSession = {
+  id: string;
+  userId: string;
+  deviceName: string;
+  platform: string | null;
+  ipAddress: string | null;
+  lastActiveAt: string;
+  createdAt: string;
+  revokedAt: string | null;
+  isCurrent: boolean;
+};
+
+export type UserSessionsResponse = {
+  sessions: UserSession[];
+};
+
+export type RevokeUserSessionsResponse = {
+  ok: true;
+  revokedCount?: number;
+};
+
 export type ChangeEmailPayload = {
   newEmail: string;
   currentPassword: string;

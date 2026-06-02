@@ -7,8 +7,11 @@ import {
   getAppInfo,
   getMe,
   getMyProfile,
+  getUserSessions,
   getUserPreferences,
   reportAbuse,
+  revokeOtherUserSessions,
+  revokeUserSession,
   updateMe,
   updateMyProfile,
   updateUserPreferences,
@@ -186,6 +189,79 @@ describe('settings API client', () => {
     );
   });
 
+  it('busca sessoes ativas autenticadas', async () => {
+    const response = {
+      sessions: [
+        {
+          id: 'session-1',
+          userId: 'user-1',
+          deviceName: 'iPhone 15',
+          platform: 'ios',
+          ipAddress: '203.0.113.10',
+          lastActiveAt: '2026-06-02T12:00:00.000Z',
+          createdAt: '2026-06-02T12:00:00.000Z',
+          revokedAt: null,
+          isCurrent: true,
+        },
+      ],
+    };
+    fetchMock.mockResolvedValue(makeJsonResponse(true, 200, response));
+
+    await expect(getUserSessions()).resolves.toEqual(response);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/users/me/sessions',
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+      },
+    );
+  });
+
+  it('revoga sessao individual autenticada', async () => {
+    fetchMock.mockResolvedValue(makeJsonResponse(true, 200, { ok: true }));
+
+    await expect(revokeUserSession('session-1')).resolves.toEqual({
+      ok: true,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/users/me/sessions/session-1',
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+      },
+    );
+  });
+
+  it('revoga outras sessoes autenticadas', async () => {
+    fetchMock.mockResolvedValue(
+      makeJsonResponse(true, 200, { ok: true, revokedCount: 2 }),
+    );
+
+    await expect(revokeOtherUserSessions()).resolves.toEqual({
+      ok: true,
+      revokedCount: 2,
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/users/me/sessions',
+      {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+      },
+    );
+  });
+
   it('altera o e-mail enviando senha atual e token salvo', async () => {
     const payload = {
       newEmail: 'novo-email@test.com',
@@ -305,6 +381,9 @@ describe('settings API client', () => {
       'updateUserPreferences',
       () => updateUserPreferences({ themeMode: 'dark' }),
     ],
+    ['getUserSessions', () => getUserSessions()],
+    ['revokeUserSession', () => revokeUserSession('session-1')],
+    ['revokeOtherUserSessions', () => revokeOtherUserSessions()],
     [
       'changeEmail',
       () =>

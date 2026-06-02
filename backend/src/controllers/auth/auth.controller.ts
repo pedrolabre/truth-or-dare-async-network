@@ -47,11 +47,18 @@ export async function signupController(req: Request, res: Response) {
 
 export async function loginController(req: Request, res: Response) {
   try {
-    const { email, password } = req.body;
+    const { email, password, deviceName, platform } = req.body;
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const ipAddress = Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : forwardedFor?.split(',')[0] ?? req.ip ?? null;
 
     const result = await login({
       email,
       password,
+      deviceName,
+      platform,
+      ipAddress,
     });
 
     return res.status(200).json(result);

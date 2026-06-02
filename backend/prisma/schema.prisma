@@ -40,6 +40,23 @@ model User {
   notificationsActed  Notification[]       @relation("NotificationActor")
   supportTickets      SupportTicket[]
   preferences         UserPreference[]
+  sessions            UserSession[]
+}
+
+model UserSession {
+  id           String    @id @default(uuid())
+  userId       String
+  deviceName   String?
+  platform     String?
+  ipAddress    String?
+  lastActiveAt DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, revokedAt])
+  @@index([lastActiveAt])
 }
 
 model UserPreference {

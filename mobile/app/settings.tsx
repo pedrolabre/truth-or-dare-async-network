@@ -30,6 +30,7 @@ import SettingsPasswordSuccessModal from '../components/settings/SettingsPasswor
 import SettingsPrivateAccountConfirmModal from '../components/settings/SettingsPrivateAccountConfirmModal';
 import SettingsReportAbuseModal from '../components/settings/SettingsReportAbuseModal';
 import SettingsDeleteAccountModal from '../components/settings/SettingsDeleteAccountModal';
+import SettingsSessionsModal from '../components/settings/SettingsSessionsModal';
 
 const LIGHT = {
   bg: '#f5fbf6',
@@ -71,10 +72,18 @@ export default function SettingsScreen() {
     isLoadingAppInfo,
     appInfoError,
     settings,
+    sessions,
+    isLoadingSessions,
+    sessionsError,
+    sessionsSuccessMessage,
+    revokingSessionId,
+    isRevokingOtherSessions,
+    loadSessions,
     activeModal,
     openModal,
     closeModal,
     switchModal,
+    openSessionsModal,
     openReportAbuseModal,
     emailForm,
     setEmailForm,
@@ -111,6 +120,8 @@ export default function SettingsScreen() {
     handleDeleteAccount,
     openDeleteAccountModal,
     handleTogglePrivateAccount,
+    handleRevokeSession,
+    handleRevokeOtherSessions,
     handleLogout,
   } = useSettingsScreen();
 
@@ -343,6 +354,18 @@ export default function SettingsScreen() {
               borderColor={colors.outline}
               onPress={() => openModal('change-password')}
             />
+
+            <AccountMenuRow
+              icon="devices"
+              label="Sessoes Ativas"
+              description="Veja e revogue acessos conectados"
+              backgroundColor={colors.surface}
+              textColor={colors.text}
+              subTextColor={colors.sub}
+              iconColor={colors.green}
+              borderColor={colors.outline}
+              onPress={openSessionsModal}
+            />
           </AccountSection>
 
           <AccountSection title="Suporte" titleColor={colors.sub}>
@@ -504,6 +527,20 @@ export default function SettingsScreen() {
 
       <SettingsPasswordSuccessModal
         visible={activeModal === 'password-success'}
+        onClose={closeModal}
+      />
+
+      <SettingsSessionsModal
+        visible={activeModal === 'sessions'}
+        sessions={sessions}
+        isLoading={isLoadingSessions}
+        errorMessage={sessionsError}
+        successMessage={sessionsSuccessMessage}
+        revokingSessionId={revokingSessionId}
+        isRevokingOtherSessions={isRevokingOtherSessions}
+        onRefresh={loadSessions}
+        onRevokeSession={handleRevokeSession}
+        onRevokeOtherSessions={handleRevokeOtherSessions}
         onClose={closeModal}
       />
 

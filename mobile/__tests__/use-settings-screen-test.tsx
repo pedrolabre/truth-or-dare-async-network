@@ -7,8 +7,11 @@ import {
   deleteAccount,
   getAppInfo,
   getMe,
+  getUserSessions,
   removeToken,
   reportAbuse,
+  revokeOtherUserSessions,
+  revokeUserSession,
   updateMe,
 } from '../services/api';
 import { clearLocalSettings } from '../services/settingsStorage';
@@ -33,8 +36,11 @@ jest.mock('../services/api', () => ({
   deleteAccount: jest.fn(),
   getAppInfo: jest.fn(),
   getMe: jest.fn(),
+  getUserSessions: jest.fn(),
   removeToken: jest.fn(),
   reportAbuse: jest.fn(),
+  revokeOtherUserSessions: jest.fn(),
+  revokeUserSession: jest.fn(),
   updateMe: jest.fn(),
 }));
 
@@ -45,6 +51,8 @@ jest.mock('../services/settingsStorage', () => ({
 const mockedGetMe = getMe as jest.MockedFunction<typeof getMe>;
 const mockedGetAppInfo =
   getAppInfo as jest.MockedFunction<typeof getAppInfo>;
+const mockedGetUserSessions =
+  getUserSessions as jest.MockedFunction<typeof getUserSessions>;
 const mockedUpdateMe = updateMe as jest.MockedFunction<typeof updateMe>;
 const mockedChangeEmail =
   changeEmail as jest.MockedFunction<typeof changeEmail>;
@@ -52,6 +60,10 @@ const mockedChangePassword =
   changePassword as jest.MockedFunction<typeof changePassword>;
 const mockedReportAbuse =
   reportAbuse as jest.MockedFunction<typeof reportAbuse>;
+const mockedRevokeUserSession =
+  revokeUserSession as jest.MockedFunction<typeof revokeUserSession>;
+const mockedRevokeOtherUserSessions =
+  revokeOtherUserSessions as jest.MockedFunction<typeof revokeOtherUserSessions>;
 const mockedRemoveToken =
   removeToken as jest.MockedFunction<typeof removeToken>;
 const mockedDeleteAccount =
@@ -90,6 +102,21 @@ describe('useSettingsScreen', () => {
       environment: 'test',
       status: 'ok',
     });
+    mockedGetUserSessions.mockResolvedValue({
+      sessions: [
+        {
+          id: 'session-1',
+          userId: 'user-1',
+          deviceName: 'iPhone 15',
+          platform: 'ios',
+          ipAddress: '203.0.113.10',
+          lastActiveAt: '2026-06-02T12:00:00.000Z',
+          createdAt: '2026-06-02T12:00:00.000Z',
+          revokedAt: null,
+          isCurrent: true,
+        },
+      ],
+    });
     mockedUpdateMe.mockResolvedValue(makeUser());
     mockedChangeEmail.mockResolvedValue({ ok: true });
     mockedChangePassword.mockResolvedValue({ ok: true });
@@ -106,6 +133,11 @@ describe('useSettingsScreen', () => {
         createdAt: '2026-06-01T12:00:00.000Z',
         updatedAt: '2026-06-01T12:00:00.000Z',
       },
+    });
+    mockedRevokeUserSession.mockResolvedValue({ ok: true });
+    mockedRevokeOtherUserSessions.mockResolvedValue({
+      ok: true,
+      revokedCount: 2,
     });
     mockedRemoveToken.mockResolvedValue(undefined);
     mockedClearLocalSettings.mockResolvedValue(undefined);
@@ -248,6 +280,80 @@ describe('useSettingsScreen', () => {
     expect(mockedUpdateMe).toHaveBeenCalledWith({ isPrivate: false });
     expect(result.current.user?.isPrivate).toBe(false);
     expect(result.current.settings.privateAccountEnabled).toBe(false);
+  });
+
+  it('abre modal de sessoes e carrega sessoes ativas', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    act(() => {
+      result.current.openSessionsModal();
+    });
+
+    expect(result.current.activeModal).toBe('sessions');
+
+    await waitFor(() => {
+      expect(result.current.isLoadingSessions).toBe(false);
+    });
+
+    expect(mockedGetUserSessions).toHaveBeenCalledTimes(1);
+    expect(result.current.sessions).toEqual([
+      expect.objectContaining({
+        id: 'session-1',
+        deviceName: 'iPhone 15',
+        isCurrent: true,
+      }),
+    ]);
+    expect(result.current.sessionsError).toBeNull();
+  });
+
+  it('mantem hook funcional quando API de sessoes falha', async () => {
+    mockedGetUserSessions.mockRejectedValue(new Error('Falha nas sessoes'));
+
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    await act(async () => {
+      await result.current.loadSessions();
+    });
+
+    expect(result.current.sessions).toEqual([]);
+    expect(result.current.sessionsError).toBe('Falha nas sessoes');
+    expect(result.current.user?.id).toBe('user-1');
+  });
+
+  it('revoga sessao individual e recarrega a lista', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.handleRevokeSession('session-1');
+    });
+
+    expect(success).toBe(true);
+    expect(mockedRevokeUserSession).toHaveBeenCalledWith('session-1');
+    expect(mockedGetUserSessions).toHaveBeenCalledTimes(1);
+    expect(result.current.sessionsSuccessMessage).toBe(
+      'Sessao revogada com sucesso.',
+    );
+  });
+
+  it('revoga outras sessoes e informa quantidade revogada', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.handleRevokeOtherSessions();
+    });
+
+    expect(success).toBe(true);
+    expect(mockedRevokeOtherUserSessions).toHaveBeenCalledTimes(1);
+    expect(mockedGetUserSessions).toHaveBeenCalledTimes(1);
+    expect(result.current.sessionsSuccessMessage).toBe(
+      '2 sessoes foram revogadas.',
+    );
   });
 
   it('mantem estado anterior quando o toggle de conta privada falha', async () => {

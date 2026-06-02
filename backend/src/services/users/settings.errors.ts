@@ -7,6 +7,7 @@ export type UserSettingsErrorCode =
   | 'INVALID_CURRENT_PASSWORD'
   | 'INVALID_PREFERENCE_KEY'
   | 'INVALID_PREFERENCE_VALUE'
+  | 'SESSION_NOT_FOUND'
   | 'NO_FIELDS_TO_UPDATE'
   | 'USERNAME_ALREADY_IN_USE'
   | 'VALIDATION_ERROR';
@@ -74,6 +75,14 @@ export function invalidPreferenceValueError(): never {
     'INVALID_PREFERENCE_VALUE',
     'Valor de preferencia invalido',
     400,
+  );
+}
+
+export function sessionNotFoundError(): never {
+  throw new UserSettingsServiceError(
+    'SESSION_NOT_FOUND',
+    'Sessao nao encontrada',
+    404,
   );
 }
 

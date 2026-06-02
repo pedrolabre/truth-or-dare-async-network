@@ -13,6 +13,7 @@ import {
   requireValidNewEmail,
   requireValidNewPassword,
 } from './settings.validators';
+import { registerUserSession } from '../users/sessions.service';
 
 type SignupInput = {
   name: string;
@@ -23,6 +24,9 @@ type SignupInput = {
 type LoginInput = {
   email: string;
   password: string;
+  deviceName?: unknown;
+  platform?: unknown;
+  ipAddress?: string | null;
 };
 
 type ChangeEmailInput = {
@@ -92,7 +96,13 @@ export async function signup({ name, email, password }: SignupInput) {
   };
 }
 
-export async function login({ email, password }: LoginInput) {
+export async function login({
+  email,
+  password,
+  deviceName,
+  platform,
+  ipAddress,
+}: LoginInput) {
   const normalizedEmail = email.trim().toLowerCase();
 
   if (!normalizedEmail) {
@@ -117,10 +127,18 @@ export async function login({ email, password }: LoginInput) {
     throw new Error('E-mail ou senha inválidos');
   }
 
+  const session = await registerUserSession({
+    userId: user.id,
+    deviceName,
+    platform,
+    ipAddress,
+  });
+
   const token = generateToken({
     sub: user.id,
     email: user.email,
     name: user.name,
+    sessionId: session.id,
   });
 
   return {

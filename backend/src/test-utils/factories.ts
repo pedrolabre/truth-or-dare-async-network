@@ -166,6 +166,7 @@ function minutesAfter(baseDate: Date, minutes: number) {
 export async function resetFeedData(options: ResetFeedDataOptions = {}) {
   const { deleteUsers = false, preserveUserEmails = [] } = options;
 
+  await prisma.$executeRaw`DELETE FROM "UserSession"`;
   await prisma.userPreference.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.supportTicket.deleteMany();

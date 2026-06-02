@@ -8,8 +8,11 @@ import {
   deleteAccount,
   getAppInfo,
   getMe,
+  getUserSessions,
   removeToken,
   reportAbuse,
+  revokeOtherUserSessions,
+  revokeUserSession,
   updateMe,
 } from '../services/api';
 import { clearLocalSettings } from '../services/settingsStorage';
@@ -29,6 +32,7 @@ import type {
   ReportAbusePayload,
   SettingsState,
   UserAccountData,
+  UserSession,
 } from '../types/settings';
 import { REPORT_ABUSE_CATEGORIES } from '../types/settings';
 
@@ -44,6 +48,7 @@ export type SettingsScreenModal =
   | 'report-abuse'
   | 'delete-account'
   | 'private-account'
+  | 'sessions'
   | null;
 
 export type SettingsEmailForm = ChangeEmailForm;
@@ -230,6 +235,16 @@ export function useSettingsScreen() {
   const [settings, setSettings] = useState<SettingsState>({
     privateAccountEnabled: false,
   });
+  const [sessions, setSessions] = useState<UserSession[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  const [sessionsError, setSessionsError] = useState<string | null>(null);
+  const [sessionsSuccessMessage, setSessionsSuccessMessage] =
+    useState<string | null>(null);
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(
+    null,
+  );
+  const [isRevokingOtherSessions, setIsRevokingOtherSessions] =
+    useState(false);
 
   const [activeModal, setActiveModal] =
     useState<SettingsScreenModal>(null);
@@ -367,6 +382,24 @@ export function useSettingsScreen() {
     await loadUser();
   }, [loadUser]);
 
+  const loadSessions = useCallback(async () => {
+    try {
+      setIsLoadingSessions(true);
+      setSessionsError(null);
+
+      const response = await getUserSessions();
+
+      setSessions(response.sessions);
+    } catch (error) {
+      setSessions([]);
+      setSessionsError(
+        getErrorMessage(error, 'Nao foi possivel carregar suas sessoes.'),
+      );
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  }, []);
+
   const openModal = useCallback((modal: SettingsScreenModal) => {
     setActiveModal(modal);
   }, []);
@@ -393,6 +426,13 @@ export function useSettingsScreen() {
     setShouldValidateEmptyDeleteAccountFields(false);
     setActiveModal('delete-account');
   }, []);
+
+  const openSessionsModal = useCallback(() => {
+    setSessionsError(null);
+    setSessionsSuccessMessage(null);
+    setActiveModal('sessions');
+    void loadSessions();
+  }, [loadSessions]);
 
   const resetEmailForm = useCallback(() => {
     setEmailForm(EMPTY_EMAIL_FORM);
@@ -465,6 +505,65 @@ export function useSettingsScreen() {
     },
     [],
   );
+
+  const handleRevokeSession = useCallback(
+    async (sessionId: string) => {
+      if (revokingSessionId || isRevokingOtherSessions) {
+        return false;
+      }
+
+      try {
+        setRevokingSessionId(sessionId);
+        setSessionsError(null);
+        setSessionsSuccessMessage(null);
+
+        await revokeUserSession(sessionId);
+        await loadSessions();
+        setSessionsSuccessMessage('Sessao revogada com sucesso.');
+
+        return true;
+      } catch (error) {
+        setSessionsError(
+          getErrorMessage(error, 'Nao foi possivel revogar a sessao.'),
+        );
+
+        return false;
+      } finally {
+        setRevokingSessionId(null);
+      }
+    },
+    [isRevokingOtherSessions, loadSessions, revokingSessionId],
+  );
+
+  const handleRevokeOtherSessions = useCallback(async () => {
+    if (revokingSessionId || isRevokingOtherSessions) {
+      return false;
+    }
+
+    try {
+      setIsRevokingOtherSessions(true);
+      setSessionsError(null);
+      setSessionsSuccessMessage(null);
+
+      const result = await revokeOtherUserSessions();
+      await loadSessions();
+      setSessionsSuccessMessage(
+        result.revokedCount === 1
+          ? '1 sessao foi revogada.'
+          : `${result.revokedCount ?? 0} sessoes foram revogadas.`,
+      );
+
+      return true;
+    } catch (error) {
+      setSessionsError(
+        getErrorMessage(error, 'Nao foi possivel revogar outras sessoes.'),
+      );
+
+      return false;
+    } finally {
+      setIsRevokingOtherSessions(false);
+    }
+  }, [isRevokingOtherSessions, loadSessions, revokingSessionId]);
 
   const handleChangeEmail = useCallback(
     async (form: SettingsEmailForm) => {
@@ -704,6 +803,13 @@ export function useSettingsScreen() {
     isLoadingUser,
     userError,
     retryLoadUser,
+    sessions,
+    isLoadingSessions,
+    sessionsError,
+    sessionsSuccessMessage,
+    revokingSessionId,
+    isRevokingOtherSessions,
+    loadSessions,
     appInfo,
     isLoadingAppInfo,
     appInfoError,
@@ -712,6 +818,7 @@ export function useSettingsScreen() {
     openModal,
     closeModal,
     switchModal,
+    openSessionsModal,
     openReportAbuseModal,
     openDeleteAccountModal,
     emailForm,
@@ -750,6 +857,8 @@ export function useSettingsScreen() {
     handleReportAbuse,
     handleContactDevs,
     handleTogglePrivateAccount,
+    handleRevokeSession,
+    handleRevokeOtherSessions,
     handleLogout,
     handleDeleteAccount,
   };

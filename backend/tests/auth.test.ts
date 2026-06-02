@@ -73,6 +73,58 @@ describe('Auth', () => {
       email: user.email,
       createdAt: expect.any(String),
     });
+
+    const sessions = await prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id"
+      FROM "UserSession"
+      WHERE "userId" = ${res.body.user.id}
+        AND "revokedAt" IS NULL
+    `;
+
+    expect(sessions).toHaveLength(1);
+    expect(res.body.token).toEqual(expect.any(String));
+  });
+
+  it('deve registrar dados do dispositivo ao fazer login', async () => {
+    const user = {
+      name: 'Login Device User',
+      email: 'auth-login-device@test.com',
+      password: '123456',
+    };
+
+    await request(app).post('/auth/signup').send(user);
+
+    const res = await request(app)
+      .post('/auth/login')
+      .set('x-forwarded-for', '203.0.113.10')
+      .send({
+        email: user.email,
+        password: user.password,
+        deviceName: 'iPhone 15',
+        platform: 'ios',
+      });
+
+    const [session] = await prisma.$queryRaw<
+      Array<{
+        deviceName: string | null;
+        platform: string | null;
+        ipAddress: string | null;
+        revokedAt: Date | null;
+      }>
+    >`
+      SELECT "deviceName", "platform", "ipAddress", "revokedAt"
+      FROM "UserSession"
+      WHERE "userId" = ${res.body.user.id}
+      LIMIT 1
+    `;
+
+    expect(res.status).toBe(200);
+    expect(session).toMatchObject({
+      deviceName: 'iPhone 15',
+      platform: 'ios',
+      ipAddress: '203.0.113.10',
+      revokedAt: null,
+    });
   });
 
   it('deve falhar no login com senha incorreta', async () => {

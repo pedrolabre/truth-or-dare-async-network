@@ -7,6 +7,7 @@ export type AuthTokenPayload = {
   sub: string;
   email: string;
   name: string;
+  sessionId?: string;
 };
 
 export type PasswordResetTokenPayload = {
@@ -48,6 +49,7 @@ export function verifyToken(token: string): AuthTokenPayload {
     sub: String(payload.sub),
     email: payload.email,
     name: payload.name,
+    ...(payload.sessionId ? { sessionId: String(payload.sessionId) } : {}),
   };
 }
 
