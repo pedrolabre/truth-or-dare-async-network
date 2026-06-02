@@ -67,6 +67,9 @@ export default function SettingsScreen() {
     isLoadingUser,
     userError,
     retryLoadUser,
+    appInfo,
+    isLoadingAppInfo,
+    appInfoError,
     settings,
     activeModal,
     openModal,
@@ -384,6 +387,9 @@ export default function SettingsScreen() {
       <SettingsAboutModal
         visible={activeModal === 'about'}
         onClose={closeModal}
+        appInfo={appInfo}
+        isLoadingAppInfo={isLoadingAppInfo}
+        appInfoError={appInfoError}
       />
 
       <SettingsHelpModal

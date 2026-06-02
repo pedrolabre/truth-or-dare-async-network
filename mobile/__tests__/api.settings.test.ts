@@ -4,6 +4,7 @@ import {
   changeEmail,
   changePassword,
   deleteAccount,
+  getAppInfo,
   getMe,
   getMyProfile,
   reportAbuse,
@@ -65,6 +66,26 @@ describe('settings API client', () => {
         Authorization: 'Bearer token-123',
       },
     });
+  });
+
+  it('busca informacoes publicas do app sem exigir token salvo', async () => {
+    const appInfo = {
+      apiVersion: '1.0.0',
+      environment: 'test',
+      status: 'ok' as const,
+    };
+    fetchMock.mockResolvedValue(makeJsonResponse(true, 200, appInfo));
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
+
+    await expect(getAppInfo()).resolves.toEqual(appInfo);
+
+    expect(fetchMock).toHaveBeenCalledWith('https://api.test/app-info', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    expect(AsyncStorage.getItem).not.toHaveBeenCalled();
   });
 
   it('atualiza parcialmente a conta autenticada sem completar o payload', async () => {

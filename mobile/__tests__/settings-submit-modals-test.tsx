@@ -69,6 +69,13 @@ function makeHookState(
     isLoadingUser: false,
     userError: null,
     retryLoadUser: jest.fn().mockResolvedValue(undefined),
+    appInfo: {
+      apiVersion: '1.0.0',
+      environment: 'test',
+      status: 'ok',
+    },
+    isLoadingAppInfo: false,
+    appInfoError: null,
     settings: {
       privateAccountEnabled: false,
     },

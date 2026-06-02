@@ -71,6 +71,13 @@ function makeHookState(
     isLoadingUser: false,
     userError: null,
     retryLoadUser: jest.fn().mockResolvedValue(undefined),
+    appInfo: {
+      apiVersion: '1.0.0',
+      environment: 'test',
+      status: 'ok',
+    },
+    isLoadingAppInfo: false,
+    appInfoError: null,
     settings: {
       privateAccountEnabled: true,
     },
@@ -186,6 +193,24 @@ describe('SettingsScreen', () => {
     const { getByText } = render(<SettingsScreen />);
 
     expect(getByText('real@test.com')).toBeTruthy();
+  });
+
+  it('exibe informacoes reais no modal Sobre', () => {
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'about',
+        appInfo: {
+          apiVersion: '2.0.0',
+          environment: 'test',
+          status: 'ok',
+        },
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    expect(getByText('Versao da API: 2.0.0')).toBeTruthy();
+    expect(getByText('Status da API: ok')).toBeTruthy();
   });
 
   it('abre confirmacao e persiste conta privada pelo handler do hook', async () => {

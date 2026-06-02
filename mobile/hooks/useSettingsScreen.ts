@@ -6,6 +6,7 @@ import {
   changeEmail,
   changePassword,
   deleteAccount,
+  getAppInfo,
   getMe,
   removeToken,
   reportAbuse,
@@ -22,6 +23,7 @@ import type {
   DeleteAccountFieldErrors,
   DeleteAccountForm,
   DeleteAccountPayload,
+  AppInfo,
   ReportAbuseFieldErrors,
   ReportAbuseForm,
   ReportAbusePayload,
@@ -222,6 +224,9 @@ export function useSettingsScreen() {
   const [user, setUser] = useState<UserAccountData | null>(null);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
+  const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
+  const [isLoadingAppInfo, setIsLoadingAppInfo] = useState(true);
+  const [appInfoError, setAppInfoError] = useState<string | null>(null);
   const [settings, setSettings] = useState<SettingsState>({
     privateAccountEnabled: false,
   });
@@ -305,6 +310,28 @@ export function useSettingsScreen() {
   useEffect(() => {
     void loadUser();
   }, [loadUser]);
+
+  const loadAppInfo = useCallback(async () => {
+    try {
+      setIsLoadingAppInfo(true);
+      setAppInfoError(null);
+
+      const loadedAppInfo = await getAppInfo();
+
+      setAppInfo(loadedAppInfo);
+    } catch (error) {
+      setAppInfo(null);
+      setAppInfoError(
+        getErrorMessage(error, 'Nao foi possivel carregar informacoes da API.'),
+      );
+    } finally {
+      setIsLoadingAppInfo(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadAppInfo();
+  }, [loadAppInfo]);
 
   useEffect(() => {
     setEmailFieldErrors(
@@ -677,6 +704,9 @@ export function useSettingsScreen() {
     isLoadingUser,
     userError,
     retryLoadUser,
+    appInfo,
+    isLoadingAppInfo,
+    appInfoError,
     settings,
     activeModal,
     openModal,

@@ -40,6 +40,7 @@ import type {
 } from '../types/authRecovery';
 import type { ToggleClubLikeApi } from '../types/clubsApi';
 import type {
+  AppInfo,
   ChangeEmailPayload,
   ChangePasswordPayload,
   DeleteAccountPayload,
@@ -762,6 +763,19 @@ export async function getMe(): Promise<UserAccountData> {
   const response = await fetch(`${baseUrl}/users/me`, {
     method: 'GET',
     headers,
+  });
+
+  return parseResponse(response);
+}
+
+export async function getAppInfo(): Promise<AppInfo> {
+  const baseUrl = getApiUrl();
+
+  const response = await fetch(`${baseUrl}/app-info`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
   });
 
   return parseResponse(response);

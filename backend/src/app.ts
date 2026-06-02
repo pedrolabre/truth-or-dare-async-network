@@ -17,6 +17,7 @@ import clubsRoutes from './routes/clubs/clubs.routes';
 import notificationsRoutes from './routes/notifications.routes';
 import searchRoutes from './routes/search/search.routes';
 import supportRoutes from './routes/support/support.routes';
+import appInfoRoutes from './routes/app-info/app-info.routes';
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use('/clubs', clubsRoutes);
 app.use('/notifications', notificationsRoutes);
 app.use('/search', searchRoutes);
 app.use('/support', supportRoutes);
+app.use('/app-info', appInfoRoutes);
 app.use(truthLikesRoutes);
 app.use(truthCommentsLikesRoutes);
 app.use(dareLikesRoutes);

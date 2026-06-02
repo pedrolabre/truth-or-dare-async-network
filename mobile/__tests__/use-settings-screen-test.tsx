@@ -5,6 +5,7 @@ import {
   changeEmail,
   changePassword,
   deleteAccount,
+  getAppInfo,
   getMe,
   removeToken,
   reportAbuse,
@@ -30,6 +31,7 @@ jest.mock('../services/api', () => ({
   changeEmail: jest.fn(),
   changePassword: jest.fn(),
   deleteAccount: jest.fn(),
+  getAppInfo: jest.fn(),
   getMe: jest.fn(),
   removeToken: jest.fn(),
   reportAbuse: jest.fn(),
@@ -41,6 +43,8 @@ jest.mock('../services/settingsStorage', () => ({
 }));
 
 const mockedGetMe = getMe as jest.MockedFunction<typeof getMe>;
+const mockedGetAppInfo =
+  getAppInfo as jest.MockedFunction<typeof getAppInfo>;
 const mockedUpdateMe = updateMe as jest.MockedFunction<typeof updateMe>;
 const mockedChangeEmail =
   changeEmail as jest.MockedFunction<typeof changeEmail>;
@@ -81,6 +85,11 @@ describe('useSettingsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedGetMe.mockResolvedValue(makeUser());
+    mockedGetAppInfo.mockResolvedValue({
+      apiVersion: '1.0.0',
+      environment: 'test',
+      status: 'ok',
+    });
     mockedUpdateMe.mockResolvedValue(makeUser());
     mockedChangeEmail.mockResolvedValue({ ok: true });
     mockedChangePassword.mockResolvedValue({ ok: true });
@@ -125,6 +134,43 @@ describe('useSettingsScreen', () => {
     expect(result.current.user?.email).toBe('marina@test.com');
     expect(result.current.settings.privateAccountEnabled).toBe(true);
     expect(result.current.userError).toBeNull();
+  });
+
+  it('carrega informacoes do app ao montar', async () => {
+    mockedGetAppInfo.mockResolvedValue({
+      apiVersion: '2.1.0',
+      environment: 'test',
+      status: 'ok',
+    });
+
+    const { result } = renderHook(() => useSettingsScreen());
+
+    await waitFor(() => {
+      expect(result.current.isLoadingAppInfo).toBe(false);
+    });
+
+    expect(mockedGetAppInfo).toHaveBeenCalledTimes(1);
+    expect(result.current.appInfo).toEqual({
+      apiVersion: '2.1.0',
+      environment: 'test',
+      status: 'ok',
+    });
+    expect(result.current.appInfoError).toBeNull();
+  });
+
+  it('mantem o hook funcional quando informacoes da API falham', async () => {
+    mockedGetAppInfo.mockRejectedValue(new Error('Falha no app-info'));
+
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    await waitFor(() => {
+      expect(result.current.isLoadingAppInfo).toBe(false);
+    });
+
+    expect(result.current.user?.id).toBe('user-1');
+    expect(result.current.appInfo).toBeNull();
+    expect(result.current.appInfoError).toBe('Falha no app-info');
   });
 
   it('exibe erro de carregamento e permite retry', async () => {

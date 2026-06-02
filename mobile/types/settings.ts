@@ -12,6 +12,12 @@ export type SettingsState = {
   privateAccountEnabled: boolean;
 };
 
+export type AppInfo = {
+  apiVersion: string;
+  environment: string;
+  status: 'ok';
+};
+
 export type UserAccountData = {
   id: string;
   name: string;
