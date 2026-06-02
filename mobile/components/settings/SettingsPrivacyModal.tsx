@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, useColorScheme } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -15,8 +16,7 @@ export default function SettingsPrivacyModal({
   onClose,
   onPressChangeEmail,
 }: Props) {
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
+  const { isDark } = useTheme();
 
   return (
     <SettingsModalShell visible={visible} onClose={onClose}>

@@ -6,8 +6,8 @@ import {
   Text,
   TextInput,
   View,
-  useColorScheme,
 } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -33,8 +33,7 @@ export default function SettingsChangePasswordModal({
   isSubmitting = false,
   errorMessage = null,
 }: Props) {
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
+  const { isDark } = useTheme();
 
   return (
     <SettingsModalShell visible={visible} onClose={onCancel}>

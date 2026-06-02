@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -16,6 +17,7 @@ export default function SettingsPrivateAccountConfirmModal({
   onConfirm,
   onCancel,
 }: Props) {
+  const { isDark } = useTheme();
   const title = willBePrivate
     ? 'TORNAR CONTA PRIVADA?'
     : 'TORNAR CONTA PÚBLICA?';
@@ -27,7 +29,14 @@ export default function SettingsPrivateAccountConfirmModal({
   return (
     <SettingsModalShell visible={visible} onClose={onCancel}>
       <View style={styles.center}>
-        <View style={styles.iconCircle}>
+        <View
+          style={[
+            styles.iconCircle,
+            {
+              backgroundColor: isDark ? '#1f3d2b' : '#e6efe8',
+            },
+          ]}
+        >
           <MaterialIcons
             name={willBePrivate ? 'lock' : 'lock-open'}
             size={36}
@@ -35,15 +44,26 @@ export default function SettingsPrivateAccountConfirmModal({
           />
         </View>
 
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.text}>{body}</Text>
+        <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
+          {title}
+        </Text>
+        <Text style={[styles.text, { color: isDark ? '#bccac2' : '#6d7a74' }]}>
+          {body}
+        </Text>
 
         <Pressable style={styles.primary} onPress={onConfirm}>
           <Text style={styles.primaryText}>CONFIRMAR</Text>
         </Pressable>
 
         <Pressable onPress={onCancel}>
-          <Text style={styles.cancel}>CANCELAR</Text>
+          <Text
+            style={[
+              styles.cancel,
+              { color: isDark ? '#bccac2' : '#6d7a74' },
+            ]}
+          >
+            CANCELAR
+          </Text>
         </Pressable>
       </View>
     </SettingsModalShell>
@@ -56,7 +76,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 999,
-    backgroundColor: '#e6efe8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -67,7 +86,6 @@ const styles = StyleSheet.create({
   },
   text: {
     textAlign: 'center',
-    color: '#6d7a74',
     lineHeight: 20,
   },
   primary: {
@@ -85,6 +103,5 @@ const styles = StyleSheet.create({
   cancel: {
     marginTop: 10,
     fontWeight: '700',
-    color: '#6d7a74',
   },
 });

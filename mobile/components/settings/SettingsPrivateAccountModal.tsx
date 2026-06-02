@@ -1,6 +1,7 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Text, View, Pressable, StyleSheet, useColorScheme } from 'react-native';
+import { Text, View, Pressable, StyleSheet } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
@@ -14,8 +15,7 @@ export default function SettingsPrivateAccountModal({
   onConfirm,
   onCancel,
 }: Props) {
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
+  const { isDark } = useTheme();
 
   return (
     <SettingsModalShell visible={visible} onClose={onCancel}>

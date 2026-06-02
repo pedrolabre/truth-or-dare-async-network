@@ -1,10 +1,6 @@
 import React from 'react';
-import {
-  Modal,
-  Pressable,
-  StyleSheet,
-  useColorScheme,
-} from 'react-native';
+import { Modal, Pressable, StyleSheet } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 type Props = {
   visible: boolean;
@@ -17,12 +13,12 @@ export default function SettingsModalShell({
   onClose,
   children,
 }: Props) {
-  const scheme = useColorScheme();
-  const isDark = scheme === 'dark';
+  const { isDark } = useTheme();
 
   return (
     <Modal visible={visible} transparent animationType="fade">
       <Pressable
+        testID="settings-modal-overlay"
         style={[
           styles.overlay,
           {
@@ -34,6 +30,7 @@ export default function SettingsModalShell({
         onPress={onClose}
       >
         <Pressable
+          testID="settings-modal-card"
           style={[
             styles.card,
             {
