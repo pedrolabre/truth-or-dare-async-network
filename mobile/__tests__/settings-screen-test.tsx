@@ -90,10 +90,12 @@ function makeHookState(
     passwordForm: {
       currentPassword: '',
       newPassword: '',
+      confirmNewPassword: '',
     },
     setPasswordForm: jest.fn(),
     resetPasswordForm: jest.fn(),
     handleCancelChangePassword: jest.fn(),
+    passwordFieldErrors: {},
     isSubmittingEmail: false,
     emailError: null,
     handleChangeEmail: jest.fn().mockResolvedValue(true),
@@ -241,6 +243,36 @@ describe('SettingsScreen', () => {
         currentPassword: 'senha-atual',
       });
       expect(switchModal).toHaveBeenCalledWith('email-success');
+    });
+  });
+
+  it('troca o modal de alteracao de senha para sucesso apos envio', async () => {
+    const handleChangePassword = jest.fn().mockResolvedValue(true);
+    const switchModal = jest.fn();
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'change-password',
+        passwordForm: {
+          currentPassword: 'senha-atual',
+          newPassword: 'senha-nova-segura1',
+          confirmNewPassword: 'senha-nova-segura1',
+        },
+        handleChangePassword,
+        switchModal,
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    fireEvent.press(getByText('ATUALIZAR SENHA'));
+
+    await waitFor(() => {
+      expect(handleChangePassword).toHaveBeenCalledWith({
+        currentPassword: 'senha-atual',
+        newPassword: 'senha-nova-segura1',
+        confirmNewPassword: 'senha-nova-segura1',
+      });
+      expect(switchModal).toHaveBeenCalledWith('password-success');
     });
   });
 });

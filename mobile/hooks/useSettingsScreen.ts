@@ -13,6 +13,8 @@ import type {
   ChangeEmailFieldErrors,
   ChangeEmailForm,
   ChangeEmailPayload,
+  ChangePasswordFieldErrors,
+  ChangePasswordForm,
   ChangePasswordPayload,
   SettingsState,
   UserAccountData,
@@ -32,7 +34,7 @@ export type SettingsScreenModal =
 
 export type SettingsEmailForm = ChangeEmailForm;
 
-export type SettingsPasswordForm = ChangePasswordPayload;
+export type SettingsPasswordForm = ChangePasswordForm;
 
 const EMPTY_EMAIL_FORM: SettingsEmailForm = {
   newEmail: '',
@@ -43,6 +45,7 @@ const EMPTY_EMAIL_FORM: SettingsEmailForm = {
 const EMPTY_PASSWORD_FORM: SettingsPasswordForm = {
   currentPassword: '',
   newPassword: '',
+  confirmNewPassword: '',
 };
 
 function getErrorMessage(
@@ -105,6 +108,52 @@ function validateEmailForm(
   return errors;
 }
 
+function hasNumberOrSymbol(password: string): boolean {
+  return /[\d\W_]/.test(password);
+}
+
+function validatePasswordForm(
+  form: SettingsPasswordForm,
+  validateEmptyFields: boolean,
+): ChangePasswordFieldErrors {
+  const errors: ChangePasswordFieldErrors = {};
+  const currentPassword = form.currentPassword.trim();
+  const newPassword = form.newPassword;
+  const confirmNewPassword = form.confirmNewPassword;
+
+  if (validateEmptyFields || form.currentPassword) {
+    if (!currentPassword) {
+      errors.currentPassword = 'Informe sua senha atual.';
+    }
+  }
+
+  if (validateEmptyFields || newPassword) {
+    if (!newPassword) {
+      errors.newPassword = 'Informe a nova senha.';
+    } else if (newPassword.length < 8) {
+      errors.newPassword = 'A nova senha precisa ter pelo menos 8 caracteres.';
+    } else if (!hasNumberOrSymbol(newPassword)) {
+      errors.newPassword =
+        'A nova senha precisa ter ao menos 1 numero ou simbolo.';
+    } else if (currentPassword && newPassword === form.currentPassword) {
+      errors.newPassword = 'A nova senha precisa ser diferente da atual.';
+    }
+  }
+
+  if (validateEmptyFields || confirmNewPassword) {
+    if (!confirmNewPassword) {
+      errors.confirmNewPassword = 'Confirme a nova senha.';
+    } else if (
+      newPassword &&
+      confirmNewPassword !== newPassword
+    ) {
+      errors.confirmNewPassword = 'As senhas precisam ser iguais.';
+    }
+  }
+
+  return errors;
+}
+
 export function useSettingsScreen() {
   const router = useRouter();
 
@@ -130,7 +179,14 @@ export function useSettingsScreen() {
   const [shouldValidateEmptyEmailFields, setShouldValidateEmptyEmailFields] =
     useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
+  const isSubmittingPasswordRef = useRef(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordFieldErrors, setPasswordFieldErrors] =
+    useState<ChangePasswordFieldErrors>({});
+  const [
+    shouldValidateEmptyPasswordFields,
+    setShouldValidateEmptyPasswordFields,
+  ] = useState(false);
 
   const loadUser = useCallback(async () => {
     try {
@@ -164,6 +220,12 @@ export function useSettingsScreen() {
     );
   }, [emailForm, shouldValidateEmptyEmailFields, user?.email]);
 
+  useEffect(() => {
+    setPasswordFieldErrors(
+      validatePasswordForm(passwordForm, shouldValidateEmptyPasswordFields),
+    );
+  }, [passwordForm, shouldValidateEmptyPasswordFields]);
+
   const retryLoadUser = useCallback(async () => {
     await loadUser();
   }, [loadUser]);
@@ -190,6 +252,8 @@ export function useSettingsScreen() {
   const resetPasswordForm = useCallback(() => {
     setPasswordForm(EMPTY_PASSWORD_FORM);
     setPasswordError(null);
+    setPasswordFieldErrors({});
+    setShouldValidateEmptyPasswordFields(false);
   }, []);
 
   const handleCancelChangeEmail = useCallback(
@@ -270,13 +334,34 @@ export function useSettingsScreen() {
   );
 
   const handleChangePassword = useCallback(
-    async (payload: ChangePasswordPayload) => {
+    async (form: SettingsPasswordForm) => {
+      if (isSubmittingPasswordRef.current) {
+        return false;
+      }
+
+      const fieldErrors = validatePasswordForm(form, true);
+      setShouldValidateEmptyPasswordFields(true);
+      setPasswordFieldErrors(fieldErrors);
+      setPasswordError(null);
+
+      if (Object.keys(fieldErrors).length > 0) {
+        return false;
+      }
+
+      const payload: ChangePasswordPayload = {
+        currentPassword: form.currentPassword,
+        newPassword: form.newPassword,
+      };
+
       try {
+        isSubmittingPasswordRef.current = true;
         setIsSubmittingPassword(true);
-        setPasswordError(null);
 
         await changePassword(payload);
         setPasswordForm(EMPTY_PASSWORD_FORM);
+        setPasswordFieldErrors({});
+        setShouldValidateEmptyPasswordFields(false);
+        setActiveModal('password-success');
 
         return true;
       } catch (error) {
@@ -286,6 +371,7 @@ export function useSettingsScreen() {
 
         return false;
       } finally {
+        isSubmittingPasswordRef.current = false;
         setIsSubmittingPassword(false);
       }
     },
@@ -330,6 +416,7 @@ export function useSettingsScreen() {
     setPasswordForm,
     resetPasswordForm,
     handleCancelChangePassword,
+    passwordFieldErrors,
     isSubmittingEmail,
     emailError,
     handleChangeEmail,

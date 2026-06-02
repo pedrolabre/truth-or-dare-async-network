@@ -128,8 +128,10 @@ describe('Settings theme modals', () => {
             visible
             currentPassword=""
             newPassword=""
+            confirmNewPassword=""
             onChangeCurrentPassword={noop}
             onChangeNewPassword={noop}
+            onChangeConfirmNewPassword={noop}
             onSubmit={noop}
             onCancel={noop}
           />

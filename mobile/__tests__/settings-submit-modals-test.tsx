@@ -88,10 +88,12 @@ function makeHookState(
     passwordForm: {
       currentPassword: '',
       newPassword: '',
+      confirmNewPassword: '',
     },
     setPasswordForm: jest.fn(),
     resetPasswordForm: jest.fn(),
     handleCancelChangePassword: jest.fn(),
+    passwordFieldErrors: {},
     isSubmittingEmail: false,
     emailError: null,
     handleChangeEmail: jest.fn().mockResolvedValue(true),
@@ -208,7 +210,8 @@ describe('Settings submit modals', () => {
         activeModal: 'change-password',
         passwordForm: {
           currentPassword: 'senha-atual',
-          newPassword: 'senha-nova-segura',
+          newPassword: 'senha-nova-segura1',
+          confirmNewPassword: 'senha-nova-segura1',
         },
         handleChangePassword,
         switchModal,
@@ -222,7 +225,8 @@ describe('Settings submit modals', () => {
     await waitFor(() => {
       expect(handleChangePassword).toHaveBeenCalledWith({
         currentPassword: 'senha-atual',
-        newPassword: 'senha-nova-segura',
+        newPassword: 'senha-nova-segura1',
+        confirmNewPassword: 'senha-nova-segura1',
       });
       expect(switchModal).toHaveBeenCalledWith('password-success');
     });

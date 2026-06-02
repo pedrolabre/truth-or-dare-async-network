@@ -41,6 +41,14 @@ export type ChangePasswordPayload = {
   newPassword: string;
 };
 
+export type ChangePasswordForm = ChangePasswordPayload & {
+  confirmNewPassword: string;
+};
+
+export type ChangePasswordFieldErrors = Partial<
+  Record<keyof ChangePasswordForm, string>
+>;
+
 export type UpdateAccountPayload = {
   name?: string;
   username?: string | null;

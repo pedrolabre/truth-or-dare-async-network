@@ -12,7 +12,7 @@ import {
 import { clearLocalSettings } from '../services/settingsStorage';
 import type {
   ChangeEmailForm,
-  ChangePasswordPayload,
+  ChangePasswordForm,
   UserAccountData,
 } from '../types/settings';
 
@@ -150,6 +150,7 @@ describe('useSettingsScreen', () => {
       result.current.setPasswordForm({
         currentPassword: 'senha-atual',
         newPassword: 'senha-nova',
+        confirmNewPassword: 'senha-nova',
       });
     });
 
@@ -363,21 +364,22 @@ describe('useSettingsScreen', () => {
         resolveChangePassword = resolve;
       }),
     );
-    const payload: ChangePasswordPayload = {
+    const form: ChangePasswordForm = {
       currentPassword: 'senha-atual',
-      newPassword: 'senha-nova-segura',
+      newPassword: 'senha-nova-segura1',
+      confirmNewPassword: 'senha-nova-segura1',
     };
     const { result } = renderHook(() => useSettingsScreen());
     await waitForLoadedUser(result);
 
     act(() => {
-      result.current.setPasswordForm(payload);
+      result.current.setPasswordForm(form);
     });
 
     let request: Promise<boolean> = Promise.resolve(false);
 
     act(() => {
-      request = result.current.handleChangePassword(payload);
+      request = result.current.handleChangePassword(form);
     });
 
     expect(result.current.isSubmittingPassword).toBe(true);
@@ -388,36 +390,159 @@ describe('useSettingsScreen', () => {
       await request;
     });
 
-    expect(mockedChangePassword).toHaveBeenCalledWith(payload);
+    expect(mockedChangePassword).toHaveBeenCalledWith({
+      currentPassword: 'senha-atual',
+      newPassword: 'senha-nova-segura1',
+    });
     expect(result.current.isSubmittingPassword).toBe(false);
     expect(result.current.passwordError).toBeNull();
     expect(result.current.passwordForm).toEqual({
       currentPassword: '',
       newPassword: '',
+      confirmNewPassword: '',
     });
+    expect(result.current.activeModal).toBe('password-success');
+  });
+
+  it('valida alteracao de senha localmente antes de chamar a API', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+    const invalidForm: ChangePasswordForm = {
+      currentPassword: '',
+      newPassword: 'curta',
+      confirmNewPassword: 'diferente',
+    };
+
+    act(() => {
+      result.current.setPasswordForm(invalidForm);
+    });
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.handleChangePassword(invalidForm);
+    });
+
+    expect(success).toBe(false);
+    expect(mockedChangePassword).not.toHaveBeenCalled();
+    expect(result.current.passwordFieldErrors).toEqual({
+      currentPassword: 'Informe sua senha atual.',
+      newPassword: 'A nova senha precisa ter pelo menos 8 caracteres.',
+      confirmNewPassword: 'As senhas precisam ser iguais.',
+    });
+    expect(result.current.passwordError).toBeNull();
+  });
+
+  it('atualiza erros de senha em tempo real conforme o formulario muda', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    act(() => {
+      result.current.setPasswordForm({
+        currentPassword: 'senha-atual',
+        newPassword: 'senhasemnumero',
+        confirmNewPassword: 'senhasemnumero',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.passwordFieldErrors.newPassword).toBe(
+        'A nova senha precisa ter ao menos 1 numero ou simbolo.',
+      );
+    });
+
+    act(() => {
+      result.current.setPasswordForm({
+        currentPassword: 'senha-atual',
+        newPassword: 'senha-nova-segura1',
+        confirmNewPassword: 'senha-nova-segura1',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.passwordFieldErrors).toEqual({});
+    });
+  });
+
+  it('bloqueia nova senha igual a senha atual', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+    const invalidForm: ChangePasswordForm = {
+      currentPassword: 'SenhaAtual1',
+      newPassword: 'SenhaAtual1',
+      confirmNewPassword: 'SenhaAtual1',
+    };
+
+    act(() => {
+      result.current.setPasswordForm(invalidForm);
+    });
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.handleChangePassword(invalidForm);
+    });
+
+    expect(success).toBe(false);
+    expect(mockedChangePassword).not.toHaveBeenCalled();
+    expect(result.current.passwordFieldErrors.newPassword).toBe(
+      'A nova senha precisa ser diferente da atual.',
+    );
+  });
+
+  it('bloqueia duplo envio de alteracao de senha no hook', async () => {
+    let resolveChangePassword: (value: { ok: true }) => void = () => undefined;
+    mockedChangePassword.mockReturnValue(
+      new Promise((resolve) => {
+        resolveChangePassword = resolve;
+      }),
+    );
+    const form: ChangePasswordForm = {
+      currentPassword: 'senha-atual',
+      newPassword: 'senha-nova-segura1',
+      confirmNewPassword: 'senha-nova-segura1',
+    };
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    let firstRequest: Promise<boolean> = Promise.resolve(false);
+    let secondRequest: Promise<boolean> = Promise.resolve(false);
+
+    act(() => {
+      firstRequest = result.current.handleChangePassword(form);
+      secondRequest = result.current.handleChangePassword(form);
+    });
+
+    await act(async () => {
+      resolveChangePassword({ ok: true });
+      await firstRequest;
+      await secondRequest;
+    });
+
+    await expect(secondRequest).resolves.toBe(false);
+    expect(mockedChangePassword).toHaveBeenCalledTimes(1);
   });
 
   it('exibe erro de senha em falha e preserva formulario', async () => {
     mockedChangePassword.mockRejectedValue(new Error('Senha atual incorreta'));
-    const payload: ChangePasswordPayload = {
+    const form: ChangePasswordForm = {
       currentPassword: 'senha-atual',
-      newPassword: 'senha-nova-segura',
+      newPassword: 'senha-nova-segura1',
+      confirmNewPassword: 'senha-nova-segura1',
     };
     const { result } = renderHook(() => useSettingsScreen());
     await waitForLoadedUser(result);
 
     act(() => {
-      result.current.setPasswordForm(payload);
+      result.current.setPasswordForm(form);
     });
 
     let success = true;
     await act(async () => {
-      success = await result.current.handleChangePassword(payload);
+      success = await result.current.handleChangePassword(form);
     });
 
     expect(success).toBe(false);
     expect(result.current.passwordError).toBe('Senha atual incorreta');
-    expect(result.current.passwordForm).toEqual(payload);
+    expect(result.current.passwordForm).toEqual(form);
     expect(result.current.isSubmittingPassword).toBe(false);
   });
 

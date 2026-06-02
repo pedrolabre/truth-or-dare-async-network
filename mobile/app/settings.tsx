@@ -80,6 +80,7 @@ export default function SettingsScreen() {
     passwordForm,
     setPasswordForm,
     handleCancelChangePassword,
+    passwordFieldErrors,
     isSubmittingPassword,
     passwordError,
     handleChangePassword,
@@ -395,16 +396,24 @@ export default function SettingsScreen() {
         visible={activeModal === 'change-password'}
         currentPassword={passwordForm.currentPassword}
         newPassword={passwordForm.newPassword}
+        confirmNewPassword={passwordForm.confirmNewPassword}
         onChangeCurrentPassword={(value) =>
           setPasswordForm((current) => ({ ...current, currentPassword: value }))
         }
         onChangeNewPassword={(value) =>
           setPasswordForm((current) => ({ ...current, newPassword: value }))
         }
+        onChangeConfirmNewPassword={(value) =>
+          setPasswordForm((current) => ({
+            ...current,
+            confirmNewPassword: value,
+          }))
+        }
         onSubmit={handleSubmitChangePassword}
         onCancel={() => handleCancelChangePassword(null)}
         isSubmitting={isSubmittingPassword}
         errorMessage={passwordError}
+        fieldErrors={passwordFieldErrors}
       />
 
       <SettingsPasswordSuccessModal
