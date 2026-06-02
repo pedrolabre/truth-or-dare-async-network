@@ -47,7 +47,9 @@ import type {
   ReportAbusePayload,
   ReportAbuseResponse,
   UpdateAccountPayload,
+  UpdateUserPreferencesPayload,
   UserAccountData,
+  UserPreferencesResponse,
 } from '../types/settings';
 import {
   mapApiClubToItem,
@@ -791,6 +793,35 @@ export async function updateMe(
     method: 'PATCH',
     headers,
     body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function getUserPreferences(): Promise<UserPreferencesResponse> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/users/me/preferences`, {
+    method: 'GET',
+    headers,
+  });
+
+  return parseResponse(response);
+}
+
+export async function updateUserPreferences(
+  payload: UpdateUserPreferencesPayload,
+): Promise<UserPreferencesResponse> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/users/me/preferences`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      preferences: payload,
+    }),
   });
 
   return parseResponse(response);

@@ -5,6 +5,8 @@ export type UserSettingsErrorCode =
   | 'INVALID_BIO'
   | 'INVALID_IS_PRIVATE'
   | 'INVALID_CURRENT_PASSWORD'
+  | 'INVALID_PREFERENCE_KEY'
+  | 'INVALID_PREFERENCE_VALUE'
   | 'NO_FIELDS_TO_UPDATE'
   | 'USERNAME_ALREADY_IN_USE'
   | 'VALIDATION_ERROR';
@@ -56,6 +58,22 @@ export function invalidCurrentPasswordError(): never {
     'INVALID_CURRENT_PASSWORD',
     'Senha atual incorreta',
     401,
+  );
+}
+
+export function invalidPreferenceKeyError(): never {
+  throw new UserSettingsServiceError(
+    'INVALID_PREFERENCE_KEY',
+    'Preferencia invalida',
+    400,
+  );
+}
+
+export function invalidPreferenceValueError(): never {
+  throw new UserSettingsServiceError(
+    'INVALID_PREFERENCE_VALUE',
+    'Valor de preferencia invalido',
+    400,
   );
 }
 

@@ -7,10 +7,16 @@ import {
   patchMyAccountController,
   updateMyProfileController,
 } from '../../controllers/users/users.controller';
+import {
+  getUserPreferencesController,
+  updateUserPreferencesController,
+} from '../../controllers/users/preferences.controller';
 import { authMiddleware } from '../../middlewares/auth.middleware';
 
 const router = Router();
 
+router.get('/me/preferences', authMiddleware, getUserPreferencesController);
+router.put('/me/preferences', authMiddleware, updateUserPreferencesController);
 router.get('/me', authMiddleware, getMyProfileController);
 router.put('/me', authMiddleware, updateMyProfileController);
 router.patch('/me', authMiddleware, patchMyAccountController);

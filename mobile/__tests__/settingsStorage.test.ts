@@ -4,6 +4,7 @@ import {
   clearLocalSettings,
   loadAllSettings,
   loadThemeMode,
+  loadThemeModePreference,
   saveSettings,
   saveThemeMode,
 } from '../services/settingsStorage';
@@ -34,8 +35,16 @@ describe('settings storage service', () => {
     await expect(loadAllSettings()).resolves.toEqual({
       schemaVersion: 1,
       themeMode: 'system',
+      language: 'pt-BR',
+      reduceMotion: false,
+      largeText: false,
+      highContrast: false,
     });
     await expect(loadThemeMode()).resolves.toBe('system');
+    await expect(loadThemeModePreference()).resolves.toEqual({
+      themeMode: 'system',
+      hasStoredThemeMode: false,
+    });
   });
 
   it('carrega configuracoes locais salvas para o usuario autenticado', async () => {
@@ -52,7 +61,15 @@ describe('settings storage service', () => {
     await expect(loadAllSettings()).resolves.toEqual({
       schemaVersion: 1,
       themeMode: 'dark',
+      language: 'pt-BR',
+      reduceMotion: false,
+      largeText: false,
+      highContrast: false,
       futurePreference: true,
+    });
+    await expect(loadThemeModePreference()).resolves.toEqual({
+      themeMode: 'dark',
+      hasStoredThemeMode: true,
     });
   });
 
@@ -64,6 +81,10 @@ describe('settings storage service', () => {
     await expect(loadAllSettings()).resolves.toEqual({
       schemaVersion: 1,
       themeMode: 'light',
+      language: 'pt-BR',
+      reduceMotion: false,
+      largeText: false,
+      highContrast: false,
     });
   });
 
@@ -79,7 +100,32 @@ describe('settings storage service', () => {
     await expect(loadAllSettings()).resolves.toEqual({
       schemaVersion: 1,
       themeMode: 'light',
+      language: 'pt-BR',
+      reduceMotion: false,
+      largeText: false,
+      highContrast: false,
       futurePreference: 'preservar',
+    });
+  });
+
+  it('normaliza defaults futuros de idioma e acessibilidade', async () => {
+    await authenticateAs('user-1');
+
+    await saveSettings({
+      themeMode: 'dark',
+      language: 'pt-BR',
+      reduceMotion: true,
+      largeText: true,
+      highContrast: true,
+    });
+
+    await expect(loadAllSettings()).resolves.toEqual({
+      schemaVersion: 1,
+      themeMode: 'dark',
+      language: 'pt-BR',
+      reduceMotion: true,
+      largeText: true,
+      highContrast: true,
     });
   });
 
@@ -103,7 +149,16 @@ describe('settings storage service', () => {
 
     await expect(
       AsyncStorage.getItem(`${SETTINGS_PREFIX}/anonymous`),
-    ).resolves.toBe(JSON.stringify({ schemaVersion: 1, themeMode: 'dark' }));
+    ).resolves.toBe(
+      JSON.stringify({
+        schemaVersion: 1,
+        themeMode: 'dark',
+        language: 'pt-BR',
+        reduceMotion: false,
+        largeText: false,
+        highContrast: false,
+      }),
+    );
   });
 
   it('usa fallback seguro quando a leitura falha', async () => {
@@ -115,6 +170,10 @@ describe('settings storage service', () => {
     await expect(loadAllSettings()).resolves.toEqual({
       schemaVersion: 1,
       themeMode: 'system',
+      language: 'pt-BR',
+      reduceMotion: false,
+      largeText: false,
+      highContrast: false,
     });
   });
 

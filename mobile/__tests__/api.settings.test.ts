@@ -7,9 +7,11 @@ import {
   getAppInfo,
   getMe,
   getMyProfile,
+  getUserPreferences,
   reportAbuse,
   updateMe,
   updateMyProfile,
+  updateUserPreferences,
 } from '../services/api';
 
 function makeJsonResponse(
@@ -111,6 +113,77 @@ describe('settings API client', () => {
       },
       body: JSON.stringify(payload),
     });
+  });
+
+  it('busca preferencias autenticadas do usuario', async () => {
+    const preferences = {
+      preferences: {
+        themeMode: 'dark',
+        language: 'pt-BR',
+        reduceMotion: false,
+        largeText: false,
+        highContrast: false,
+      },
+      items: [
+        {
+          key: 'themeMode',
+          value: 'dark',
+          updatedAt: '2026-06-02T12:00:00.000Z',
+        },
+      ],
+    };
+    fetchMock.mockResolvedValue(makeJsonResponse(true, 200, preferences));
+
+    await expect(getUserPreferences()).resolves.toEqual(preferences);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/users/me/preferences',
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+      },
+    );
+  });
+
+  it('atualiza preferencias autenticadas em lote', async () => {
+    const response = {
+      preferences: {
+        themeMode: 'light',
+        language: 'pt-BR',
+        reduceMotion: true,
+        largeText: false,
+        highContrast: false,
+      },
+      items: [],
+    };
+    fetchMock.mockResolvedValue(makeJsonResponse(true, 200, response));
+
+    await expect(
+      updateUserPreferences({
+        themeMode: 'light',
+        reduceMotion: true,
+      }),
+    ).resolves.toEqual(response);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/users/me/preferences',
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+        body: JSON.stringify({
+          preferences: {
+            themeMode: 'light',
+            reduceMotion: true,
+          },
+        }),
+      },
+    );
   });
 
   it('altera o e-mail enviando senha atual e token salvo', async () => {
@@ -227,6 +300,11 @@ describe('settings API client', () => {
   it.each([
     ['getMe', () => getMe()],
     ['updateMe', () => updateMe({ isPrivate: true })],
+    ['getUserPreferences', () => getUserPreferences()],
+    [
+      'updateUserPreferences',
+      () => updateUserPreferences({ themeMode: 'dark' }),
+    ],
     [
       'changeEmail',
       () =>

@@ -16,6 +16,10 @@ function getDefaultSettings(): LocalSettings {
   return {
     schemaVersion: LOCAL_SETTINGS_SCHEMA_VERSION,
     themeMode: 'system',
+    language: 'pt-BR',
+    reduceMotion: false,
+    largeText: false,
+    highContrast: false,
   };
 }
 
@@ -25,6 +29,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isThemeMode(value: unknown): value is ThemeMode {
   return value === 'system' || value === 'light' || value === 'dark';
+}
+
+function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
 }
 
 function decodeBase64Url(value: string): string | null {
@@ -89,6 +97,10 @@ function normalizeSettings(value: unknown): LocalSettings {
     ...value,
     schemaVersion: LOCAL_SETTINGS_SCHEMA_VERSION,
     themeMode: isThemeMode(value.themeMode) ? value.themeMode : 'system',
+    language: value.language === 'pt-BR' ? value.language : 'pt-BR',
+    reduceMotion: isBoolean(value.reduceMotion) ? value.reduceMotion : false,
+    largeText: isBoolean(value.largeText) ? value.largeText : false,
+    highContrast: isBoolean(value.highContrast) ? value.highContrast : false,
   };
 }
 
@@ -152,6 +164,38 @@ export async function loadThemeMode(): Promise<ThemeMode> {
   const settings = await loadAllSettings();
 
   return settings.themeMode;
+}
+
+export async function loadThemeModePreference(): Promise<{
+  themeMode: ThemeMode;
+  hasStoredThemeMode: boolean;
+}> {
+  const storageKey = await getSettingsStorageKey();
+
+  try {
+    const storedValue = await AsyncStorage.getItem(storageKey);
+
+    if (!storedValue) {
+      return {
+        themeMode: 'system',
+        hasStoredThemeMode: false,
+      };
+    }
+
+    const parsedValue = JSON.parse(storedValue);
+    const normalizedSettings = normalizeSettings(parsedValue);
+
+    return {
+      themeMode: normalizedSettings.themeMode,
+      hasStoredThemeMode:
+        isRecord(parsedValue) && isThemeMode(parsedValue.themeMode),
+    };
+  } catch {
+    return {
+      themeMode: 'system',
+      hasStoredThemeMode: false,
+    };
+  }
 }
 
 export async function saveThemeMode(mode: ThemeMode): Promise<void> {

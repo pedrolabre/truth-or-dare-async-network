@@ -8,7 +8,11 @@ import React, {
 } from 'react';
 import { useColorScheme } from 'react-native';
 import {
-  loadThemeMode,
+  getUserPreferences,
+  updateUserPreferences,
+} from '../services/api';
+import {
+  loadThemeModePreference,
   saveThemeMode as persistThemeMode,
 } from '../services/settingsStorage';
 import type { ThemeMode } from '../types/settings';
@@ -36,16 +40,38 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    void loadThemeMode()
-      .then((savedThemeMode) => {
+    async function loadThemePreference() {
+      const { themeMode: localThemeMode, hasStoredThemeMode } =
+        await loadThemeModePreference();
+
+      if (!isMounted || hasUserChangedThemeRef.current) {
+        return;
+      }
+
+      themeModeRef.current = localThemeMode;
+      setThemeModeState(localThemeMode);
+
+      if (hasStoredThemeMode) {
+        return;
+      }
+
+      try {
+        const remotePreferences = await getUserPreferences();
+        const remoteThemeMode = remotePreferences.preferences.themeMode;
+
         if (!isMounted || hasUserChangedThemeRef.current) {
           return;
         }
 
-        themeModeRef.current = savedThemeMode;
-        setThemeModeState(savedThemeMode);
-      })
-      .catch(() => undefined);
+        themeModeRef.current = remoteThemeMode;
+        setThemeModeState(remoteThemeMode);
+        void persistThemeMode(remoteThemeMode).catch(() => undefined);
+      } catch {
+        return;
+      }
+    }
+
+    void loadThemePreference().catch(() => undefined);
 
     return () => {
       isMounted = false;
@@ -63,6 +89,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     themeModeRef.current = mode;
     setThemeModeState(mode);
     void persistThemeMode(mode).catch(() => undefined);
+    void updateUserPreferences({ themeMode: mode }).catch(() => undefined);
   }
 
   function setThemeMode(mode: ThemeMode) {
