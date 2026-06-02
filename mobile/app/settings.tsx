@@ -29,6 +29,7 @@ import SettingsChangePasswordModal from '../components/settings/SettingsChangePa
 import SettingsPasswordSuccessModal from '../components/settings/SettingsPasswordSuccessModal';
 import SettingsPrivateAccountConfirmModal from '../components/settings/SettingsPrivateAccountConfirmModal';
 import SettingsReportAbuseModal from '../components/settings/SettingsReportAbuseModal';
+import SettingsDeleteAccountModal from '../components/settings/SettingsDeleteAccountModal';
 
 const LIGHT = {
   bg: '#f5fbf6',
@@ -94,8 +95,18 @@ export default function SettingsScreen() {
     reportAbuseError,
     reportAbuseSuccessMessage,
     supportContactMessage,
+    deleteAccountForm,
+    setDeleteAccountForm,
+    deleteAccountStep,
+    handleContinueDeleteAccount,
+    handleCancelDeleteAccount,
+    deleteAccountFieldErrors,
+    isSubmittingDeleteAccount,
+    deleteAccountError,
     handleReportAbuse,
     handleContactDevs,
+    handleDeleteAccount,
+    openDeleteAccountModal,
     handleTogglePrivateAccount,
     handleLogout,
   } = useSettingsScreen();
@@ -144,6 +155,10 @@ export default function SettingsScreen() {
 
   async function handleSubmitReportAbuse() {
     await handleReportAbuse(reportAbuseForm);
+  }
+
+  async function handleSubmitDeleteAccount() {
+    await handleDeleteAccount(deleteAccountForm);
   }
 
   const privateAccountDescription = settings.privateAccountEnabled
@@ -340,6 +355,19 @@ export default function SettingsScreen() {
             />
           </AccountSection>
 
+          <AccountSection title="Zona de Perigo" titleColor={colors.red}>
+            <AccountMenuRow
+              icon="delete-outline"
+              label="Excluir Conta"
+              backgroundColor={colors.surface}
+              textColor={colors.text}
+              subTextColor={colors.sub}
+              iconColor={colors.red}
+              borderColor={colors.outline}
+              onPress={openDeleteAccountModal}
+            />
+          </AccountSection>
+
           <View style={styles.logoutWrap}>
             <SettingsDangerButton
               label="Sair"
@@ -385,6 +413,24 @@ export default function SettingsScreen() {
         errorMessage={reportAbuseError}
         successMessage={reportAbuseSuccessMessage}
         fieldErrors={reportAbuseFieldErrors}
+      />
+
+      <SettingsDeleteAccountModal
+        visible={activeModal === 'delete-account'}
+        step={deleteAccountStep}
+        currentPassword={deleteAccountForm.currentPassword}
+        onChangeCurrentPassword={(value) =>
+          setDeleteAccountForm((current) => ({
+            ...current,
+            currentPassword: value,
+          }))
+        }
+        onContinue={handleContinueDeleteAccount}
+        onSubmit={handleSubmitDeleteAccount}
+        onCancel={handleCancelDeleteAccount}
+        isSubmitting={isSubmittingDeleteAccount}
+        errorMessage={deleteAccountError}
+        fieldErrors={deleteAccountFieldErrors}
       />
 
       <SettingsLogoutModal

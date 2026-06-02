@@ -3,10 +3,28 @@ import { Alert } from 'react-native';
 import { fireEvent, render, waitFor } from '@testing-library/react-native';
 
 import LoginScreen from '../app/login';
-import { login } from '../services/api';
+import { login, saveToken } from '../services/api';
 
 jest.mock('../services/api', () => ({
   login: jest.fn(),
+  saveToken: jest.fn(),
+}));
+
+jest.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({
+    isDark: false,
+  }),
+}));
+
+const mockUseLocalSearchParams = jest.fn();
+
+jest.mock('expo-router', () => ({
+  Link: ({ children }: { children: React.ReactNode }) => children,
+  useLocalSearchParams: () => mockUseLocalSearchParams(),
+  useRouter: () => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+  }),
 }));
 
 // helper pra encontrar o botão real
@@ -30,6 +48,7 @@ function getButtonByText(tree: any, text: string) {
 describe('LoginScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseLocalSearchParams.mockReturnValue({});
   });
 
   it('deve começar com o botão desabilitado', () => {
@@ -74,6 +93,7 @@ describe('LoginScreen', () => {
         email: 'teste@mail.com',
         password: '123456',
       });
+      expect(saveToken).toHaveBeenCalledWith('fake-token');
     });
   });
 
@@ -99,5 +119,20 @@ describe('LoginScreen', () => {
     });
 
     alertSpy.mockRestore();
+  });
+
+  it('deve mostrar mensagem quando a conta foi excluida', () => {
+    mockUseLocalSearchParams.mockReturnValue({
+      accountDeleted: '1',
+    });
+
+    const tree = render(<LoginScreen />);
+
+    expect(tree.getByTestId('login-account-deleted-message')).toBeTruthy();
+    expect(
+      tree.getByText(
+        'Sua conta foi excluida. Obrigado por ter jogado com a gente.',
+      ),
+    ).toBeTruthy();
   });
 });

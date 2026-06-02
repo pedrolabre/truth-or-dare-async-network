@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../src/app';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser, resetFeedData } from '../src/test-utils/factories';
+import { prisma } from '../src/lib/prisma';
 
 describe('Auth', () => {
   applyTestDatabaseHooks({
@@ -97,6 +98,33 @@ describe('Auth', () => {
 
     const res = await request(app).post('/auth/login').send({
       email: 'not-found@test.com',
+      password: '123456',
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({
+      error: 'E-mail ou senha inválidos',
+    });
+  });
+
+  it('deve falhar no login quando o usuario estiver deletado', async () => {
+    const user = await createTestUser({
+      name: 'Deleted User',
+      email: 'auth-deleted-user@test.com',
+      password: '123456',
+    });
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    const res = await request(app).post('/auth/login').send({
+      email: 'auth-deleted-user@test.com',
       password: '123456',
     });
 

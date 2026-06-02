@@ -49,6 +49,16 @@ export type ChangePasswordFieldErrors = Partial<
   Record<keyof ChangePasswordForm, string>
 >;
 
+export type DeleteAccountPayload = {
+  currentPassword: string;
+};
+
+export type DeleteAccountForm = DeleteAccountPayload;
+
+export type DeleteAccountFieldErrors = Partial<
+  Record<keyof DeleteAccountForm, string>
+>;
+
 export const REPORT_ABUSE_CATEGORIES = [
   'spam',
   'hate',

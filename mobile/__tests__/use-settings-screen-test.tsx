@@ -13,6 +13,7 @@ import {
 import { clearLocalSettings } from '../services/settingsStorage';
 import type {
   ChangeEmailForm,
+  DeleteAccountForm,
   ChangePasswordForm,
   UserAccountData,
 } from '../types/settings';
@@ -83,6 +84,7 @@ describe('useSettingsScreen', () => {
     mockedUpdateMe.mockResolvedValue(makeUser());
     mockedChangeEmail.mockResolvedValue({ ok: true });
     mockedChangePassword.mockResolvedValue({ ok: true });
+    mockedDeleteAccount.mockResolvedValue({ ok: true });
     mockedReportAbuse.mockResolvedValue({
       ticket: {
         id: 'ticket-1',
@@ -798,14 +800,103 @@ describe('useSettingsScreen', () => {
     });
   });
 
-  it('mantem exclusao de conta como stub sem chamar endpoint real', async () => {
+  it('abre exclusao de conta no primeiro passo limpando feedback anterior', async () => {
     const { result } = renderHook(() => useSettingsScreen());
     await waitForLoadedUser(result);
 
-    await expect(result.current.handleDeleteAccount()).resolves.toEqual({
-      implemented: false,
-      reason: 'DELETE_ACCOUNT_NOT_IMPLEMENTED',
+    act(() => {
+      result.current.openDeleteAccountModal();
     });
+
+    expect(result.current.activeModal).toBe('delete-account');
+    expect(result.current.deleteAccountStep).toBe(1);
+    expect(result.current.deleteAccountError).toBeNull();
+  });
+
+  it('valida senha antes de excluir conta', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+    const invalidForm: DeleteAccountForm = {
+      currentPassword: '',
+    };
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.handleDeleteAccount(invalidForm);
+    });
+
+    expect(success).toBe(false);
     expect(mockedDeleteAccount).not.toHaveBeenCalled();
+    expect(result.current.deleteAccountFieldErrors).toEqual({
+      currentPassword: 'Informe sua senha atual.',
+    });
+  });
+
+  it('exclui conta removendo token, limpando dados locais e navegando com parametro', async () => {
+    let resolveDeleteAccount: (value: { ok: true }) => void = () => undefined;
+    mockedDeleteAccount.mockReturnValue(
+      new Promise((resolve) => {
+        resolveDeleteAccount = resolve;
+      }),
+    );
+    const form: DeleteAccountForm = {
+      currentPassword: 'senha-atual',
+    };
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    let request: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      result.current.openDeleteAccountModal();
+      result.current.handleContinueDeleteAccount();
+      result.current.setDeleteAccountForm(form);
+      request = result.current.handleDeleteAccount(form);
+    });
+
+    expect(result.current.isSubmittingDeleteAccount).toBe(true);
+
+    await act(async () => {
+      resolveDeleteAccount({ ok: true });
+      await request;
+    });
+
+    expect(mockedDeleteAccount).toHaveBeenCalledWith({
+      currentPassword: 'senha-atual',
+    });
+    expect(mockedClearLocalSettings).toHaveBeenCalledTimes(1);
+    expect(mockedRemoveToken).toHaveBeenCalledTimes(1);
+    expect(mockRouterReplace).toHaveBeenCalledWith('/login?accountDeleted=1');
+    expect(result.current.user).toBeNull();
+    expect(result.current.activeModal).toBeNull();
+    expect(result.current.deleteAccountForm).toEqual({
+      currentPassword: '',
+    });
+    expect(result.current.isSubmittingDeleteAccount).toBe(false);
+  });
+
+  it('exibe erro de exclusao e preserva senha para correcao', async () => {
+    mockedDeleteAccount.mockRejectedValue(new Error('Senha atual incorreta'));
+    const form: DeleteAccountForm = {
+      currentPassword: 'senha-atual',
+    };
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    act(() => {
+      result.current.openDeleteAccountModal();
+      result.current.handleContinueDeleteAccount();
+      result.current.setDeleteAccountForm(form);
+    });
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.handleDeleteAccount(form);
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.activeModal).toBe('delete-account');
+    expect(result.current.deleteAccountStep).toBe(2);
+    expect(result.current.deleteAccountError).toBe('Senha atual incorreta');
+    expect(result.current.deleteAccountForm).toEqual(form);
   });
 });

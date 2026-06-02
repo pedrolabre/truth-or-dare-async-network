@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import {
+  deleteMyAccount,
   getMyProfile,
   getPublicUserProfile,
   listUsersForChallenge,
@@ -165,6 +166,26 @@ export async function patchMyAccountController(req: Request, res: Response) {
 
     return res.status(500).json({
       error: 'Erro interno ao atualizar configuracoes da conta',
+    });
+  }
+}
+
+export async function deleteMyAccountController(req: Request, res: Response) {
+  try {
+    const userId = req.user?.sub ?? '';
+    const result = await deleteMyAccount(userId, req.body ?? {});
+
+    return res.status(200).json(result);
+  } catch (error) {
+    if (error instanceof UserSettingsServiceError) {
+      return res.status(error.statusCode).json({
+        error: error.message,
+        code: error.code,
+      });
+    }
+
+    return res.status(500).json({
+      error: 'Erro interno ao excluir conta',
     });
   }
 }

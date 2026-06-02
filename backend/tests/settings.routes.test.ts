@@ -141,6 +141,94 @@ describe('settings.routes', () => {
     expect(response.status).toBe(401);
   });
 
+  it('DELETE /users/me marca deletedAt sem apagar fisicamente o usuario', async () => {
+    const user = await createTestUser({
+      email: 'settings-delete-account@test.com',
+      password: 'senha-atual',
+    });
+
+    const response = await request(app)
+      .delete('/users/me')
+      .set('Authorization', getAuthorization(user))
+      .send({
+        currentPassword: 'senha-atual',
+      });
+    const deletedUser = await prisma.user.findUniqueOrThrow({
+      where: {
+        id: user.id,
+      },
+      select: {
+        id: true,
+        deletedAt: true,
+      },
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      ok: true,
+    });
+    expect(deletedUser).toEqual({
+      id: user.id,
+      deletedAt: expect.any(Date),
+    });
+  });
+
+  it('DELETE /users/me rejeita payload sem senha atual', async () => {
+    const user = await createTestUser({
+      email: 'settings-delete-account-no-password@test.com',
+      password: 'senha-atual',
+    });
+
+    const response = await request(app)
+      .delete('/users/me')
+      .set('Authorization', getAuthorization(user))
+      .send({});
+
+    expect(response.status).toBe(400);
+    expect(response.body).toMatchObject({
+      code: 'VALIDATION_ERROR',
+      error: 'Senha atual e obrigatoria',
+    });
+  });
+
+  it('DELETE /users/me rejeita senha atual incorreta', async () => {
+    const user = await createTestUser({
+      email: 'settings-delete-account-wrong-password@test.com',
+      password: 'senha-atual',
+    });
+
+    const response = await request(app)
+      .delete('/users/me')
+      .set('Authorization', getAuthorization(user))
+      .send({
+        currentPassword: 'senha-incorreta',
+      });
+    const persistedUser = await prisma.user.findUniqueOrThrow({
+      where: {
+        id: user.id,
+      },
+      select: {
+        deletedAt: true,
+      },
+    });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toMatchObject({
+      code: 'INVALID_CURRENT_PASSWORD',
+    });
+    expect(persistedUser.deletedAt).toBeNull();
+  });
+
+  it('DELETE /users/me exige token valido', async () => {
+    const response = await request(app)
+      .delete('/users/me')
+      .send({
+        currentPassword: 'senha-atual',
+      });
+
+    expect(response.status).toBe(401);
+  });
+
   it('POST /auth/change-email altera e normaliza o e-mail', async () => {
     const user = await createTestUser({
       email: 'settings-change-email@test.com',

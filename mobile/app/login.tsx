@@ -1,6 +1,6 @@
 import { login, saveToken } from '../services/api';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Link, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
@@ -54,6 +54,8 @@ export default function LoginScreen() {
   const { isDark } = useTheme();
   const COLORS = isDark ? DARK_COLORS : LIGHT_COLORS;
   const router = useRouter();
+  const params = useLocalSearchParams<{ accountDeleted?: string }>();
+  const accountDeleted = params.accountDeleted === '1';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -133,6 +135,25 @@ router.replace('/feed');
           </View>
 
           <View style={styles.form}>
+            {accountDeleted ? (
+              <View
+                testID="login-account-deleted-message"
+                style={[
+                  styles.deletedAccountNotice,
+                  { backgroundColor: COLORS.secondaryContainer },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.deletedAccountNoticeText,
+                    { color: COLORS.onSurface },
+                  ]}
+                >
+                  Sua conta foi excluida. Obrigado por ter jogado com a gente.
+                </Text>
+              </View>
+            ) : null}
+
             <View
               style={[
                 styles.inputGroup,
@@ -305,6 +326,17 @@ const styles = StyleSheet.create({
   form: {
     width: '100%',
     gap: 16,
+  },
+  deletedAccountNotice: {
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  deletedAccountNoticeText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   inputGroup: {
     minHeight: 56,

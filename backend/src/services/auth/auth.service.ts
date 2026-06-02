@@ -104,7 +104,7 @@ export async function login({ email, password }: LoginInput) {
   }
 
   const user = await prisma.user.findFirst({
-    where: { email: normalizedEmail },
+    where: { email: normalizedEmail, deletedAt: null },
   });
 
   if (!user) {
@@ -151,10 +151,11 @@ export async function changeEmail({
       id: true,
       email: true,
       passwordHash: true,
+      deletedAt: true,
     },
   });
 
-  if (!user) {
+  if (!user || user.deletedAt) {
     userNotFoundError();
   }
 
@@ -223,10 +224,11 @@ export async function changePassword({
     select: {
       id: true,
       passwordHash: true,
+      deletedAt: true,
     },
   });
 
-  if (!user) {
+  if (!user || user.deletedAt) {
     userNotFoundError();
   }
 

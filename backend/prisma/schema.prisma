@@ -13,6 +13,7 @@ model User {
   email           String         @unique
   passwordHash    String
   createdAt       DateTime       @default(now())
+  deletedAt       DateTime?
   bio             String?
   username        String?        @unique
   isPrivate       Boolean        @default(false)

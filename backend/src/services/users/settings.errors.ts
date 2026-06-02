@@ -4,8 +4,10 @@ export type UserSettingsErrorCode =
   | 'INVALID_USERNAME'
   | 'INVALID_BIO'
   | 'INVALID_IS_PRIVATE'
+  | 'INVALID_CURRENT_PASSWORD'
   | 'NO_FIELDS_TO_UPDATE'
-  | 'USERNAME_ALREADY_IN_USE';
+  | 'USERNAME_ALREADY_IN_USE'
+  | 'VALIDATION_ERROR';
 
 export class UserSettingsServiceError extends Error {
   constructor(
@@ -49,6 +51,14 @@ export function invalidIsPrivateError(): never {
   );
 }
 
+export function invalidCurrentPasswordError(): never {
+  throw new UserSettingsServiceError(
+    'INVALID_CURRENT_PASSWORD',
+    'Senha atual incorreta',
+    401,
+  );
+}
+
 export function noFieldsToUpdateError(): never {
   throw new UserSettingsServiceError(
     'NO_FIELDS_TO_UPDATE',
@@ -63,4 +73,8 @@ export function usernameAlreadyInUseError(): never {
     'Username ja esta em uso',
     409,
   );
+}
+
+export function validationError(message: string): never {
+  throw new UserSettingsServiceError('VALIDATION_ERROR', message, 400);
 }

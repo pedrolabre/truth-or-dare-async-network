@@ -4,6 +4,7 @@ import {
   invalidNameError,
   invalidUsernameError,
   noFieldsToUpdateError,
+  validationError,
 } from './settings.errors';
 
 export type UpdateMyAccountInput = {
@@ -11,6 +12,10 @@ export type UpdateMyAccountInput = {
   username?: unknown;
   bio?: unknown;
   isPrivate?: unknown;
+};
+
+export type DeleteMyAccountInput = {
+  currentPassword?: unknown;
 };
 
 export type ValidatedMyAccountUpdate = {
@@ -68,4 +73,14 @@ export function validateMyAccountUpdate(
   }
 
   return updateData;
+}
+
+export function requireDeleteAccountCurrentPassword(
+  data: DeleteMyAccountInput,
+): string {
+  if (typeof data.currentPassword !== 'string' || !data.currentPassword) {
+    validationError('Senha atual e obrigatoria');
+  }
+
+  return data.currentPassword;
 }

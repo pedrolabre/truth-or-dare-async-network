@@ -1,3 +1,4 @@
+import bcrypt from 'bcrypt';
 import {
   ClubMemberStatus,
   ClubPromptStatus,
@@ -6,11 +7,14 @@ import {
 } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import {
+  invalidCurrentPasswordError,
   userNotFoundError,
   usernameAlreadyInUseError,
 } from './settings.errors';
 import {
+  type DeleteMyAccountInput,
   type UpdateMyAccountInput,
+  requireDeleteAccountCurrentPassword,
   validateMyAccountUpdate,
 } from './settings.validators';
 
@@ -75,6 +79,7 @@ export async function listUsersForChallenge({
       id: {
         not: currentUserId,
       },
+      deletedAt: null,
       ...(normalizedQuery
         ? {
             OR: [
@@ -123,10 +128,11 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
       bio: true,
       isPrivate: true,
       createdAt: true,
+      deletedAt: true,
     },
   });
 
-  if (!user) {
+  if (!user || user.deletedAt) {
     userNotFoundError();
   }
 
@@ -208,10 +214,11 @@ export async function getPublicUserProfile(
       name: true,
       username: true,
       bio: true,
+      deletedAt: true,
     },
   });
 
-  if (!user) {
+  if (!user || user.deletedAt) {
     throw new Error('Usuario nao encontrado');
   }
 
@@ -327,12 +334,17 @@ if (
   }
 
   try {
-    await prisma.user.update({
+    const updateResult = await prisma.user.updateMany({
       where: {
         id: userId,
+        deletedAt: null,
       },
       data: updateData,
     });
+
+    if (updateResult.count === 0) {
+      throw new Error('Usuário não encontrado');
+    }
   } catch (error: any) {
     if (error.code === 'P2002' && error.meta?.target?.includes('username')) {
       throw new Error('Username já está em uso');
@@ -355,12 +367,17 @@ export async function updateMyAccount(
   const updateData = validateMyAccountUpdate(data);
 
   try {
-    await prisma.user.update({
+    const updateResult = await prisma.user.updateMany({
       where: {
         id: userId,
+        deletedAt: null,
       },
       data: updateData,
     });
+
+    if (updateResult.count === 0) {
+      userNotFoundError();
+    }
   } catch (error: any) {
     if (error.code === 'P2002' && error.meta?.target?.includes('username')) {
       usernameAlreadyInUseError();
@@ -374,4 +391,60 @@ export async function updateMyAccount(
   }
 
   return getMyProfile(userId);
+}
+
+export async function deleteMyAccount(
+  userId: string,
+  data: DeleteMyAccountInput,
+) {
+  if (!userId) {
+    userNotFoundError();
+  }
+
+  const currentPassword = requireDeleteAccountCurrentPassword(data);
+
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      passwordHash: true,
+      deletedAt: true,
+    },
+  });
+
+  if (!user || user.deletedAt) {
+    userNotFoundError();
+  }
+
+  const passwordMatches = await bcrypt.compare(
+    currentPassword,
+    user.passwordHash,
+  );
+
+  if (!passwordMatches) {
+    invalidCurrentPasswordError();
+  }
+
+  try {
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 'P2025') {
+      userNotFoundError();
+    }
+
+    throw error;
+  }
+
+  return {
+    ok: true,
+  };
 }

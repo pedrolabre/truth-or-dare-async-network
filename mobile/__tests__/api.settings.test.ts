@@ -185,16 +185,21 @@ describe('settings API client', () => {
     );
   });
 
-  it('prepara exclusao de conta com DELETE autenticado', async () => {
+  it('exclui conta com senha atual e DELETE autenticado', async () => {
+    const payload = {
+      currentPassword: 'senha-atual',
+    };
     fetchMock.mockResolvedValue(makeJsonResponse(true, 200, { ok: true }));
 
-    await expect(deleteAccount()).resolves.toEqual({ ok: true });
+    await expect(deleteAccount(payload)).resolves.toEqual({ ok: true });
 
     expect(fetchMock).toHaveBeenCalledWith('https://api.test/users/me', {
       method: 'DELETE',
       headers: {
+        'Content-Type': 'application/json',
         Authorization: 'Bearer token-123',
       },
+      body: JSON.stringify(payload),
     });
   });
 
@@ -225,7 +230,13 @@ describe('settings API client', () => {
           description: 'Descricao valida para denuncia.',
         }),
     ],
-    ['deleteAccount', () => deleteAccount()],
+    [
+      'deleteAccount',
+      () =>
+        deleteAccount({
+          currentPassword: 'senha-atual',
+        }),
+    ],
   ])('bloqueia %s quando nao existe token salvo', async (_name, request) => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
 

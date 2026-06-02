@@ -106,6 +106,17 @@ function makeHookState(
     reportAbuseError: null,
     reportAbuseSuccessMessage: null,
     supportContactMessage: null,
+    deleteAccountForm: {
+      currentPassword: '',
+    },
+    setDeleteAccountForm: jest.fn(),
+    resetDeleteAccountForm: jest.fn(),
+    deleteAccountStep: 1,
+    handleContinueDeleteAccount: jest.fn(),
+    handleCancelDeleteAccount: jest.fn(),
+    deleteAccountFieldErrors: {},
+    isSubmittingDeleteAccount: false,
+    deleteAccountError: null,
     isSubmittingEmail: false,
     emailError: null,
     handleChangeEmail: jest.fn().mockResolvedValue(true),
@@ -114,12 +125,10 @@ function makeHookState(
     handleChangePassword: jest.fn().mockResolvedValue(true),
     handleReportAbuse: jest.fn().mockResolvedValue(true),
     handleContactDevs: jest.fn().mockResolvedValue(true),
+    openDeleteAccountModal: jest.fn(),
     handleTogglePrivateAccount: jest.fn().mockResolvedValue(makeUser()),
     handleLogout: jest.fn().mockResolvedValue(undefined),
-    handleDeleteAccount: jest.fn().mockResolvedValue({
-      implemented: false,
-      reason: 'DELETE_ACCOUNT_NOT_IMPLEMENTED',
-    }),
+    handleDeleteAccount: jest.fn().mockResolvedValue(true),
     ...overrides,
   };
 }

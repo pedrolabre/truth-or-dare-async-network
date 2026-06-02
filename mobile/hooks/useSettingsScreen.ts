@@ -5,6 +5,7 @@ import { Linking } from 'react-native';
 import {
   changeEmail,
   changePassword,
+  deleteAccount,
   getMe,
   removeToken,
   reportAbuse,
@@ -18,6 +19,9 @@ import type {
   ChangePasswordFieldErrors,
   ChangePasswordForm,
   ChangePasswordPayload,
+  DeleteAccountFieldErrors,
+  DeleteAccountForm,
+  DeleteAccountPayload,
   ReportAbuseFieldErrors,
   ReportAbuseForm,
   ReportAbusePayload,
@@ -36,12 +40,14 @@ export type SettingsScreenModal =
   | 'change-password'
   | 'password-success'
   | 'report-abuse'
+  | 'delete-account'
   | 'private-account'
   | null;
 
 export type SettingsEmailForm = ChangeEmailForm;
 
 export type SettingsPasswordForm = ChangePasswordForm;
+export type SettingsDeleteAccountForm = DeleteAccountForm;
 export type SettingsReportAbuseForm = ReportAbuseForm;
 
 export const SETTINGS_SUPPORT_EMAIL = 'suporte@truthordare.app';
@@ -61,6 +67,10 @@ const EMPTY_PASSWORD_FORM: SettingsPasswordForm = {
 const EMPTY_REPORT_ABUSE_FORM: SettingsReportAbuseForm = {
   category: 'spam',
   description: '',
+};
+
+const EMPTY_DELETE_ACCOUNT_FORM: SettingsDeleteAccountForm = {
+  currentPassword: '',
 };
 
 function getErrorMessage(
@@ -191,6 +201,21 @@ function validateReportAbuseForm(
   return errors;
 }
 
+function validateDeleteAccountForm(
+  form: SettingsDeleteAccountForm,
+  validateEmptyFields: boolean,
+): DeleteAccountFieldErrors {
+  const errors: DeleteAccountFieldErrors = {};
+
+  if (validateEmptyFields || form.currentPassword) {
+    if (!form.currentPassword.trim()) {
+      errors.currentPassword = 'Informe sua senha atual.';
+    }
+  }
+
+  return errors;
+}
+
 export function useSettingsScreen() {
   const router = useRouter();
 
@@ -209,6 +234,8 @@ export function useSettingsScreen() {
     useState<SettingsPasswordForm>(EMPTY_PASSWORD_FORM);
   const [reportAbuseForm, setReportAbuseForm] =
     useState<SettingsReportAbuseForm>(EMPTY_REPORT_ABUSE_FORM);
+  const [deleteAccountForm, setDeleteAccountForm] =
+    useState<SettingsDeleteAccountForm>(EMPTY_DELETE_ACCOUNT_FORM);
 
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const isSubmittingEmailRef = useRef(false);
@@ -240,6 +267,18 @@ export function useSettingsScreen() {
   ] = useState(false);
   const [supportContactMessage, setSupportContactMessage] =
     useState<string | null>(null);
+  const [deleteAccountStep, setDeleteAccountStep] = useState<1 | 2>(1);
+  const [isSubmittingDeleteAccount, setIsSubmittingDeleteAccount] =
+    useState(false);
+  const isSubmittingDeleteAccountRef = useRef(false);
+  const [deleteAccountError, setDeleteAccountError] =
+    useState<string | null>(null);
+  const [deleteAccountFieldErrors, setDeleteAccountFieldErrors] =
+    useState<DeleteAccountFieldErrors>({});
+  const [
+    shouldValidateEmptyDeleteAccountFields,
+    setShouldValidateEmptyDeleteAccountFields,
+  ] = useState(false);
 
   const loadUser = useCallback(async () => {
     try {
@@ -288,6 +327,15 @@ export function useSettingsScreen() {
     );
   }, [reportAbuseForm, shouldValidateEmptyReportAbuseFields]);
 
+  useEffect(() => {
+    setDeleteAccountFieldErrors(
+      validateDeleteAccountForm(
+        deleteAccountForm,
+        shouldValidateEmptyDeleteAccountFields,
+      ),
+    );
+  }, [deleteAccountForm, shouldValidateEmptyDeleteAccountFields]);
+
   const retryLoadUser = useCallback(async () => {
     await loadUser();
   }, [loadUser]);
@@ -311,6 +359,14 @@ export function useSettingsScreen() {
     setActiveModal('report-abuse');
   }, []);
 
+  const openDeleteAccountModal = useCallback(() => {
+    setDeleteAccountStep(1);
+    setDeleteAccountError(null);
+    setDeleteAccountFieldErrors({});
+    setShouldValidateEmptyDeleteAccountFields(false);
+    setActiveModal('delete-account');
+  }, []);
+
   const resetEmailForm = useCallback(() => {
     setEmailForm(EMPTY_EMAIL_FORM);
     setEmailError(null);
@@ -332,6 +388,24 @@ export function useSettingsScreen() {
     setReportAbuseFieldErrors({});
     setShouldValidateEmptyReportAbuseFields(false);
   }, []);
+
+  const resetDeleteAccountForm = useCallback(() => {
+    setDeleteAccountForm(EMPTY_DELETE_ACCOUNT_FORM);
+    setDeleteAccountStep(1);
+    setDeleteAccountError(null);
+    setDeleteAccountFieldErrors({});
+    setShouldValidateEmptyDeleteAccountFields(false);
+  }, []);
+
+  const handleContinueDeleteAccount = useCallback(() => {
+    setDeleteAccountStep(2);
+    setDeleteAccountError(null);
+  }, []);
+
+  const handleCancelDeleteAccount = useCallback(() => {
+    resetDeleteAccountForm();
+    setActiveModal(null);
+  }, [resetDeleteAccountForm]);
 
   const handleCancelChangeEmail = useCallback(
     (nextModal: SettingsScreenModal = 'privacy') => {
@@ -540,14 +614,63 @@ export function useSettingsScreen() {
     setEmailForm(EMPTY_EMAIL_FORM);
     setPasswordForm(EMPTY_PASSWORD_FORM);
     setReportAbuseForm(EMPTY_REPORT_ABUSE_FORM);
+    setDeleteAccountForm(EMPTY_DELETE_ACCOUNT_FORM);
     setActiveModal(null);
     router.replace('/login');
   }, [router]);
 
-  const handleDeleteAccount = useCallback(async () => ({
-    implemented: false,
-    reason: 'DELETE_ACCOUNT_NOT_IMPLEMENTED',
-  }), []);
+  const handleDeleteAccount = useCallback(
+    async (form: SettingsDeleteAccountForm) => {
+      if (isSubmittingDeleteAccountRef.current) {
+        return false;
+      }
+
+      const fieldErrors = validateDeleteAccountForm(form, true);
+      setShouldValidateEmptyDeleteAccountFields(true);
+      setDeleteAccountFieldErrors(fieldErrors);
+      setDeleteAccountError(null);
+
+      if (Object.keys(fieldErrors).length > 0) {
+        return false;
+      }
+
+      const payload: DeleteAccountPayload = {
+        currentPassword: form.currentPassword,
+      };
+
+      try {
+        isSubmittingDeleteAccountRef.current = true;
+        setIsSubmittingDeleteAccount(true);
+
+        await deleteAccount(payload);
+        await clearLocalSettings();
+        await removeToken();
+        setUser(null);
+        setSettings((current) => ({
+          ...current,
+          privateAccountEnabled: false,
+        }));
+        setEmailForm(EMPTY_EMAIL_FORM);
+        setPasswordForm(EMPTY_PASSWORD_FORM);
+        setReportAbuseForm(EMPTY_REPORT_ABUSE_FORM);
+        setDeleteAccountForm(EMPTY_DELETE_ACCOUNT_FORM);
+        setActiveModal(null);
+        router.replace('/login?accountDeleted=1');
+
+        return true;
+      } catch (error) {
+        setDeleteAccountError(
+          getErrorMessage(error, 'Nao foi possivel excluir sua conta.'),
+        );
+
+        return false;
+      } finally {
+        isSubmittingDeleteAccountRef.current = false;
+        setIsSubmittingDeleteAccount(false);
+      }
+    },
+    [router],
+  );
 
   return {
     user,
@@ -560,6 +683,7 @@ export function useSettingsScreen() {
     closeModal,
     switchModal,
     openReportAbuseModal,
+    openDeleteAccountModal,
     emailForm,
     setEmailForm,
     resetEmailForm,
@@ -574,6 +698,15 @@ export function useSettingsScreen() {
     setReportAbuseForm,
     resetReportAbuseForm,
     reportAbuseFieldErrors,
+    deleteAccountForm,
+    setDeleteAccountForm,
+    resetDeleteAccountForm,
+    deleteAccountStep,
+    handleContinueDeleteAccount,
+    handleCancelDeleteAccount,
+    deleteAccountFieldErrors,
+    isSubmittingDeleteAccount,
+    deleteAccountError,
     isSubmittingReportAbuse,
     reportAbuseError,
     reportAbuseSuccessMessage,

@@ -42,6 +42,7 @@ import type { ToggleClubLikeApi } from '../types/clubsApi';
 import type {
   ChangeEmailPayload,
   ChangePasswordPayload,
+  DeleteAccountPayload,
   ReportAbusePayload,
   ReportAbuseResponse,
   UpdateAccountPayload,
@@ -822,15 +823,14 @@ export async function reportAbuse(
   return parseResponse(response);
 }
 
-export async function deleteAccount() {
+export async function deleteAccount(payload: DeleteAccountPayload) {
   const baseUrl = getApiUrl();
   const headers = await getAuthenticatedHeaders();
 
   const response = await fetch(`${baseUrl}/users/me`, {
     method: 'DELETE',
-    headers: {
-      Authorization: headers.Authorization,
-    },
+    headers,
+    body: JSON.stringify(payload),
   });
 
   return parseResponse(response);

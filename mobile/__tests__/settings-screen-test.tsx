@@ -108,6 +108,17 @@ function makeHookState(
     reportAbuseError: null,
     reportAbuseSuccessMessage: null,
     supportContactMessage: null,
+    deleteAccountForm: {
+      currentPassword: '',
+    },
+    setDeleteAccountForm: jest.fn(),
+    resetDeleteAccountForm: jest.fn(),
+    deleteAccountStep: 1,
+    handleContinueDeleteAccount: jest.fn(),
+    handleCancelDeleteAccount: jest.fn(),
+    deleteAccountFieldErrors: {},
+    isSubmittingDeleteAccount: false,
+    deleteAccountError: null,
     isSubmittingEmail: false,
     emailError: null,
     handleChangeEmail: jest.fn().mockResolvedValue(true),
@@ -116,12 +127,10 @@ function makeHookState(
     handleChangePassword: jest.fn().mockResolvedValue(true),
     handleReportAbuse: jest.fn().mockResolvedValue(true),
     handleContactDevs: jest.fn().mockResolvedValue(true),
+    openDeleteAccountModal: jest.fn(),
     handleTogglePrivateAccount: jest.fn().mockResolvedValue(makeUser()),
     handleLogout: jest.fn().mockResolvedValue(undefined),
-    handleDeleteAccount: jest.fn().mockResolvedValue({
-      implemented: false,
-      reason: 'DELETE_ACCOUNT_NOT_IMPLEMENTED',
-    }),
+    handleDeleteAccount: jest.fn().mockResolvedValue(true),
     ...overrides,
   };
 }
@@ -351,6 +360,67 @@ describe('SettingsScreen', () => {
       expect(handleReportAbuse).toHaveBeenCalledWith({
         category: 'hate',
         description: 'Mensagem ofensiva recebida no app.',
+      });
+    });
+  });
+
+  it('exibe zona de perigo e abre exclusao de conta pelo hook', () => {
+    const openDeleteAccountModal = jest.fn();
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        openDeleteAccountModal,
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    expect(getByText('Zona de Perigo')).toBeTruthy();
+
+    fireEvent.press(getByText('Excluir Conta'));
+
+    expect(openDeleteAccountModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('continua fluxo de exclusao no primeiro passo do modal', () => {
+    const handleContinueDeleteAccount = jest.fn();
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'delete-account',
+        deleteAccountStep: 1,
+        handleContinueDeleteAccount,
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    fireEvent.press(getByText('CONTINUAR'));
+
+    expect(handleContinueDeleteAccount).toHaveBeenCalledTimes(1);
+  });
+
+  it('envia exclusao de conta com senha atual preservando erro no modal', async () => {
+    const handleDeleteAccount = jest.fn().mockResolvedValue(false);
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'delete-account',
+        deleteAccountStep: 2,
+        deleteAccountForm: {
+          currentPassword: 'senha-atual',
+        },
+        deleteAccountError: 'Senha atual incorreta',
+        handleDeleteAccount,
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    expect(getByText('Senha atual incorreta')).toBeTruthy();
+
+    fireEvent.press(getByText('EXCLUIR DEFINITIVAMENTE'));
+
+    await waitFor(() => {
+      expect(handleDeleteAccount).toHaveBeenCalledWith({
+        currentPassword: 'senha-atual',
       });
     });
   });
