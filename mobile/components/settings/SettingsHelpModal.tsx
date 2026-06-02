@@ -9,6 +9,7 @@ type Props = {
   onClose: () => void;
   onPressReportAbuse: () => void;
   onPressContactDevs: () => void;
+  contactMessage?: string | null;
 };
 
 export default function SettingsHelpModal({
@@ -16,6 +17,7 @@ export default function SettingsHelpModal({
   onClose,
   onPressReportAbuse,
   onPressContactDevs,
+  contactMessage = null,
 }: Props) {
   const { isDark } = useTheme();
 
@@ -56,6 +58,12 @@ export default function SettingsHelpModal({
             <Text style={styles.linkText}>Falar com Devs</Text>
             <MaterialIcons name="mail" size={20} color="#5A8363" />
           </Pressable>
+
+          {contactMessage ? (
+            <Text testID="settings-help-contact-message" style={styles.contactMessage}>
+              {contactMessage}
+            </Text>
+          ) : null}
         </View>
 
         <Pressable
@@ -105,6 +113,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#5A8363',
+  },
+  contactMessage: {
+    color: '#D97706',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '800',
   },
   confirmButton: {
     marginTop: 24,

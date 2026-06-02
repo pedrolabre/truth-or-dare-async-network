@@ -167,6 +167,7 @@ export async function resetFeedData(options: ResetFeedDataOptions = {}) {
   const { deleteUsers = false, preserveUserEmails = [] } = options;
 
   await prisma.notification.deleteMany();
+  await prisma.supportTicket.deleteMany();
   await prisma.clubMember.deleteMany();
   await prisma.clubPrompt.deleteMany();
   await prisma.club.deleteMany();

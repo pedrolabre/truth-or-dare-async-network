@@ -49,6 +49,44 @@ export type ChangePasswordFieldErrors = Partial<
   Record<keyof ChangePasswordForm, string>
 >;
 
+export const REPORT_ABUSE_CATEGORIES = [
+  'spam',
+  'hate',
+  'violence',
+  'nudity',
+  'other',
+] as const;
+
+export type ReportAbuseCategory =
+  (typeof REPORT_ABUSE_CATEGORIES)[number];
+
+export type ReportAbusePayload = {
+  category: ReportAbuseCategory;
+  description: string;
+  referenceId?: string;
+  referenceType?: string;
+};
+
+export type ReportAbuseForm = ReportAbusePayload;
+
+export type ReportAbuseFieldErrors = Partial<
+  Record<keyof ReportAbuseForm, string>
+>;
+
+export type ReportAbuseResponse = {
+  ticket: {
+    id: string;
+    userId: string;
+    category: ReportAbuseCategory;
+    description: string;
+    referenceId: string | null;
+    referenceType: string | null;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+};
+
 export type UpdateAccountPayload = {
   name?: string;
   username?: string | null;

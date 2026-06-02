@@ -28,6 +28,7 @@ import SettingsEmailSuccessModal from '../components/settings/SettingsEmailSucce
 import SettingsChangePasswordModal from '../components/settings/SettingsChangePasswordModal';
 import SettingsPasswordSuccessModal from '../components/settings/SettingsPasswordSuccessModal';
 import SettingsPrivateAccountConfirmModal from '../components/settings/SettingsPrivateAccountConfirmModal';
+import SettingsReportAbuseModal from '../components/settings/SettingsReportAbuseModal';
 
 const LIGHT = {
   bg: '#f5fbf6',
@@ -70,6 +71,7 @@ export default function SettingsScreen() {
     openModal,
     closeModal,
     switchModal,
+    openReportAbuseModal,
     emailForm,
     setEmailForm,
     handleCancelChangeEmail,
@@ -84,6 +86,16 @@ export default function SettingsScreen() {
     isSubmittingPassword,
     passwordError,
     handleChangePassword,
+    reportAbuseForm,
+    setReportAbuseForm,
+    resetReportAbuseForm,
+    reportAbuseFieldErrors,
+    isSubmittingReportAbuse,
+    reportAbuseError,
+    reportAbuseSuccessMessage,
+    supportContactMessage,
+    handleReportAbuse,
+    handleContactDevs,
     handleTogglePrivateAccount,
     handleLogout,
   } = useSettingsScreen();
@@ -128,6 +140,10 @@ export default function SettingsScreen() {
     if (success) {
       switchModal('password-success');
     }
+  }
+
+  async function handleSubmitReportAbuse() {
+    await handleReportAbuse(reportAbuseForm);
   }
 
   const privateAccountDescription = settings.privateAccountEnabled
@@ -345,12 +361,30 @@ export default function SettingsScreen() {
       <SettingsHelpModal
         visible={activeModal === 'help'}
         onClose={closeModal}
-        onPressReportAbuse={() => {
-          // TODO: integrar fluxo de suporte com backend
+        onPressReportAbuse={openReportAbuseModal}
+        onPressContactDevs={handleContactDevs}
+        contactMessage={supportContactMessage}
+      />
+
+      <SettingsReportAbuseModal
+        visible={activeModal === 'report-abuse'}
+        category={reportAbuseForm.category}
+        description={reportAbuseForm.description}
+        onChangeCategory={(value) =>
+          setReportAbuseForm((current) => ({ ...current, category: value }))
+        }
+        onChangeDescription={(value) =>
+          setReportAbuseForm((current) => ({ ...current, description: value }))
+        }
+        onSubmit={handleSubmitReportAbuse}
+        onCancel={() => {
+          resetReportAbuseForm();
+          switchModal('help');
         }}
-        onPressContactDevs={() => {
-          // TODO: integrar fluxo de suporte com backend
-        }}
+        isSubmitting={isSubmittingReportAbuse}
+        errorMessage={reportAbuseError}
+        successMessage={reportAbuseSuccessMessage}
+        fieldErrors={reportAbuseFieldErrors}
       />
 
       <SettingsLogoutModal

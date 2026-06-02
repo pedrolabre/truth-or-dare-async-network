@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Linking } from 'react-native';
 
 import {
   changeEmail,
   changePassword,
   getMe,
   removeToken,
+  reportAbuse,
   updateMe,
 } from '../services/api';
 import { clearLocalSettings } from '../services/settingsStorage';
@@ -16,9 +18,13 @@ import type {
   ChangePasswordFieldErrors,
   ChangePasswordForm,
   ChangePasswordPayload,
+  ReportAbuseFieldErrors,
+  ReportAbuseForm,
+  ReportAbusePayload,
   SettingsState,
   UserAccountData,
 } from '../types/settings';
+import { REPORT_ABUSE_CATEGORIES } from '../types/settings';
 
 export type SettingsScreenModal =
   | 'about'
@@ -29,12 +35,16 @@ export type SettingsScreenModal =
   | 'email-success'
   | 'change-password'
   | 'password-success'
+  | 'report-abuse'
   | 'private-account'
   | null;
 
 export type SettingsEmailForm = ChangeEmailForm;
 
 export type SettingsPasswordForm = ChangePasswordForm;
+export type SettingsReportAbuseForm = ReportAbuseForm;
+
+export const SETTINGS_SUPPORT_EMAIL = 'suporte@truthordare.app';
 
 const EMPTY_EMAIL_FORM: SettingsEmailForm = {
   newEmail: '',
@@ -46,6 +56,11 @@ const EMPTY_PASSWORD_FORM: SettingsPasswordForm = {
   currentPassword: '',
   newPassword: '',
   confirmNewPassword: '',
+};
+
+const EMPTY_REPORT_ABUSE_FORM: SettingsReportAbuseForm = {
+  category: 'spam',
+  description: '',
 };
 
 function getErrorMessage(
@@ -154,6 +169,28 @@ function validatePasswordForm(
   return errors;
 }
 
+function validateReportAbuseForm(
+  form: SettingsReportAbuseForm,
+  validateEmptyFields: boolean,
+): ReportAbuseFieldErrors {
+  const errors: ReportAbuseFieldErrors = {};
+  const description = form.description.trim();
+
+  if (!REPORT_ABUSE_CATEGORIES.includes(form.category)) {
+    errors.category = 'Selecione uma categoria valida.';
+  }
+
+  if (validateEmptyFields || description) {
+    if (!description) {
+      errors.description = 'Descreva o que aconteceu.';
+    } else if (description.length < 10) {
+      errors.description = 'Descreva com pelo menos 10 caracteres.';
+    }
+  }
+
+  return errors;
+}
+
 export function useSettingsScreen() {
   const router = useRouter();
 
@@ -170,6 +207,8 @@ export function useSettingsScreen() {
     useState<SettingsEmailForm>(EMPTY_EMAIL_FORM);
   const [passwordForm, setPasswordForm] =
     useState<SettingsPasswordForm>(EMPTY_PASSWORD_FORM);
+  const [reportAbuseForm, setReportAbuseForm] =
+    useState<SettingsReportAbuseForm>(EMPTY_REPORT_ABUSE_FORM);
 
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
   const isSubmittingEmailRef = useRef(false);
@@ -187,6 +226,20 @@ export function useSettingsScreen() {
     shouldValidateEmptyPasswordFields,
     setShouldValidateEmptyPasswordFields,
   ] = useState(false);
+  const [isSubmittingReportAbuse, setIsSubmittingReportAbuse] =
+    useState(false);
+  const isSubmittingReportAbuseRef = useRef(false);
+  const [reportAbuseError, setReportAbuseError] = useState<string | null>(null);
+  const [reportAbuseSuccessMessage, setReportAbuseSuccessMessage] =
+    useState<string | null>(null);
+  const [reportAbuseFieldErrors, setReportAbuseFieldErrors] =
+    useState<ReportAbuseFieldErrors>({});
+  const [
+    shouldValidateEmptyReportAbuseFields,
+    setShouldValidateEmptyReportAbuseFields,
+  ] = useState(false);
+  const [supportContactMessage, setSupportContactMessage] =
+    useState<string | null>(null);
 
   const loadUser = useCallback(async () => {
     try {
@@ -226,6 +279,15 @@ export function useSettingsScreen() {
     );
   }, [passwordForm, shouldValidateEmptyPasswordFields]);
 
+  useEffect(() => {
+    setReportAbuseFieldErrors(
+      validateReportAbuseForm(
+        reportAbuseForm,
+        shouldValidateEmptyReportAbuseFields,
+      ),
+    );
+  }, [reportAbuseForm, shouldValidateEmptyReportAbuseFields]);
+
   const retryLoadUser = useCallback(async () => {
     await loadUser();
   }, [loadUser]);
@@ -242,6 +304,13 @@ export function useSettingsScreen() {
     setActiveModal(modal);
   }, []);
 
+  const openReportAbuseModal = useCallback(() => {
+    setReportAbuseError(null);
+    setReportAbuseSuccessMessage(null);
+    setSupportContactMessage(null);
+    setActiveModal('report-abuse');
+  }, []);
+
   const resetEmailForm = useCallback(() => {
     setEmailForm(EMPTY_EMAIL_FORM);
     setEmailError(null);
@@ -254,6 +323,14 @@ export function useSettingsScreen() {
     setPasswordError(null);
     setPasswordFieldErrors({});
     setShouldValidateEmptyPasswordFields(false);
+  }, []);
+
+  const resetReportAbuseForm = useCallback(() => {
+    setReportAbuseForm(EMPTY_REPORT_ABUSE_FORM);
+    setReportAbuseError(null);
+    setReportAbuseSuccessMessage(null);
+    setReportAbuseFieldErrors({});
+    setShouldValidateEmptyReportAbuseFields(false);
   }, []);
 
   const handleCancelChangeEmail = useCallback(
@@ -378,6 +455,80 @@ export function useSettingsScreen() {
     [],
   );
 
+  const handleReportAbuse = useCallback(
+    async (form: SettingsReportAbuseForm) => {
+      if (isSubmittingReportAbuseRef.current) {
+        return false;
+      }
+
+      const fieldErrors = validateReportAbuseForm(form, true);
+      setShouldValidateEmptyReportAbuseFields(true);
+      setReportAbuseFieldErrors(fieldErrors);
+      setReportAbuseError(null);
+      setReportAbuseSuccessMessage(null);
+
+      if (Object.keys(fieldErrors).length > 0) {
+        return false;
+      }
+
+      const payload: ReportAbusePayload = {
+        category: form.category,
+        description: form.description.trim(),
+        ...(form.referenceId?.trim()
+          ? { referenceId: form.referenceId.trim() }
+          : {}),
+        ...(form.referenceType?.trim()
+          ? { referenceType: form.referenceType.trim() }
+          : {}),
+      };
+
+      try {
+        isSubmittingReportAbuseRef.current = true;
+        setIsSubmittingReportAbuse(true);
+
+        await reportAbuse(payload);
+        setReportAbuseForm(EMPTY_REPORT_ABUSE_FORM);
+        setReportAbuseFieldErrors({});
+        setShouldValidateEmptyReportAbuseFields(false);
+        setReportAbuseSuccessMessage(
+          'Denuncia enviada. Obrigado por ajudar a manter a comunidade segura.',
+        );
+
+        return true;
+      } catch (error) {
+        setReportAbuseError(
+          getErrorMessage(error, 'Nao foi possivel enviar a denuncia.'),
+        );
+
+        return false;
+      } finally {
+        isSubmittingReportAbuseRef.current = false;
+        setIsSubmittingReportAbuse(false);
+      }
+    },
+    [],
+  );
+
+  const handleContactDevs = useCallback(async () => {
+    const subject = encodeURIComponent('Suporte Truth or Dare');
+    const body = encodeURIComponent(
+      'Ola, equipe. Preciso de ajuda com o aplicativo.',
+    );
+    const mailtoUrl = `mailto:${SETTINGS_SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+
+    setSupportContactMessage(null);
+
+    try {
+      await Linking.openURL(mailtoUrl);
+      return true;
+    } catch {
+      setSupportContactMessage(
+        `Nao foi possivel abrir o e-mail automaticamente. Escreva para ${SETTINGS_SUPPORT_EMAIL}.`,
+      );
+      return false;
+    }
+  }, []);
+
   const handleLogout = useCallback(async () => {
     await clearLocalSettings();
     await removeToken();
@@ -388,6 +539,7 @@ export function useSettingsScreen() {
     }));
     setEmailForm(EMPTY_EMAIL_FORM);
     setPasswordForm(EMPTY_PASSWORD_FORM);
+    setReportAbuseForm(EMPTY_REPORT_ABUSE_FORM);
     setActiveModal(null);
     router.replace('/login');
   }, [router]);
@@ -407,6 +559,7 @@ export function useSettingsScreen() {
     openModal,
     closeModal,
     switchModal,
+    openReportAbuseModal,
     emailForm,
     setEmailForm,
     resetEmailForm,
@@ -417,12 +570,22 @@ export function useSettingsScreen() {
     resetPasswordForm,
     handleCancelChangePassword,
     passwordFieldErrors,
+    reportAbuseForm,
+    setReportAbuseForm,
+    resetReportAbuseForm,
+    reportAbuseFieldErrors,
+    isSubmittingReportAbuse,
+    reportAbuseError,
+    reportAbuseSuccessMessage,
+    supportContactMessage,
     isSubmittingEmail,
     emailError,
     handleChangeEmail,
     isSubmittingPassword,
     passwordError,
     handleChangePassword,
+    handleReportAbuse,
+    handleContactDevs,
     handleTogglePrivateAccount,
     handleLogout,
     handleDeleteAccount,

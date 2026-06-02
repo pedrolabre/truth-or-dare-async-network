@@ -6,6 +6,7 @@ import {
   deleteAccount,
   getMe,
   getMyProfile,
+  reportAbuse,
   updateMe,
   updateMyProfile,
 } from '../services/api';
@@ -147,6 +148,43 @@ describe('settings API client', () => {
     );
   });
 
+  it('envia denuncia de abuso com token salvo', async () => {
+    const payload = {
+      category: 'hate' as const,
+      description: 'Conteudo ofensivo enviado para outro usuario.',
+      referenceId: 'truth-123',
+      referenceType: 'truth',
+    };
+    const response = {
+      ticket: {
+        id: 'ticket-1',
+        userId: 'user-1',
+        category: 'hate',
+        description: payload.description,
+        referenceId: payload.referenceId,
+        referenceType: payload.referenceType,
+        status: 'open',
+        createdAt: '2026-06-01T12:00:00.000Z',
+        updatedAt: '2026-06-01T12:00:00.000Z',
+      },
+    };
+    fetchMock.mockResolvedValue(makeJsonResponse(true, 201, response));
+
+    await expect(reportAbuse(payload)).resolves.toEqual(response);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/support/report-abuse',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+  });
+
   it('prepara exclusao de conta com DELETE autenticado', async () => {
     fetchMock.mockResolvedValue(makeJsonResponse(true, 200, { ok: true }));
 
@@ -177,6 +215,14 @@ describe('settings API client', () => {
         changePassword({
           currentPassword: 'senha-atual',
           newPassword: 'senha-nova-segura',
+        }),
+    ],
+    [
+      'reportAbuse',
+      () =>
+        reportAbuse({
+          category: 'spam',
+          description: 'Descricao valida para denuncia.',
         }),
     ],
     ['deleteAccount', () => deleteAccount()],

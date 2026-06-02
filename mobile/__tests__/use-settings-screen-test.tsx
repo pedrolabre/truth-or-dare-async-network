@@ -7,6 +7,7 @@ import {
   deleteAccount,
   getMe,
   removeToken,
+  reportAbuse,
   updateMe,
 } from '../services/api';
 import { clearLocalSettings } from '../services/settingsStorage';
@@ -30,6 +31,7 @@ jest.mock('../services/api', () => ({
   deleteAccount: jest.fn(),
   getMe: jest.fn(),
   removeToken: jest.fn(),
+  reportAbuse: jest.fn(),
   updateMe: jest.fn(),
 }));
 
@@ -43,6 +45,8 @@ const mockedChangeEmail =
   changeEmail as jest.MockedFunction<typeof changeEmail>;
 const mockedChangePassword =
   changePassword as jest.MockedFunction<typeof changePassword>;
+const mockedReportAbuse =
+  reportAbuse as jest.MockedFunction<typeof reportAbuse>;
 const mockedRemoveToken =
   removeToken as jest.MockedFunction<typeof removeToken>;
 const mockedDeleteAccount =
@@ -79,6 +83,19 @@ describe('useSettingsScreen', () => {
     mockedUpdateMe.mockResolvedValue(makeUser());
     mockedChangeEmail.mockResolvedValue({ ok: true });
     mockedChangePassword.mockResolvedValue({ ok: true });
+    mockedReportAbuse.mockResolvedValue({
+      ticket: {
+        id: 'ticket-1',
+        userId: 'user-1',
+        category: 'spam',
+        description: 'Descricao valida para denuncia.',
+        referenceId: null,
+        referenceType: null,
+        status: 'open',
+        createdAt: '2026-06-01T12:00:00.000Z',
+        updatedAt: '2026-06-01T12:00:00.000Z',
+      },
+    });
     mockedRemoveToken.mockResolvedValue(undefined);
     mockedClearLocalSettings.mockResolvedValue(undefined);
   });
@@ -152,11 +169,16 @@ describe('useSettingsScreen', () => {
         newPassword: 'senha-nova',
         confirmNewPassword: 'senha-nova',
       });
+      result.current.setReportAbuseForm({
+        category: 'other',
+        description: 'Descricao inicial da denuncia.',
+      });
     });
 
     expect(result.current.activeModal).toBe('change-email');
     expect(result.current.emailForm.newEmail).toBe('novo@test.com');
     expect(result.current.passwordForm.newPassword).toBe('senha-nova');
+    expect(result.current.reportAbuseForm.category).toBe('other');
 
     act(() => {
       result.current.closeModal();
@@ -544,6 +566,207 @@ describe('useSettingsScreen', () => {
     expect(result.current.passwordError).toBe('Senha atual incorreta');
     expect(result.current.passwordForm).toEqual(form);
     expect(result.current.isSubmittingPassword).toBe(false);
+  });
+
+  it('abre modal de denuncia limpando feedback anterior', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    act(() => {
+      result.current.openReportAbuseModal();
+    });
+
+    expect(result.current.activeModal).toBe('report-abuse');
+    expect(result.current.reportAbuseError).toBeNull();
+    expect(result.current.reportAbuseSuccessMessage).toBeNull();
+    expect(result.current.supportContactMessage).toBeNull();
+  });
+
+  it('envia denuncia de abuso, limpa formulario e exibe confirmacao', async () => {
+    let resolveReportAbuse: (
+      value: Awaited<ReturnType<typeof reportAbuse>>,
+    ) => void = () => undefined;
+    mockedReportAbuse.mockReturnValue(
+      new Promise((resolve) => {
+        resolveReportAbuse = resolve;
+      }),
+    );
+    const form = {
+      category: 'violence' as const,
+      description: 'Usuario relatou ameacas em uma conversa.',
+    };
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    act(() => {
+      result.current.setReportAbuseForm(form);
+    });
+
+    let request: Promise<boolean> = Promise.resolve(false);
+
+    act(() => {
+      request = result.current.handleReportAbuse(form);
+    });
+
+    expect(result.current.isSubmittingReportAbuse).toBe(true);
+
+    await act(async () => {
+      resolveReportAbuse({
+        ticket: {
+          id: 'ticket-2',
+          userId: 'user-1',
+          category: 'violence',
+          description: form.description,
+          referenceId: null,
+          referenceType: null,
+          status: 'open',
+          createdAt: '2026-06-01T12:00:00.000Z',
+          updatedAt: '2026-06-01T12:00:00.000Z',
+        },
+      });
+      await request;
+    });
+
+    expect(mockedReportAbuse).toHaveBeenCalledWith(form);
+    expect(result.current.reportAbuseForm).toEqual({
+      category: 'spam',
+      description: '',
+    });
+    expect(result.current.reportAbuseSuccessMessage).toContain(
+      'Denuncia enviada',
+    );
+    expect(result.current.isSubmittingReportAbuse).toBe(false);
+  });
+
+  it('valida denuncia de abuso localmente antes de chamar a API', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+    const invalidForm = {
+      category: 'spam' as const,
+      description: 'curta',
+    };
+
+    act(() => {
+      result.current.setReportAbuseForm(invalidForm);
+    });
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.handleReportAbuse(invalidForm);
+    });
+
+    expect(success).toBe(false);
+    expect(mockedReportAbuse).not.toHaveBeenCalled();
+    expect(result.current.reportAbuseFieldErrors).toEqual({
+      description: 'Descreva com pelo menos 10 caracteres.',
+    });
+    expect(result.current.reportAbuseError).toBeNull();
+  });
+
+  it('exibe erro de denuncia em falha e preserva formulario', async () => {
+    mockedReportAbuse.mockRejectedValue(new Error('Categoria invalida'));
+    const form = {
+      category: 'hate' as const,
+      description: 'Mensagem ofensiva enviada em comentario publico.',
+    };
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    act(() => {
+      result.current.setReportAbuseForm(form);
+    });
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.handleReportAbuse(form);
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.reportAbuseError).toBe('Categoria invalida');
+    expect(result.current.reportAbuseForm).toEqual(form);
+  });
+
+  it('bloqueia duplo envio de denuncia de abuso no hook', async () => {
+    let resolveReportAbuse: (
+      value: Awaited<ReturnType<typeof reportAbuse>>,
+    ) => void = () => undefined;
+    mockedReportAbuse.mockReturnValue(
+      new Promise((resolve) => {
+        resolveReportAbuse = resolve;
+      }),
+    );
+    const form = {
+      category: 'other' as const,
+      description: 'Descricao valida para denuncia duplicada.',
+    };
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    let firstRequest: Promise<boolean> = Promise.resolve(false);
+    let secondRequest: Promise<boolean> = Promise.resolve(false);
+
+    act(() => {
+      firstRequest = result.current.handleReportAbuse(form);
+      secondRequest = result.current.handleReportAbuse(form);
+    });
+
+    await act(async () => {
+      resolveReportAbuse({
+        ticket: {
+          id: 'ticket-3',
+          userId: 'user-1',
+          category: 'other',
+          description: form.description,
+          referenceId: null,
+          referenceType: null,
+          status: 'open',
+          createdAt: '2026-06-01T12:00:00.000Z',
+          updatedAt: '2026-06-01T12:00:00.000Z',
+        },
+      });
+      await firstRequest;
+      await secondRequest;
+    });
+
+    await expect(secondRequest).resolves.toBe(false);
+    expect(mockedReportAbuse).toHaveBeenCalledTimes(1);
+  });
+
+  it('abre mailto para contato com desenvolvedores', async () => {
+    const openURLSpy = jest
+      .spyOn(require('react-native').Linking, 'openURL')
+      .mockResolvedValue(undefined);
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    await act(async () => {
+      await result.current.handleContactDevs();
+    });
+
+    expect(openURLSpy).toHaveBeenCalledWith(
+      expect.stringContaining('mailto:suporte@truthordare.app'),
+    );
+    expect(result.current.supportContactMessage).toBeNull();
+
+    openURLSpy.mockRestore();
+  });
+
+  it('exibe fallback quando mailto falha', async () => {
+    const openURLSpy = jest
+      .spyOn(require('react-native').Linking, 'openURL')
+      .mockRejectedValue(new Error('sem app de e-mail'));
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    await act(async () => {
+      await result.current.handleContactDevs();
+    });
+
+    expect(result.current.supportContactMessage).toContain(
+      'suporte@truthordare.app',
+    );
+
+    openURLSpy.mockRestore();
   });
 
   it('faz logout removendo token, limpando dados locais e navegando para login', async () => {

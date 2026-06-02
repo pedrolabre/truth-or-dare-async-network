@@ -78,6 +78,7 @@ function makeHookState(
     openModal: jest.fn(),
     closeModal: jest.fn(),
     switchModal: jest.fn(),
+    openReportAbuseModal: jest.fn(),
     emailForm: {
       newEmail: '',
       confirmEmail: '',
@@ -96,12 +97,25 @@ function makeHookState(
     resetPasswordForm: jest.fn(),
     handleCancelChangePassword: jest.fn(),
     passwordFieldErrors: {},
+    reportAbuseForm: {
+      category: 'spam',
+      description: '',
+    },
+    setReportAbuseForm: jest.fn(),
+    resetReportAbuseForm: jest.fn(),
+    reportAbuseFieldErrors: {},
+    isSubmittingReportAbuse: false,
+    reportAbuseError: null,
+    reportAbuseSuccessMessage: null,
+    supportContactMessage: null,
     isSubmittingEmail: false,
     emailError: null,
     handleChangeEmail: jest.fn().mockResolvedValue(true),
     isSubmittingPassword: false,
     passwordError: null,
     handleChangePassword: jest.fn().mockResolvedValue(true),
+    handleReportAbuse: jest.fn().mockResolvedValue(true),
+    handleContactDevs: jest.fn().mockResolvedValue(true),
     handleTogglePrivateAccount: jest.fn().mockResolvedValue(makeUser()),
     handleLogout: jest.fn().mockResolvedValue(undefined),
     handleDeleteAccount: jest.fn().mockResolvedValue({
@@ -273,6 +287,71 @@ describe('SettingsScreen', () => {
         confirmNewPassword: 'senha-nova-segura1',
       });
       expect(switchModal).toHaveBeenCalledWith('password-success');
+    });
+  });
+
+  it('abre o modal de denuncia a partir da central de ajuda', () => {
+    const openReportAbuseModal = jest.fn();
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'help',
+        openReportAbuseModal,
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    fireEvent.press(getByText('Denunciar Abuso'));
+
+    expect(openReportAbuseModal).toHaveBeenCalledTimes(1);
+  });
+
+  it('delega contato com desenvolvedores ao hook e exibe fallback', () => {
+    const handleContactDevs = jest.fn().mockResolvedValue(false);
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'help',
+        handleContactDevs,
+        supportContactMessage:
+          'Nao foi possivel abrir o e-mail automaticamente.',
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    fireEvent.press(getByText('Falar com Devs'));
+
+    expect(handleContactDevs).toHaveBeenCalledTimes(1);
+    expect(
+      getByText('Nao foi possivel abrir o e-mail automaticamente.'),
+    ).toBeTruthy();
+  });
+
+  it('envia denuncia pelo modal de abuso mantendo confirmacao no fluxo', async () => {
+    const handleReportAbuse = jest.fn().mockResolvedValue(true);
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'report-abuse',
+        reportAbuseForm: {
+          category: 'hate',
+          description: 'Mensagem ofensiva recebida no app.',
+        },
+        reportAbuseSuccessMessage: 'Denuncia enviada.',
+        handleReportAbuse,
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    expect(getByText('Denuncia enviada.')).toBeTruthy();
+
+    fireEvent.press(getByText('ENVIAR DENUNCIA'));
+
+    await waitFor(() => {
+      expect(handleReportAbuse).toHaveBeenCalledWith({
+        category: 'hate',
+        description: 'Mensagem ofensiva recebida no app.',
+      });
     });
   });
 });

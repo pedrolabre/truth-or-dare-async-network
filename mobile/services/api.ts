@@ -42,6 +42,8 @@ import type { ToggleClubLikeApi } from '../types/clubsApi';
 import type {
   ChangeEmailPayload,
   ChangePasswordPayload,
+  ReportAbusePayload,
+  ReportAbuseResponse,
   UpdateAccountPayload,
   UserAccountData,
 } from '../types/settings';
@@ -797,6 +799,21 @@ export async function changePassword(payload: ChangePasswordPayload) {
   const headers = await getAuthenticatedHeaders();
 
   const response = await fetch(`${baseUrl}/auth/change-password`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  return parseResponse(response);
+}
+
+export async function reportAbuse(
+  payload: ReportAbusePayload,
+): Promise<ReportAbuseResponse> {
+  const baseUrl = getApiUrl();
+  const headers = await getAuthenticatedHeaders();
+
+  const response = await fetch(`${baseUrl}/support/report-abuse`, {
     method: 'POST',
     headers,
     body: JSON.stringify(payload),
