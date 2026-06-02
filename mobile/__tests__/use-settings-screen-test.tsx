@@ -11,7 +11,7 @@ import {
 } from '../services/api';
 import { clearLocalSettings } from '../services/settingsStorage';
 import type {
-  ChangeEmailPayload,
+  ChangeEmailForm,
   ChangePasswordPayload,
   UserAccountData,
 } from '../types/settings';
@@ -144,6 +144,7 @@ describe('useSettingsScreen', () => {
       result.current.switchModal('change-email');
       result.current.setEmailForm({
         newEmail: 'novo@test.com',
+        confirmEmail: 'novo@test.com',
         currentPassword: 'senha-atual',
       });
       result.current.setPasswordForm({
@@ -199,8 +200,9 @@ describe('useSettingsScreen', () => {
         resolveChangeEmail = resolve;
       }),
     );
-    const payload: ChangeEmailPayload = {
+    const payload: ChangeEmailForm = {
       newEmail: 'novo@test.com',
+      confirmEmail: 'novo@test.com',
       currentPassword: 'senha-atual',
     };
     const { result } = renderHook(() => useSettingsScreen());
@@ -224,19 +226,116 @@ describe('useSettingsScreen', () => {
       await request;
     });
 
-    expect(mockedChangeEmail).toHaveBeenCalledWith(payload);
+    expect(mockedChangeEmail).toHaveBeenCalledWith({
+      newEmail: 'novo@test.com',
+      currentPassword: 'senha-atual',
+    });
     expect(result.current.isSubmittingEmail).toBe(false);
     expect(result.current.emailError).toBeNull();
     expect(result.current.emailForm).toEqual({
       newEmail: '',
+      confirmEmail: '',
       currentPassword: '',
     });
   });
 
+  it('valida alteracao de e-mail localmente antes de chamar a API', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+    const invalidPayload: ChangeEmailForm = {
+      newEmail: 'marina@test.com',
+      confirmEmail: 'outro@test.com',
+      currentPassword: '',
+    };
+
+    act(() => {
+      result.current.setEmailForm(invalidPayload);
+    });
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.handleChangeEmail(invalidPayload);
+    });
+
+    expect(success).toBe(false);
+    expect(mockedChangeEmail).not.toHaveBeenCalled();
+    expect(result.current.emailFieldErrors).toEqual({
+      newEmail: 'O novo e-mail precisa ser diferente do atual.',
+      confirmEmail: 'Os e-mails precisam ser iguais.',
+      currentPassword: 'Informe sua senha atual.',
+    });
+    expect(result.current.emailError).toBeNull();
+  });
+
+  it('atualiza erros de e-mail em tempo real conforme o formulario muda', async () => {
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    act(() => {
+      result.current.setEmailForm({
+        newEmail: 'email-invalido',
+        confirmEmail: 'email-invalido',
+        currentPassword: '',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.emailFieldErrors.newEmail).toBe(
+        'Informe um e-mail valido.',
+      );
+    });
+
+    act(() => {
+      result.current.setEmailForm({
+        newEmail: 'novo@test.com',
+        confirmEmail: 'novo@test.com',
+        currentPassword: 'senha-atual',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.emailFieldErrors).toEqual({});
+    });
+  });
+
+  it('bloqueia duplo envio de alteracao de e-mail no hook', async () => {
+    let resolveChangeEmail: (value: { ok: true }) => void = () => undefined;
+    mockedChangeEmail.mockReturnValue(
+      new Promise((resolve) => {
+        resolveChangeEmail = resolve;
+      }),
+    );
+    const payload: ChangeEmailForm = {
+      newEmail: 'novo@test.com',
+      confirmEmail: 'novo@test.com',
+      currentPassword: 'senha-atual',
+    };
+    const { result } = renderHook(() => useSettingsScreen());
+    await waitForLoadedUser(result);
+
+    let firstRequest: Promise<boolean> = Promise.resolve(false);
+    let secondRequest: Promise<boolean> = Promise.resolve(false);
+
+    act(() => {
+      firstRequest = result.current.handleChangeEmail(payload);
+      secondRequest = result.current.handleChangeEmail(payload);
+    });
+
+    await act(async () => {
+      resolveChangeEmail({ ok: true });
+      await firstRequest;
+      await secondRequest;
+    });
+
+    await expect(secondRequest).resolves.toBe(false);
+    expect(mockedChangeEmail).toHaveBeenCalledTimes(1);
+  });
+
   it('exibe erro de e-mail em falha e preserva formulario', async () => {
     mockedChangeEmail.mockRejectedValue(new Error('E-mail ja esta em uso'));
-    const payload: ChangeEmailPayload = {
+    const payload: ChangeEmailForm = {
       newEmail: 'duplicado@test.com',
+      confirmEmail: 'duplicado@test.com',
       currentPassword: 'senha-atual',
     };
     const { result } = renderHook(() => useSettingsScreen());
@@ -330,6 +429,7 @@ describe('useSettingsScreen', () => {
       result.current.openModal('logout');
       result.current.setEmailForm({
         newEmail: 'novo@test.com',
+        confirmEmail: 'novo@test.com',
         currentPassword: 'senha-atual',
       });
     });
@@ -345,6 +445,7 @@ describe('useSettingsScreen', () => {
     expect(result.current.activeModal).toBeNull();
     expect(result.current.emailForm).toEqual({
       newEmail: '',
+      confirmEmail: '',
       currentPassword: '',
     });
   });

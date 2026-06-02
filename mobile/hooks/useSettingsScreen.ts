@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 
 import {
@@ -10,6 +10,8 @@ import {
 } from '../services/api';
 import { clearLocalSettings } from '../services/settingsStorage';
 import type {
+  ChangeEmailFieldErrors,
+  ChangeEmailForm,
   ChangeEmailPayload,
   ChangePasswordPayload,
   SettingsState,
@@ -28,12 +30,13 @@ export type SettingsScreenModal =
   | 'private-account'
   | null;
 
-export type SettingsEmailForm = ChangeEmailPayload;
+export type SettingsEmailForm = ChangeEmailForm;
 
 export type SettingsPasswordForm = ChangePasswordPayload;
 
 const EMPTY_EMAIL_FORM: SettingsEmailForm = {
   newEmail: '',
+  confirmEmail: '',
   currentPassword: '',
 };
 
@@ -49,6 +52,57 @@ function getErrorMessage(
   return error instanceof Error && error.message.trim()
     ? error.message
     : fallbackMessage;
+}
+
+function normalizeEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function validateEmailForm(
+  form: SettingsEmailForm,
+  currentEmail: string | null | undefined,
+  validateEmptyFields: boolean,
+): ChangeEmailFieldErrors {
+  const errors: ChangeEmailFieldErrors = {};
+  const newEmail = form.newEmail.trim();
+  const confirmEmail = form.confirmEmail.trim();
+  const currentUserEmail = normalizeEmail(currentEmail ?? '');
+
+  if (validateEmptyFields || newEmail) {
+    if (!newEmail) {
+      errors.newEmail = 'Informe o novo e-mail.';
+    } else if (!isValidEmail(newEmail)) {
+      errors.newEmail = 'Informe um e-mail valido.';
+    } else if (
+      currentUserEmail &&
+      normalizeEmail(newEmail) === currentUserEmail
+    ) {
+      errors.newEmail = 'O novo e-mail precisa ser diferente do atual.';
+    }
+  }
+
+  if (validateEmptyFields || confirmEmail) {
+    if (!confirmEmail) {
+      errors.confirmEmail = 'Confirme o novo e-mail.';
+    } else if (
+      newEmail &&
+      normalizeEmail(confirmEmail) !== normalizeEmail(newEmail)
+    ) {
+      errors.confirmEmail = 'Os e-mails precisam ser iguais.';
+    }
+  }
+
+  if (validateEmptyFields || form.currentPassword) {
+    if (!form.currentPassword.trim()) {
+      errors.currentPassword = 'Informe sua senha atual.';
+    }
+  }
+
+  return errors;
 }
 
 export function useSettingsScreen() {
@@ -69,7 +123,12 @@ export function useSettingsScreen() {
     useState<SettingsPasswordForm>(EMPTY_PASSWORD_FORM);
 
   const [isSubmittingEmail, setIsSubmittingEmail] = useState(false);
+  const isSubmittingEmailRef = useRef(false);
   const [emailError, setEmailError] = useState<string | null>(null);
+  const [emailFieldErrors, setEmailFieldErrors] =
+    useState<ChangeEmailFieldErrors>({});
+  const [shouldValidateEmptyEmailFields, setShouldValidateEmptyEmailFields] =
+    useState(false);
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
@@ -99,6 +158,12 @@ export function useSettingsScreen() {
     void loadUser();
   }, [loadUser]);
 
+  useEffect(() => {
+    setEmailFieldErrors(
+      validateEmailForm(emailForm, user?.email, shouldValidateEmptyEmailFields),
+    );
+  }, [emailForm, shouldValidateEmptyEmailFields, user?.email]);
+
   const retryLoadUser = useCallback(async () => {
     await loadUser();
   }, [loadUser]);
@@ -118,6 +183,8 @@ export function useSettingsScreen() {
   const resetEmailForm = useCallback(() => {
     setEmailForm(EMPTY_EMAIL_FORM);
     setEmailError(null);
+    setEmailFieldErrors({});
+    setShouldValidateEmptyEmailFields(false);
   }, []);
 
   const resetPasswordForm = useCallback(() => {
@@ -158,13 +225,34 @@ export function useSettingsScreen() {
   );
 
   const handleChangeEmail = useCallback(
-    async (payload: ChangeEmailPayload) => {
+    async (form: SettingsEmailForm) => {
+      if (isSubmittingEmailRef.current) {
+        return false;
+      }
+
+      const fieldErrors = validateEmailForm(form, user?.email, true);
+      setShouldValidateEmptyEmailFields(true);
+      setEmailFieldErrors(fieldErrors);
+      setEmailError(null);
+
+      if (Object.keys(fieldErrors).length > 0) {
+        return false;
+      }
+
+      const payload: ChangeEmailPayload = {
+        newEmail: form.newEmail.trim(),
+        currentPassword: form.currentPassword,
+      };
+
       try {
+        isSubmittingEmailRef.current = true;
         setIsSubmittingEmail(true);
-        setEmailError(null);
 
         await changeEmail(payload);
         setEmailForm(EMPTY_EMAIL_FORM);
+        setEmailFieldErrors({});
+        setShouldValidateEmptyEmailFields(false);
+        setActiveModal('email-success');
 
         return true;
       } catch (error) {
@@ -174,10 +262,11 @@ export function useSettingsScreen() {
 
         return false;
       } finally {
+        isSubmittingEmailRef.current = false;
         setIsSubmittingEmail(false);
       }
     },
-    [],
+    [user?.email],
   );
 
   const handleChangePassword = useCallback(
@@ -236,6 +325,7 @@ export function useSettingsScreen() {
     setEmailForm,
     resetEmailForm,
     handleCancelChangeEmail,
+    emailFieldErrors,
     passwordForm,
     setPasswordForm,
     resetPasswordForm,

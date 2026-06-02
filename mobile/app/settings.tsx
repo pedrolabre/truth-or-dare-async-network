@@ -73,6 +73,7 @@ export default function SettingsScreen() {
     emailForm,
     setEmailForm,
     handleCancelChangeEmail,
+    emailFieldErrors,
     isSubmittingEmail,
     emailError,
     handleChangeEmail,
@@ -367,9 +368,13 @@ export default function SettingsScreen() {
       <SettingsChangeEmailModal
         visible={activeModal === 'change-email'}
         email={emailForm.newEmail}
+        confirmEmail={emailForm.confirmEmail}
         password={emailForm.currentPassword}
         onChangeEmail={(value) =>
           setEmailForm((current) => ({ ...current, newEmail: value }))
+        }
+        onChangeConfirmEmail={(value) =>
+          setEmailForm((current) => ({ ...current, confirmEmail: value }))
         }
         onChangePassword={(value) =>
           setEmailForm((current) => ({ ...current, currentPassword: value }))
@@ -378,6 +383,7 @@ export default function SettingsScreen() {
         onBack={() => handleCancelChangeEmail('privacy')}
         isSubmitting={isSubmittingEmail}
         errorMessage={emailError}
+        fieldErrors={emailFieldErrors}
       />
 
       <SettingsEmailSuccessModal

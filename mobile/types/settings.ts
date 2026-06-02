@@ -28,6 +28,14 @@ export type ChangeEmailPayload = {
   currentPassword: string;
 };
 
+export type ChangeEmailForm = ChangeEmailPayload & {
+  confirmEmail: string;
+};
+
+export type ChangeEmailFieldErrors = Partial<
+  Record<keyof ChangeEmailForm, string>
+>;
+
 export type ChangePasswordPayload = {
   currentPassword: string;
   newPassword: string;

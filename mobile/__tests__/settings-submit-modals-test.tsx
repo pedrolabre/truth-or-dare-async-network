@@ -78,11 +78,13 @@ function makeHookState(
     switchModal: jest.fn(),
     emailForm: {
       newEmail: '',
+      confirmEmail: '',
       currentPassword: '',
     },
     setEmailForm: jest.fn(),
     resetEmailForm: jest.fn(),
     handleCancelChangeEmail: jest.fn(),
+    emailFieldErrors: {},
     passwordForm: {
       currentPassword: '',
       newPassword: '',
@@ -120,6 +122,7 @@ describe('Settings submit modals', () => {
         activeModal: 'change-email',
         emailForm: {
           newEmail: 'novo@test.com',
+          confirmEmail: 'novo@test.com',
           currentPassword: 'senha-atual',
         },
         handleChangeEmail,
@@ -134,6 +137,7 @@ describe('Settings submit modals', () => {
     await waitFor(() => {
       expect(handleChangeEmail).toHaveBeenCalledWith({
         newEmail: 'novo@test.com',
+        confirmEmail: 'novo@test.com',
         currentPassword: 'senha-atual',
       });
       expect(switchModal).toHaveBeenCalledWith('email-success');

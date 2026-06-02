@@ -80,11 +80,13 @@ function makeHookState(
     switchModal: jest.fn(),
     emailForm: {
       newEmail: '',
+      confirmEmail: '',
       currentPassword: '',
     },
     setEmailForm: jest.fn(),
     resetEmailForm: jest.fn(),
     handleCancelChangeEmail: jest.fn(),
+    emailFieldErrors: {},
     passwordForm: {
       currentPassword: '',
       newPassword: '',
@@ -210,5 +212,35 @@ describe('SettingsScreen', () => {
     fireEvent.press(getByText('SIM, DESLOGAR'));
 
     expect(handleLogout).toHaveBeenCalledTimes(1);
+  });
+
+  it('troca o modal de alteracao de e-mail para sucesso apos envio', async () => {
+    const handleChangeEmail = jest.fn().mockResolvedValue(true);
+    const switchModal = jest.fn();
+    mockedUseSettingsScreen.mockReturnValue(
+      makeHookState({
+        activeModal: 'change-email',
+        emailForm: {
+          newEmail: 'novo@test.com',
+          confirmEmail: 'novo@test.com',
+          currentPassword: 'senha-atual',
+        },
+        handleChangeEmail,
+        switchModal,
+      }),
+    );
+
+    const { getByText } = render(<SettingsScreen />);
+
+    fireEvent.press(getByText('CONFIRMAR MUDANCA'));
+
+    await waitFor(() => {
+      expect(handleChangeEmail).toHaveBeenCalledWith({
+        newEmail: 'novo@test.com',
+        confirmEmail: 'novo@test.com',
+        currentPassword: 'senha-atual',
+      });
+      expect(switchModal).toHaveBeenCalledWith('email-success');
+    });
   });
 });

@@ -8,30 +8,37 @@ import {
   View,
 } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
+import type { ChangeEmailFieldErrors } from '../../types/settings';
 import SettingsModalShell from './SettingsModalShell';
 
 type Props = {
   visible: boolean;
   email: string;
+  confirmEmail: string;
   password: string;
   onChangeEmail: (value: string) => void;
+  onChangeConfirmEmail: (value: string) => void;
   onChangePassword: (value: string) => void;
   onSubmit: () => void;
   onBack: () => void;
   isSubmitting?: boolean;
   errorMessage?: string | null;
+  fieldErrors?: ChangeEmailFieldErrors;
 };
 
 export default function SettingsChangeEmailModal({
   visible,
   email,
+  confirmEmail,
   password,
   onChangeEmail,
+  onChangeConfirmEmail,
   onChangePassword,
   onSubmit,
   onBack,
   isSubmitting = false,
   errorMessage = null,
+  fieldErrors = {},
 }: Props) {
   const { isDark } = useTheme();
 
@@ -44,6 +51,7 @@ export default function SettingsChangeEmailModal({
 
         <View style={styles.fields}>
           <TextInput
+            testID="settings-change-email-new-email-input"
             value={email}
             onChangeText={onChangeEmail}
             placeholder="Novo e-mail"
@@ -59,8 +67,43 @@ export default function SettingsChangeEmailModal({
             keyboardType="email-address"
             editable={!isSubmitting}
           />
+          {fieldErrors.newEmail ? (
+            <Text
+              testID="settings-change-email-new-email-error"
+              style={styles.fieldErrorText}
+            >
+              {fieldErrors.newEmail}
+            </Text>
+          ) : null}
 
           <TextInput
+            testID="settings-change-email-confirm-email-input"
+            value={confirmEmail}
+            onChangeText={onChangeConfirmEmail}
+            placeholder="Confirme o novo e-mail"
+            style={[
+              styles.input,
+              {
+                backgroundColor: isDark ? '#232323' : '#eaefea',
+                color: isDark ? '#f5fbf6' : '#171d1a',
+              },
+            ]}
+            placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
+            autoCapitalize="none"
+            keyboardType="email-address"
+            editable={!isSubmitting}
+          />
+          {fieldErrors.confirmEmail ? (
+            <Text
+              testID="settings-change-email-confirm-email-error"
+              style={styles.fieldErrorText}
+            >
+              {fieldErrors.confirmEmail}
+            </Text>
+          ) : null}
+
+          <TextInput
+            testID="settings-change-email-password-input"
             value={password}
             onChangeText={onChangePassword}
             placeholder="Confirme sua senha"
@@ -75,7 +118,23 @@ export default function SettingsChangeEmailModal({
             secureTextEntry
             editable={!isSubmitting}
           />
+          {fieldErrors.currentPassword ? (
+            <Text
+              testID="settings-change-email-password-error"
+              style={styles.fieldErrorText}
+            >
+              {fieldErrors.currentPassword}
+            </Text>
+          ) : null}
         </View>
+
+        <Text
+          testID="settings-change-email-confirmation-info"
+          style={[styles.infoText, { color: isDark ? '#bccac2' : '#6d7a74' }]}
+        >
+          Enviaremos um link para confirmar a mudanca antes de ativar o novo
+          e-mail.
+        </Text>
 
         {errorMessage ? (
           <Text testID="settings-change-email-error" style={styles.errorText}>
@@ -134,6 +193,19 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     fontSize: 14,
+    fontWeight: '700',
+  },
+  fieldErrorText: {
+    marginTop: -6,
+    color: '#D70015',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '800',
+  },
+  infoText: {
+    marginTop: 12,
+    fontSize: 12,
+    lineHeight: 17,
     fontWeight: '700',
   },
   primaryButton: {

@@ -57,8 +57,10 @@ describe('Settings theme modals', () => {
       <SettingsChangeEmailModal
         visible
         email=""
+        confirmEmail=""
         password=""
         onChangeEmail={noop}
+        onChangeConfirmEmail={noop}
         onChangePassword={noop}
         onSubmit={noop}
         onBack={noop}
@@ -78,8 +80,10 @@ describe('Settings theme modals', () => {
       <SettingsChangeEmailModal
         visible
         email=""
+        confirmEmail=""
         password=""
         onChangeEmail={noop}
+        onChangeConfirmEmail={noop}
         onChangePassword={noop}
         onSubmit={noop}
         onBack={noop}
@@ -107,8 +111,10 @@ describe('Settings theme modals', () => {
           <SettingsChangeEmailModal
             visible
             email=""
+            confirmEmail=""
             password=""
             onChangeEmail={noop}
+            onChangeConfirmEmail={noop}
             onChangePassword={noop}
             onSubmit={noop}
             onBack={noop}

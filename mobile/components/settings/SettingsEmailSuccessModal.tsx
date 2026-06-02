@@ -39,7 +39,8 @@ export default function SettingsEmailSuccessModal({
             { color: isDark ? '#bccac2' : '#6d7a74' },
           ]}
         >
-          Seu novo endereço de e-mail foi salvo com sucesso.
+          Seu novo e-mail foi recebido. Enviaremos um link de confirmacao para
+          concluir a mudanca.
         </Text>
 
         <Pressable style={styles.primaryButton} onPress={onClose}>
