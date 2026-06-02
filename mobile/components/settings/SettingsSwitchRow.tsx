@@ -18,6 +18,7 @@ type Props = {
     true: string;
   };
   thumbColor: string;
+  disabled?: boolean;
 };
 
 export default function SettingsSwitchRow({
@@ -33,9 +34,14 @@ export default function SettingsSwitchRow({
   borderColor,
   trackColor,
   thumbColor,
+  disabled = false,
 }: Props) {
   return (
     <Pressable
+      accessibilityLabel={title}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled }}
+      disabled={disabled}
       onPress={() => onValueChange(!value)}
       style={[
         styles.row,
@@ -43,6 +49,7 @@ export default function SettingsSwitchRow({
           backgroundColor,
           borderColor,
         },
+        disabled && styles.disabled,
       ]}
     >
       <View style={styles.left}>
@@ -61,7 +68,9 @@ export default function SettingsSwitchRow({
       </View>
 
       <Switch
+        accessibilityLabel={title}
         value={value}
+        disabled={disabled}
         onValueChange={onValueChange}
         trackColor={trackColor}
         thumbColor={thumbColor}
@@ -108,5 +117,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '500',
+  },
+  disabled: {
+    opacity: 0.52,
   },
 });

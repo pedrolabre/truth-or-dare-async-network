@@ -20,9 +20,10 @@ export default function SettingsHelpModal({
   contactMessage = null,
 }: Props) {
   const { isDark } = useTheme();
+  const accentColor = isDark ? '#8ABF96' : '#426A4B';
 
   return (
-    <SettingsModalShell visible={visible} onClose={onClose}>
+    <SettingsModalShell visible={visible} onClose={onClose} title="Suporte">
       <View>
         <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
           SUPORTE
@@ -32,7 +33,7 @@ export default function SettingsHelpModal({
           <Text
             style={[
               styles.description,
-              { color: isDark ? '#bccac2' : '#6d7a74' },
+              { color: isDark ? '#bccac2' : '#56645e' },
             ]}
           >
             Esta área será usada para suporte ao usuário, dúvidas e comunicação com a equipe.
@@ -49,14 +50,28 @@ export default function SettingsHelpModal({
             ]}
           />
 
-          <Pressable style={styles.linkRow} onPress={onPressReportAbuse}>
-            <Text style={styles.linkText}>Denunciar Abuso</Text>
-            <MaterialIcons name="flag" size={20} color="#5A8363" />
+          <Pressable
+            accessibilityLabel="Denunciar abuso"
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
+            onPress={onPressReportAbuse}
+          >
+            <Text style={[styles.linkText, { color: accentColor }]}>
+              Denunciar Abuso
+            </Text>
+            <MaterialIcons name="flag" size={20} color={accentColor} />
           </Pressable>
 
-          <Pressable style={styles.linkRow} onPress={onPressContactDevs}>
-            <Text style={styles.linkText}>Falar com Devs</Text>
-            <MaterialIcons name="mail" size={20} color="#5A8363" />
+          <Pressable
+            accessibilityLabel="Falar com desenvolvedores"
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.linkRow, pressed && styles.pressed]}
+            onPress={onPressContactDevs}
+          >
+            <Text style={[styles.linkText, { color: accentColor }]}>
+              Falar com Devs
+            </Text>
+            <MaterialIcons name="mail" size={20} color={accentColor} />
           </Pressable>
 
           {contactMessage ? (
@@ -67,13 +82,16 @@ export default function SettingsHelpModal({
         </View>
 
         <Pressable
-          style={[
+          accessibilityLabel="Fechar suporte"
+          accessibilityRole="button"
+          style={({ pressed }) => [
             styles.confirmButton,
             {
               backgroundColor: isDark
                 ? 'rgba(255,255,255,0.06)'
                 : 'rgba(0,0,0,0.05)',
             },
+            pressed && styles.pressed,
           ]}
           onPress={onClose}
         >
@@ -112,7 +130,6 @@ const styles = StyleSheet.create({
   linkText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#5A8363',
   },
   contactMessage: {
     color: '#D97706',
@@ -130,5 +147,8 @@ const styles = StyleSheet.create({
   confirmText: {
     fontSize: 14,
     fontWeight: '800',
+  },
+  pressed: {
+    opacity: 0.72,
   },
 });

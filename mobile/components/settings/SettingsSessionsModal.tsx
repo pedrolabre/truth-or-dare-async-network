@@ -78,15 +78,16 @@ export default function SettingsSessionsModal({
 }: Props) {
   const { isDark } = useTheme();
   const textColor = isDark ? '#f5fbf6' : '#171d1a';
-  const subTextColor = isDark ? '#bccac2' : '#6d7a74';
+  const subTextColor = isDark ? '#bccac2' : '#56645e';
   const surfaceColor = isDark ? '#232323' : '#eaefea';
   const borderColor = isDark ? '#333735' : '#d7ddd9';
+  const accentColor = isDark ? '#8ABF96' : '#426A4B';
   const hasOnlyCurrentSession =
     sessions.length > 0 && sessions.every((session) => session.isCurrent);
   const isBusy = isLoading || Boolean(revokingSessionId) || isRevokingOtherSessions;
 
   return (
-    <SettingsModalShell visible={visible} onClose={onClose}>
+    <SettingsModalShell visible={visible} onClose={onClose} title="Sessoes ativas">
       <View>
         <Text style={[styles.title, { color: textColor }]}>SESSOES ATIVAS</Text>
         <Text style={[styles.subtitle, { color: subTextColor }]}>
@@ -95,7 +96,7 @@ export default function SettingsSessionsModal({
 
         {isLoading ? (
           <View testID="settings-sessions-loading" style={styles.loadingWrap}>
-            <ActivityIndicator color="#5A8363" />
+            <ActivityIndicator color={accentColor} />
             <Text style={[styles.loadingText, { color: subTextColor }]}>
               Carregando sessoes...
             </Text>
@@ -131,7 +132,9 @@ export default function SettingsSessionsModal({
                           {session.deviceName}
                         </Text>
                         {session.isCurrent ? (
-                          <Text style={styles.currentBadge}>SESSAO ATUAL</Text>
+                          <Text style={[styles.currentBadge, { color: accentColor }]}>
+                            SESSAO ATUAL
+                          </Text>
                         ) : null}
                       </View>
                       <Text style={[styles.platformText, { color: subTextColor }]}>
@@ -150,10 +153,14 @@ export default function SettingsSessionsModal({
 
                     <Pressable
                       testID={`settings-session-revoke-${session.id}`}
+                      accessibilityLabel={`Revogar sessao ${session.deviceName}`}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: isBusy, busy: isRevoking }}
                       disabled={isBusy}
                       onPress={() => onRevokeSession(session.id)}
-                      style={[
+                      style={({ pressed }) => [
                         styles.revokeButton,
+                        pressed && styles.pressedButton,
                         isBusy && styles.disabledButton,
                       ]}
                     >
@@ -184,10 +191,13 @@ export default function SettingsSessionsModal({
 
         <Pressable
           testID="settings-sessions-revoke-other"
+          accessibilityLabel="Revogar outras sessoes"
+          accessibilityRole="button"
           disabled={isBusy || sessions.length === 0 || hasOnlyCurrentSession}
           onPress={onRevokeOtherSessions}
-          style={[
+          style={({ pressed }) => [
             styles.primaryButton,
+            pressed && styles.pressedButton,
             (isBusy || sessions.length === 0 || hasOnlyCurrentSession) &&
               styles.primaryButtonDisabled,
           ]}
@@ -202,9 +212,15 @@ export default function SettingsSessionsModal({
         <View style={styles.footerActions}>
           <Pressable
             testID="settings-sessions-refresh"
+            accessibilityLabel="Recarregar sessoes"
+            accessibilityRole="button"
             disabled={isBusy}
             onPress={onRefresh}
-            style={styles.secondaryButton}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.pressedButton,
+              isBusy && styles.disabledButton,
+            ]}
           >
             <Text style={[styles.secondaryText, { color: subTextColor }]}>
               RECARREGAR
@@ -212,9 +228,15 @@ export default function SettingsSessionsModal({
           </Pressable>
 
           <Pressable
+            accessibilityLabel="Fechar sessoes ativas"
+            accessibilityRole="button"
             disabled={isBusy}
             onPress={onClose}
-            style={styles.secondaryButton}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.pressedButton,
+              isBusy && styles.disabledButton,
+            ]}
           >
             <Text style={[styles.secondaryText, { color: subTextColor }]}>
               FECHAR
@@ -285,7 +307,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
     backgroundColor: 'rgba(90,131,99,0.16)',
-    color: '#5A8363',
     fontSize: 10,
     fontWeight: '900',
   },
@@ -330,7 +351,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#5A8363',
+    backgroundColor: '#426A4B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -339,6 +360,10 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.56,
+  },
+  pressedButton: {
+    opacity: 0.76,
+    transform: [{ scale: 0.985 }],
   },
   primaryText: {
     color: '#ffffff',

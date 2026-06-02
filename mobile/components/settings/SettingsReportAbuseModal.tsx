@@ -52,11 +52,11 @@ export default function SettingsReportAbuseModal({
 }: Props) {
   const { isDark } = useTheme();
   const textColor = isDark ? '#f5fbf6' : '#171d1a';
-  const subTextColor = isDark ? '#bccac2' : '#6d7a74';
+  const subTextColor = isDark ? '#bccac2' : '#56645e';
   const inputBackground = isDark ? '#232323' : '#eaefea';
 
   return (
-    <SettingsModalShell visible={visible} onClose={onCancel}>
+    <SettingsModalShell visible={visible} onClose={onCancel} title="Denunciar abuso">
       <View>
         <Text style={[styles.title, { color: textColor }]}>
           DENUNCIAR ABUSO
@@ -71,14 +71,17 @@ export default function SettingsReportAbuseModal({
               <Pressable
                 key={option}
                 testID={`settings-report-abuse-category-${option}`}
+                accessibilityLabel={`Categoria ${CATEGORY_LABELS[option]}`}
+                accessibilityRole="button"
+                accessibilityState={{ selected, disabled: isSubmitting }}
                 disabled={isSubmitting}
                 onPress={() => onChangeCategory(option)}
                 style={[
                   styles.categoryButton,
                   {
-                    backgroundColor: selected ? '#5A8363' : inputBackground,
+                    backgroundColor: selected ? '#426A4B' : inputBackground,
                     borderColor: selected
-                      ? '#5A8363'
+                      ? '#426A4B'
                       : isDark
                         ? '#333735'
                         : '#d7ddd9',
@@ -108,6 +111,7 @@ export default function SettingsReportAbuseModal({
         </Text>
         <TextInput
           testID="settings-report-abuse-description-input"
+          accessibilityLabel="Descricao da denuncia"
           value={description}
           onChangeText={onChangeDescription}
           placeholder="Conte o que aconteceu"
@@ -121,7 +125,7 @@ export default function SettingsReportAbuseModal({
               color: textColor,
             },
           ]}
-          placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
+          placeholderTextColor={isDark ? '#aabbb3' : '#56645e'}
         />
         {fieldErrors.description ? (
           <Text testID="settings-report-abuse-description-error" style={styles.fieldErrorText}>
@@ -142,9 +146,13 @@ export default function SettingsReportAbuseModal({
         ) : null}
 
         <Pressable
+          accessibilityLabel="Enviar denuncia"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
           disabled={isSubmitting}
-          style={[
+          style={({ pressed }) => [
             styles.primaryButton,
+            pressed && styles.primaryButtonPressed,
             isSubmitting && styles.primaryButtonDisabled,
           ]}
           onPress={onSubmit}
@@ -160,9 +168,16 @@ export default function SettingsReportAbuseModal({
         </Pressable>
 
         <Pressable
+          accessibilityLabel="Voltar para suporte"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
           disabled={isSubmitting}
           onPress={onCancel}
-          style={styles.secondaryButton}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.secondaryButtonPressed,
+            isSubmitting && styles.secondaryButtonDisabled,
+          ]}
         >
           <Text style={[styles.secondaryText, { color: subTextColor }]}>
             VOLTAR
@@ -238,12 +253,16 @@ const styles = StyleSheet.create({
     marginTop: 18,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#5A8363',
+    backgroundColor: '#426A4B',
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonDisabled: {
     opacity: 0.68,
+  },
+  primaryButtonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.985 }],
   },
   primaryText: {
     color: '#ffffff',
@@ -261,5 +280,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  secondaryButtonPressed: {
+    opacity: 0.7,
+  },
+  secondaryButtonDisabled: {
+    opacity: 0.5,
   },
 });

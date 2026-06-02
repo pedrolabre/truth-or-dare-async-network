@@ -81,13 +81,15 @@ export default function SettingsChangePasswordModal({
   const [showNewPassword, setShowNewPassword] = React.useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] =
     React.useState(false);
+  const newPasswordRef = React.useRef<TextInput>(null);
+  const confirmNewPasswordRef = React.useRef<TextInput>(null);
   const passwordStrength = getPasswordStrength(newPassword);
   const passwordStrengthLabel = getPasswordStrengthLabel(passwordStrength);
   const inputColors = {
     backgroundColor: isDark ? '#232323' : '#eaefea',
     color: isDark ? '#f5fbf6' : '#171d1a',
   };
-  const iconColor = isDark ? '#bccac2' : '#6d7a74';
+  const iconColor = isDark ? '#bccac2' : '#56645e';
 
   function renderPasswordField({
     testID,
@@ -96,6 +98,9 @@ export default function SettingsChangePasswordModal({
     placeholder,
     visiblePassword,
     onToggleVisibility,
+    inputRef,
+    returnKeyType,
+    onSubmitEditing,
   }: {
     testID: string;
     value: string;
@@ -103,25 +108,35 @@ export default function SettingsChangePasswordModal({
     placeholder: string;
     visiblePassword: boolean;
     onToggleVisibility: () => void;
+    inputRef?: React.RefObject<TextInput | null>;
+    returnKeyType: 'next' | 'done';
+    onSubmitEditing: () => void;
   }) {
     return (
       <View style={[styles.inputRow, { backgroundColor: inputColors.backgroundColor }]}>
         <TextInput
           testID={testID}
+          ref={inputRef}
+          accessibilityLabel={placeholder}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           style={[styles.input, { color: inputColors.color }]}
-          placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
+          placeholderTextColor={isDark ? '#aabbb3' : '#56645e'}
           secureTextEntry={!visiblePassword}
           editable={!isSubmitting}
+          returnKeyType={returnKeyType}
+          blurOnSubmit={returnKeyType === 'done'}
+          onSubmitEditing={onSubmitEditing}
         />
 
         <Pressable
           testID={`${testID}-visibility-toggle`}
           accessibilityLabel={
-            visiblePassword ? 'Esconder senha' : 'Mostrar senha'
+            `${visiblePassword ? 'Esconder' : 'Mostrar'} ${placeholder.toLowerCase()}`
           }
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
           disabled={isSubmitting}
           onPress={onToggleVisibility}
           style={styles.visibilityButton}
@@ -137,7 +152,7 @@ export default function SettingsChangePasswordModal({
   }
 
   return (
-    <SettingsModalShell visible={visible} onClose={onCancel}>
+    <SettingsModalShell visible={visible} onClose={onCancel} title="Nova senha">
       <View>
         <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
           NOVA SENHA
@@ -152,6 +167,8 @@ export default function SettingsChangePasswordModal({
             visiblePassword: showCurrentPassword,
             onToggleVisibility: () =>
               setShowCurrentPassword((current) => !current),
+            returnKeyType: 'next',
+            onSubmitEditing: () => newPasswordRef.current?.focus(),
           })}
           {fieldErrors.currentPassword ? (
             <Text
@@ -169,6 +186,9 @@ export default function SettingsChangePasswordModal({
             placeholder: 'Nova Senha',
             visiblePassword: showNewPassword,
             onToggleVisibility: () => setShowNewPassword((current) => !current),
+            inputRef: newPasswordRef,
+            returnKeyType: 'next',
+            onSubmitEditing: () => confirmNewPasswordRef.current?.focus(),
           })}
           {fieldErrors.newPassword ? (
             <Text
@@ -188,7 +208,7 @@ export default function SettingsChangePasswordModal({
                 <Text
                   style={[
                     styles.strengthText,
-                    { color: isDark ? '#bccac2' : '#6d7a74' },
+                    { color: isDark ? '#bccac2' : '#56645e' },
                   ]}
                 >
                   FORCA DA SENHA
@@ -248,6 +268,9 @@ export default function SettingsChangePasswordModal({
             visiblePassword: showConfirmNewPassword,
             onToggleVisibility: () =>
               setShowConfirmNewPassword((current) => !current),
+            inputRef: confirmNewPasswordRef,
+            returnKeyType: 'done',
+            onSubmitEditing: onSubmit,
           })}
           {fieldErrors.confirmNewPassword ? (
             <Text
@@ -266,9 +289,13 @@ export default function SettingsChangePasswordModal({
         ) : null}
 
         <Pressable
+          accessibilityLabel="Atualizar senha"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
           disabled={isSubmitting}
-          style={[
+          style={({ pressed }) => [
             styles.primaryButton,
+            pressed && styles.primaryButtonPressed,
             isSubmitting && styles.primaryButtonDisabled,
           ]}
           onPress={onSubmit}
@@ -284,14 +311,21 @@ export default function SettingsChangePasswordModal({
         </Pressable>
 
         <Pressable
+          accessibilityLabel="Cancelar alteracao de senha"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
           disabled={isSubmitting}
           onPress={onCancel}
-          style={styles.secondaryButton}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.secondaryButtonPressed,
+            isSubmitting && styles.secondaryButtonDisabled,
+          ]}
         >
           <Text
             style={[
               styles.secondaryText,
-              { color: isDark ? '#bccac2' : '#6d7a74' },
+              { color: isDark ? '#bccac2' : '#56645e' },
             ]}
           >
             CANCELAR
@@ -388,12 +422,16 @@ const styles = StyleSheet.create({
     marginTop: 18,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#5A8363',
+    backgroundColor: '#426A4B',
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonDisabled: {
     opacity: 0.68,
+  },
+  primaryButtonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.985 }],
   },
   primaryText: {
     color: '#ffffff',
@@ -411,6 +449,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  secondaryButtonPressed: {
+    opacity: 0.7,
+  },
+  secondaryButtonDisabled: {
+    opacity: 0.5,
   },
   errorText: {
     marginTop: 12,

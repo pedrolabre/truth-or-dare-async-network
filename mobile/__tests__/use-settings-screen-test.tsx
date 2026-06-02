@@ -362,12 +362,17 @@ describe('useSettingsScreen', () => {
     const { result } = renderHook(() => useSettingsScreen());
     await waitForLoadedUser(result);
 
-    await expect(
-      result.current.handleTogglePrivateAccount(false),
-    ).rejects.toThrow('Falha ao atualizar privacidade');
+    await act(async () => {
+      await expect(
+        result.current.handleTogglePrivateAccount(false),
+      ).rejects.toThrow('Falha ao atualizar privacidade');
+    });
 
     expect(result.current.user?.isPrivate).toBe(true);
     expect(result.current.settings.privateAccountEnabled).toBe(true);
+    expect(result.current.privateAccountError).toBe(
+      'Falha ao atualizar privacidade',
+    );
   });
 
   it('altera e-mail com estado de envio, limpeza de erro e reset de formulario', async () => {

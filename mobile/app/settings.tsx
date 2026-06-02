@@ -32,31 +32,35 @@ import SettingsReportAbuseModal from '../components/settings/SettingsReportAbuse
 import SettingsDeleteAccountModal from '../components/settings/SettingsDeleteAccountModal';
 import SettingsSessionsModal from '../components/settings/SettingsSessionsModal';
 
-const LIGHT = {
+export const LIGHT = {
   bg: '#f5fbf6',
   surface: '#eaefea',
   text: '#171d1a',
-  sub: '#6d7a74',
+  sub: '#56645e',
   outline: '#d7ddd9',
-  green: '#5A8363',
-  red: '#D70015',
+  green: '#426A4B',
+  accent: '#426A4B',
+  red: '#B00020',
+  dangerBg: '#B00020',
   white: '#ffffff',
   switchOffTrack: '#c4cbc6',
-  switchOnTrack: '#5A8363',
+  switchOnTrack: '#426A4B',
   switchThumb: '#ffffff',
 };
 
-const DARK = {
+export const DARK = {
   bg: '#121212',
   surface: '#232323',
   text: '#f5fbf6',
   sub: '#aab5af',
   outline: '#333735',
-  green: '#5A8363',
-  red: '#E11D2E',
+  green: '#426A4B',
+  accent: '#8ABF96',
+  red: '#FF7B86',
+  dangerBg: '#B00020',
   white: '#f9f9f9',
   switchOffTrack: '#5b605d',
-  switchOnTrack: '#5A8363',
+  switchOnTrack: '#79AD84',
   switchThumb: '#ffffff',
 };
 
@@ -119,9 +123,13 @@ export default function SettingsScreen() {
     handleContactDevs,
     handleDeleteAccount,
     openDeleteAccountModal,
+    isSubmittingPrivateAccount,
+    privateAccountError,
+    clearPrivateAccountError,
     handleTogglePrivateAccount,
     handleRevokeSession,
     handleRevokeOtherSessions,
+    isLoggingOut,
     handleLogout,
   } = useSettingsScreen();
 
@@ -133,13 +141,18 @@ export default function SettingsScreen() {
   const [pendingPrivateValue, setPendingPrivateValue] = useState<boolean | null>(null);
 
   function handleRequestTogglePrivateAccount(newValue: boolean) {
+    clearPrivateAccountError();
     setPendingPrivateValue(newValue);
     openModal('private-account');
   }
 
   async function handleConfirmPrivateAccount() {
-    if (pendingPrivateValue !== null) {
-      await handleTogglePrivateAccount(pendingPrivateValue);
+    try {
+      if (pendingPrivateValue !== null) {
+        await handleTogglePrivateAccount(pendingPrivateValue);
+      }
+    } catch {
+      return;
     }
 
     setPendingPrivateValue(null);
@@ -147,6 +160,7 @@ export default function SettingsScreen() {
   }
 
   function handleCancelPrivateAccount() {
+    clearPrivateAccountError();
     setPendingPrivateValue(null);
     closeModal();
   }
@@ -193,6 +207,7 @@ export default function SettingsScreen() {
           titleColor={colors.white}
           borderBottomColor="rgba(207,247,238,0.20)"
           leftIcon="arrow-back"
+          leftAccessibilityLabel="Voltar"
           onPressLeft={() => router.back()}
         />
 
@@ -217,7 +232,7 @@ export default function SettingsScreen() {
                 },
               ]}
             >
-              <ActivityIndicator color={colors.green} />
+              <ActivityIndicator color={colors.accent} />
               <Text style={[styles.userStatusText, { color: colors.sub }]}>
                 Carregando sua conta...
               </Text>
@@ -246,6 +261,8 @@ export default function SettingsScreen() {
               </View>
 
               <Pressable
+                accessibilityLabel="Tentar carregar conta novamente"
+                accessibilityRole="button"
                 onPress={retryLoadUser}
                 style={[styles.retryButton, { backgroundColor: colors.green }]}
               >
@@ -266,7 +283,7 @@ export default function SettingsScreen() {
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
-              iconColor={colors.green}
+              iconColor={colors.accent}
               borderColor={colors.outline}
               trackColor={{
                 false: colors.switchOffTrack,
@@ -293,13 +310,14 @@ export default function SettingsScreen() {
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
-              iconColor={colors.green}
+              iconColor={colors.accent}
               borderColor={colors.outline}
               trackColor={{
                 false: colors.switchOffTrack,
                 true: colors.switchOnTrack,
               }}
               thumbColor={colors.switchThumb}
+              disabled={useSystemTheme}
             />
 
             <AccountMenuRow
@@ -308,7 +326,7 @@ export default function SettingsScreen() {
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
-              iconColor={colors.green}
+              iconColor={colors.accent}
               borderColor={colors.outline}
               onPress={() => openModal('about')}
             />
@@ -324,7 +342,7 @@ export default function SettingsScreen() {
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
-              iconColor={colors.green}
+              iconColor={colors.accent}
               borderColor={colors.outline}
               trackColor={{
                 false: colors.switchOffTrack,
@@ -339,7 +357,7 @@ export default function SettingsScreen() {
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
-              iconColor={colors.green}
+              iconColor={colors.accent}
               borderColor={colors.outline}
               onPress={() => openModal('privacy')}
             />
@@ -350,7 +368,7 @@ export default function SettingsScreen() {
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
-              iconColor={colors.green}
+              iconColor={colors.accent}
               borderColor={colors.outline}
               onPress={() => openModal('change-password')}
             />
@@ -362,7 +380,7 @@ export default function SettingsScreen() {
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
-              iconColor={colors.green}
+              iconColor={colors.accent}
               borderColor={colors.outline}
               onPress={openSessionsModal}
             />
@@ -375,7 +393,7 @@ export default function SettingsScreen() {
               backgroundColor={colors.surface}
               textColor={colors.text}
               subTextColor={colors.sub}
-              iconColor={colors.green}
+              iconColor={colors.accent}
               borderColor={colors.outline}
               onPress={() => openModal('help')}
             />
@@ -397,7 +415,7 @@ export default function SettingsScreen() {
           <View style={styles.logoutWrap}>
             <SettingsDangerButton
               label="Sair"
-              backgroundColor={colors.red}
+              backgroundColor={colors.dangerBg}
               textColor={colors.white}
               onPress={() => openModal('logout')}
             />
@@ -466,6 +484,7 @@ export default function SettingsScreen() {
         visible={activeModal === 'logout'}
         onConfirm={handleLogout}
         onCancel={closeModal}
+        isSubmitting={isLoggingOut}
       />
 
       <SettingsPrivacyModal
@@ -549,6 +568,8 @@ export default function SettingsScreen() {
         willBePrivate={pendingPrivateValue ?? !settings.privateAccountEnabled}
         onConfirm={handleConfirmPrivateAccount}
         onCancel={handleCancelPrivateAccount}
+        isSubmitting={isSubmittingPrivateAccount}
+        errorMessage={privateAccountError}
       />
     </View>
   );

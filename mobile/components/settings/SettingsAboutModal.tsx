@@ -30,15 +30,16 @@ export default function SettingsAboutModal({
   const appVersion =
     Constants.expoConfig?.version ?? manifestVersion ?? 'indisponivel';
   const infoTextColor = isDark ? '#bccac2' : '#171d1a';
+  const accentColor = isDark ? '#8ABF96' : '#426A4B';
 
   function openUrl(url: string) {
     void Linking.openURL(url);
   }
 
   return (
-    <SettingsModalShell visible={visible} onClose={onClose}>
+    <SettingsModalShell visible={visible} onClose={onClose} title="Sobre o App">
       <View style={styles.center}>
-        <View style={styles.iconBox}>
+        <View style={[styles.iconBox, { backgroundColor: '#426A4B' }]}>
           <MaterialIcons name="style" size={34} color="#ffffff" />
         </View>
 
@@ -81,22 +82,31 @@ export default function SettingsAboutModal({
 
           <View style={styles.linksRow}>
             <Pressable
+              accessibilityLabel="Abrir Termos de Uso"
               onPress={() => openUrl(TERMS_OF_USE_URL)}
               accessibilityRole="link"
             >
-              <Text style={styles.linkText}>Termos de Uso</Text>
+              <Text style={[styles.linkText, { color: accentColor }]}>Termos de Uso</Text>
             </Pressable>
             <Pressable
+              accessibilityLabel="Abrir Politica de Privacidade"
               onPress={() => openUrl(PRIVACY_POLICY_URL)}
               accessibilityRole="link"
             >
-              <Text style={styles.linkText}>Politica de Privacidade</Text>
+              <Text style={[styles.linkText, { color: accentColor }]}>
+                Politica de Privacidade
+              </Text>
             </Pressable>
           </View>
         </View>
 
-        <Pressable onPress={onClose} style={styles.closeButton}>
-          <Text style={styles.closeText}>FECHAR</Text>
+        <Pressable
+          accessibilityLabel="Fechar Sobre o App"
+          accessibilityRole="button"
+          onPress={onClose}
+          style={({ pressed }) => [styles.closeButton, pressed && styles.pressed]}
+        >
+          <Text style={[styles.closeText, { color: accentColor }]}>FECHAR</Text>
         </Pressable>
       </View>
     </SettingsModalShell>
@@ -111,7 +121,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: '#5A8363',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -143,7 +152,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '900',
-    color: '#5A8363',
   },
   closeButton: {
     marginTop: 20,
@@ -152,7 +160,9 @@ const styles = StyleSheet.create({
   closeText: {
     fontSize: 12,
     fontWeight: '900',
-    color: '#5A8363',
     letterSpacing: 0.5,
+  },
+  pressed: {
+    opacity: 0.72,
   },
 });

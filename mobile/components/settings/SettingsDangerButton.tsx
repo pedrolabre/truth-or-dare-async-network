@@ -17,6 +17,8 @@ export default function SettingsDangerButton({
 }: Props) {
   return (
     <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,

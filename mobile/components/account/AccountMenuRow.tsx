@@ -29,6 +29,8 @@ export default function AccountMenuRow({
 }: Props) {
   return (
     <Pressable
+      accessibilityLabel={label}
+      accessibilityRole="button"
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,

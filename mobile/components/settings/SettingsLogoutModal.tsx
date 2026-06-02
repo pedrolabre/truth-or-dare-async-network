@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, View, Pressable, StyleSheet } from 'react-native';
+import { ActivityIndicator, Text, View, Pressable, StyleSheet } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import SettingsModalShell from './SettingsModalShell';
 
@@ -7,17 +7,19 @@ type Props = {
   visible: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 };
 
 export default function SettingsLogoutModal({
   visible,
   onConfirm,
   onCancel,
+  isSubmitting = false,
 }: Props) {
   const { isDark } = useTheme();
 
   return (
-    <SettingsModalShell visible={visible} onClose={onCancel}>
+    <SettingsModalShell visible={visible} onClose={onCancel} title="Sair">
       <View style={styles.center}>
         <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
           Deseja sair?
@@ -26,21 +28,43 @@ export default function SettingsLogoutModal({
         <Text
           style={[
             styles.text,
-            { color: isDark ? '#bccac2' : '#6d7a74' },
+            { color: isDark ? '#bccac2' : '#56645e' },
           ]}
         >
           Sua sessão será encerrada com segurança.
         </Text>
 
-        <Pressable style={styles.danger} onPress={onConfirm}>
-          <Text style={styles.dangerText}>SIM, DESLOGAR</Text>
+        <Pressable
+          accessibilityLabel="Confirmar logout"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+          disabled={isSubmitting}
+          style={({ pressed }) => [
+            styles.danger,
+            pressed && styles.pressed,
+            isSubmitting && styles.disabled,
+          ]}
+          onPress={onConfirm}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator testID="settings-logout-loading" color="#ffffff" />
+          ) : (
+            <Text style={styles.dangerText}>SIM, DESLOGAR</Text>
+          )}
         </Pressable>
 
-        <Pressable onPress={onCancel}>
+        <Pressable
+          accessibilityLabel="Cancelar logout"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
+          disabled={isSubmitting}
+          onPress={onCancel}
+          style={({ pressed }) => pressed && styles.pressed}
+        >
           <Text
             style={[
               styles.cancel,
-              { color: isDark ? '#bccac2' : '#6d7a74' },
+              { color: isDark ? '#bccac2' : '#56645e' },
             ]}
           >
             CANCELAR
@@ -74,5 +98,11 @@ const styles = StyleSheet.create({
   cancel: {
     marginTop: 10,
     fontWeight: '700',
+  },
+  pressed: {
+    opacity: 0.72,
+  },
+  disabled: {
+    opacity: 0.58,
   },
 });

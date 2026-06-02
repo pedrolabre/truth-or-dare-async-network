@@ -245,6 +245,13 @@ export function useSettingsScreen() {
   );
   const [isRevokingOtherSessions, setIsRevokingOtherSessions] =
     useState(false);
+  const [isSubmittingPrivateAccount, setIsSubmittingPrivateAccount] =
+    useState(false);
+  const isSubmittingPrivateAccountRef = useRef(false);
+  const [privateAccountError, setPrivateAccountError] =
+    useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const isLoggingOutRef = useRef(false);
 
   const [activeModal, setActiveModal] =
     useState<SettingsScreenModal>(null);
@@ -492,19 +499,44 @@ export function useSettingsScreen() {
 
   const handleTogglePrivateAccount = useCallback(
     async (newValue: boolean) => {
-      const updatedUser = await updateMe({ isPrivate: newValue });
-      const nextValue = updatedUser.isPrivate ?? newValue;
+      if (isSubmittingPrivateAccountRef.current) {
+        return null;
+      }
 
-      setUser(updatedUser);
-      setSettings((current) => ({
-        ...current,
-        privateAccountEnabled: nextValue,
-      }));
+      try {
+        isSubmittingPrivateAccountRef.current = true;
+        setIsSubmittingPrivateAccount(true);
+        setPrivateAccountError(null);
 
-      return updatedUser;
+        const updatedUser = await updateMe({ isPrivate: newValue });
+        const nextValue = updatedUser.isPrivate ?? newValue;
+
+        setUser(updatedUser);
+        setSettings((current) => ({
+          ...current,
+          privateAccountEnabled: nextValue,
+        }));
+
+        return updatedUser;
+      } catch (error) {
+        setPrivateAccountError(
+          getErrorMessage(
+            error,
+            'Nao foi possivel atualizar a privacidade da conta.',
+          ),
+        );
+        throw error;
+      } finally {
+        isSubmittingPrivateAccountRef.current = false;
+        setIsSubmittingPrivateAccount(false);
+      }
     },
     [],
   );
+
+  const clearPrivateAccountError = useCallback(() => {
+    setPrivateAccountError(null);
+  }, []);
 
   const handleRevokeSession = useCallback(
     async (sessionId: string) => {
@@ -730,19 +762,30 @@ export function useSettingsScreen() {
   }, []);
 
   const handleLogout = useCallback(async () => {
-    await clearLocalSettings();
-    await removeToken();
-    setUser(null);
-    setSettings((current) => ({
-      ...current,
-      privateAccountEnabled: false,
-    }));
-    setEmailForm(EMPTY_EMAIL_FORM);
-    setPasswordForm(EMPTY_PASSWORD_FORM);
-    setReportAbuseForm(EMPTY_REPORT_ABUSE_FORM);
-    setDeleteAccountForm(EMPTY_DELETE_ACCOUNT_FORM);
-    setActiveModal(null);
-    router.replace('/login');
+    if (isLoggingOutRef.current) {
+      return;
+    }
+
+    try {
+      isLoggingOutRef.current = true;
+      setIsLoggingOut(true);
+      await clearLocalSettings();
+      await removeToken();
+      setUser(null);
+      setSettings((current) => ({
+        ...current,
+        privateAccountEnabled: false,
+      }));
+      setEmailForm(EMPTY_EMAIL_FORM);
+      setPasswordForm(EMPTY_PASSWORD_FORM);
+      setReportAbuseForm(EMPTY_REPORT_ABUSE_FORM);
+      setDeleteAccountForm(EMPTY_DELETE_ACCOUNT_FORM);
+      setActiveModal(null);
+      router.replace('/login');
+    } finally {
+      isLoggingOutRef.current = false;
+      setIsLoggingOut(false);
+    }
   }, [router]);
 
   const handleDeleteAccount = useCallback(
@@ -856,9 +899,13 @@ export function useSettingsScreen() {
     handleChangePassword,
     handleReportAbuse,
     handleContactDevs,
+    isSubmittingPrivateAccount,
+    privateAccountError,
+    clearPrivateAccountError,
     handleTogglePrivateAccount,
     handleRevokeSession,
     handleRevokeOtherSessions,
+    isLoggingOut,
     handleLogout,
     handleDeleteAccount,
   };

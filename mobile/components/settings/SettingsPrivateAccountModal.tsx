@@ -16,9 +16,10 @@ export default function SettingsPrivateAccountModal({
   onCancel,
 }: Props) {
   const { isDark } = useTheme();
+  const accentColor = isDark ? '#8ABF96' : '#426A4B';
 
   return (
-    <SettingsModalShell visible={visible} onClose={onCancel}>
+    <SettingsModalShell visible={visible} onClose={onCancel} title="Tornar conta privada">
       <View style={styles.center}>
         <View
           style={[
@@ -28,7 +29,7 @@ export default function SettingsPrivateAccountModal({
             },
           ]}
         >
-          <MaterialIcons name="lock" size={36} color="#5A8363" />
+          <MaterialIcons name="lock" size={36} color={accentColor} />
         </View>
 
         <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
@@ -38,21 +39,31 @@ export default function SettingsPrivateAccountModal({
         <Text
           style={[
             styles.text,
-            { color: isDark ? '#bccac2' : '#6d7a74' },
+            { color: isDark ? '#bccac2' : '#56645e' },
           ]}
         >
           Somente seguidores aprovados por você poderão ver seu perfil e atividade.
         </Text>
 
-        <Pressable style={styles.primary} onPress={onConfirm}>
+        <Pressable
+          accessibilityLabel="Confirmar conta privada"
+          accessibilityRole="button"
+          style={({ pressed }) => [styles.primary, pressed && styles.pressed]}
+          onPress={onConfirm}
+        >
           <Text style={styles.primaryText}>CONFIRMAR</Text>
         </Pressable>
 
-        <Pressable onPress={onCancel}>
+        <Pressable
+          accessibilityLabel="Cancelar conta privada"
+          accessibilityRole="button"
+          onPress={onCancel}
+          style={({ pressed }) => pressed && styles.pressed}
+        >
           <Text
             style={[
               styles.cancel,
-              { color: isDark ? '#bccac2' : '#6d7a74' },
+              { color: isDark ? '#bccac2' : '#56645e' },
             ]}
           >
             CANCELAR
@@ -82,7 +93,7 @@ const styles = StyleSheet.create({
   },
   primary: {
     width: '100%',
-    backgroundColor: '#5A8363',
+    backgroundColor: '#426A4B',
     padding: 16,
     borderRadius: 16,
     marginTop: 8,
@@ -95,5 +106,9 @@ const styles = StyleSheet.create({
   cancel: {
     marginTop: 10,
     fontWeight: '700',
+  },
+  pressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.985 }],
   },
 });

@@ -16,7 +16,7 @@ export default function SettingsEmailSuccessModal({
   const { isDark } = useTheme();
 
   return (
-    <SettingsModalShell visible={visible} onClose={onClose}>
+    <SettingsModalShell visible={visible} onClose={onClose} title="E-mail atualizado">
       <View style={styles.center}>
         <View
           style={[
@@ -36,14 +36,22 @@ export default function SettingsEmailSuccessModal({
         <Text
           style={[
             styles.text,
-            { color: isDark ? '#bccac2' : '#6d7a74' },
+            { color: isDark ? '#bccac2' : '#56645e' },
           ]}
         >
           Seu novo e-mail foi recebido. Enviaremos um link de confirmacao para
           concluir a mudanca.
         </Text>
 
-        <Pressable style={styles.primaryButton} onPress={onClose}>
+        <Pressable
+          accessibilityLabel="Fechar confirmacao de e-mail atualizado"
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && styles.pressed,
+          ]}
+          onPress={onClose}
+        >
           <Text style={styles.primaryText}>EXCELENTE</Text>
         </Pressable>
       </View>
@@ -79,7 +87,7 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#5A8363',
+    backgroundColor: '#426A4B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -88,5 +96,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+  pressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.985 }],
   },
 });

@@ -19,7 +19,7 @@ export default function SettingsPrivacyModal({
   const { isDark } = useTheme();
 
   return (
-    <SettingsModalShell visible={visible} onClose={onClose}>
+    <SettingsModalShell visible={visible} onClose={onClose} title="Privacidade">
       <View>
         <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
           PRIVACIDADE
@@ -39,15 +39,31 @@ export default function SettingsPrivacyModal({
           </Text>
         </View>
 
-        <Pressable style={styles.primaryButton} onPress={onPressChangeEmail}>
+        <Pressable
+          accessibilityLabel="Alterar e-mail"
+          accessibilityRole="button"
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && styles.pressed,
+          ]}
+          onPress={onPressChangeEmail}
+        >
           <Text style={styles.primaryText}>ALTERAR E-MAIL</Text>
         </Pressable>
 
-        <Pressable onPress={onClose} style={styles.secondaryButton}>
+        <Pressable
+          accessibilityLabel="Fechar privacidade"
+          accessibilityRole="button"
+          onPress={onClose}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.pressed,
+          ]}
+        >
           <Text
             style={[
               styles.secondaryText,
-              { color: isDark ? '#bccac2' : '#6d7a74' },
+              { color: isDark ? '#bccac2' : '#56645e' },
             ]}
           >
             FECHAR
@@ -72,7 +88,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#5A8363',
+    color: '#426A4B',
     letterSpacing: 1,
   },
   email: {
@@ -83,7 +99,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#5A8363',
+    backgroundColor: '#426A4B',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -103,5 +119,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  pressed: {
+    opacity: 0.76,
+    transform: [{ scale: 0.985 }],
   },
 });

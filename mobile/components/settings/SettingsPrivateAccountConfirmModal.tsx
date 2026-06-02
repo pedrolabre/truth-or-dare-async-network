@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../context/ThemeContext';
 import SettingsModalShell from './SettingsModalShell';
 
@@ -9,6 +9,8 @@ type Props = {
   willBePrivate: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
+  errorMessage?: string | null;
 };
 
 export default function SettingsPrivateAccountConfirmModal({
@@ -16,8 +18,11 @@ export default function SettingsPrivateAccountConfirmModal({
   willBePrivate,
   onConfirm,
   onCancel,
+  isSubmitting = false,
+  errorMessage = null,
 }: Props) {
   const { isDark } = useTheme();
+  const accentColor = isDark ? '#8ABF96' : '#426A4B';
   const title = willBePrivate
     ? 'TORNAR CONTA PRIVADA?'
     : 'TORNAR CONTA PÚBLICA?';
@@ -27,7 +32,7 @@ export default function SettingsPrivateAccountConfirmModal({
     : 'Qualquer pessoa poderá ver seu perfil e te seguir sem aprovação.';
 
   return (
-    <SettingsModalShell visible={visible} onClose={onCancel}>
+    <SettingsModalShell visible={visible} onClose={onCancel} title={title}>
       <View style={styles.center}>
         <View
           style={[
@@ -40,26 +45,57 @@ export default function SettingsPrivateAccountConfirmModal({
           <MaterialIcons
             name={willBePrivate ? 'lock' : 'lock-open'}
             size={36}
-            color="#5A8363"
+            color={accentColor}
           />
         </View>
 
         <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
           {title}
         </Text>
-        <Text style={[styles.text, { color: isDark ? '#bccac2' : '#6d7a74' }]}>
+        <Text style={[styles.text, { color: isDark ? '#bccac2' : '#56645e' }]}>
           {body}
         </Text>
 
-        <Pressable style={styles.primary} onPress={onConfirm}>
-          <Text style={styles.primaryText}>CONFIRMAR</Text>
+        {errorMessage ? (
+          <Text testID="settings-private-account-error" style={styles.errorText}>
+            {errorMessage}
+          </Text>
+        ) : null}
+
+        <Pressable
+          accessibilityLabel="Confirmar privacidade da conta"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+          disabled={isSubmitting}
+          style={({ pressed }) => [
+            styles.primary,
+            pressed && styles.pressed,
+            isSubmitting && styles.disabled,
+          ]}
+          onPress={onConfirm}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator
+              testID="settings-private-account-loading"
+              color="#ffffff"
+            />
+          ) : (
+            <Text style={styles.primaryText}>CONFIRMAR</Text>
+          )}
         </Pressable>
 
-        <Pressable onPress={onCancel}>
+        <Pressable
+          accessibilityLabel="Cancelar alteracao de privacidade"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
+          disabled={isSubmitting}
+          onPress={onCancel}
+          style={({ pressed }) => pressed && styles.pressed}
+        >
           <Text
             style={[
               styles.cancel,
-              { color: isDark ? '#bccac2' : '#6d7a74' },
+              { color: isDark ? '#bccac2' : '#56645e' },
             ]}
           >
             CANCELAR
@@ -90,7 +126,7 @@ const styles = StyleSheet.create({
   },
   primary: {
     width: '100%',
-    backgroundColor: '#5A8363',
+    backgroundColor: '#426A4B',
     padding: 16,
     borderRadius: 16,
     marginTop: 8,
@@ -103,5 +139,19 @@ const styles = StyleSheet.create({
   cancel: {
     marginTop: 10,
     fontWeight: '700',
+  },
+  errorText: {
+    color: '#B00020',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  pressed: {
+    opacity: 0.78,
+    transform: [{ scale: 0.985 }],
+  },
+  disabled: {
+    opacity: 0.58,
   },
 });

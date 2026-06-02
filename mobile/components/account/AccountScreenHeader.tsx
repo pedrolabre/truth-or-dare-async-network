@@ -11,8 +11,10 @@ type Props = {
   borderBottomColor?: string;
   leftIcon?: keyof typeof MaterialIcons.glyphMap;
   onPressLeft?: () => void;
+  leftAccessibilityLabel?: string;
   rightIcon?: keyof typeof MaterialIcons.glyphMap;
   onPressRight?: () => void;
+  rightAccessibilityLabel?: string;
   rightBadgeCount?: number | null;
   rightBadgeBackgroundColor?: string;
   rightBadgeTextColor?: string;
@@ -26,8 +28,10 @@ export default function AccountScreenHeader({
   borderBottomColor = 'transparent',
   leftIcon,
   onPressLeft,
+  leftAccessibilityLabel,
   rightIcon,
   onPressRight,
+  rightAccessibilityLabel,
   rightBadgeCount,
   rightBadgeBackgroundColor = '#D70015',
   rightBadgeTextColor = '#ffffff',
@@ -50,6 +54,8 @@ export default function AccountScreenHeader({
         <View style={[styles.side, styles.sideLeft]}>
           {leftIcon ? (
             <Pressable
+              accessibilityLabel={leftAccessibilityLabel}
+              accessibilityRole="button"
               hitSlop={8}
               onPress={onPressLeft}
               style={({ pressed }) => [
@@ -71,6 +77,8 @@ export default function AccountScreenHeader({
         <View style={[styles.side, styles.sideRight]}>
           {rightIcon ? (
             <Pressable
+              accessibilityLabel={rightAccessibilityLabel}
+              accessibilityRole="button"
               hitSlop={8}
               onPress={onPressRight}
               style={({ pressed }) => [

@@ -38,11 +38,11 @@ export default function SettingsDeleteAccountModal({
 }: Props) {
   const { isDark } = useTheme();
   const textColor = isDark ? '#f5fbf6' : '#171d1a';
-  const subTextColor = isDark ? '#bccac2' : '#6d7a74';
+  const subTextColor = isDark ? '#bccac2' : '#56645e';
   const inputBackground = isDark ? '#232323' : '#eaefea';
 
   return (
-    <SettingsModalShell visible={visible} onClose={onCancel}>
+    <SettingsModalShell visible={visible} onClose={onCancel} title="Excluir conta">
       <View>
         <Text style={[styles.title, { color: textColor }]}>
           EXCLUIR CONTA
@@ -56,7 +56,15 @@ export default function SettingsDeleteAccountModal({
               consistentes.
             </Text>
 
-            <Pressable style={styles.dangerButton} onPress={onContinue}>
+            <Pressable
+              accessibilityLabel="Continuar exclusao de conta"
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.dangerButton,
+                pressed && styles.dangerButtonPressed,
+              ]}
+              onPress={onContinue}
+            >
               <Text style={styles.dangerText}>CONTINUAR</Text>
             </Pressable>
           </>
@@ -71,6 +79,7 @@ export default function SettingsDeleteAccountModal({
             </Text>
             <TextInput
               testID="settings-delete-account-password-input"
+              accessibilityLabel="Senha atual para excluir conta"
               value={currentPassword}
               onChangeText={onChangeCurrentPassword}
               placeholder="Digite sua senha atual"
@@ -83,7 +92,9 @@ export default function SettingsDeleteAccountModal({
                   color: textColor,
                 },
               ]}
-              placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
+              placeholderTextColor={isDark ? '#aabbb3' : '#56645e'}
+              returnKeyType="done"
+              onSubmitEditing={onSubmit}
             />
             {fieldErrors.currentPassword ? (
               <Text
@@ -101,9 +112,13 @@ export default function SettingsDeleteAccountModal({
             ) : null}
 
             <Pressable
+              accessibilityLabel="Excluir conta definitivamente"
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
               disabled={isSubmitting}
-              style={[
+              style={({ pressed }) => [
                 styles.dangerButton,
+                pressed && styles.dangerButtonPressed,
                 isSubmitting && styles.dangerButtonDisabled,
               ]}
               onPress={onSubmit}
@@ -121,9 +136,16 @@ export default function SettingsDeleteAccountModal({
         )}
 
         <Pressable
+          accessibilityLabel="Cancelar exclusao de conta"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
           disabled={isSubmitting}
           onPress={onCancel}
-          style={styles.secondaryButton}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.secondaryButtonPressed,
+            isSubmitting && styles.secondaryButtonDisabled,
+          ]}
         >
           <Text style={[styles.secondaryText, { color: subTextColor }]}>
             CANCELAR
@@ -183,6 +205,10 @@ const styles = StyleSheet.create({
   dangerButtonDisabled: {
     opacity: 0.68,
   },
+  dangerButtonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.985 }],
+  },
   dangerText: {
     color: '#ffffff',
     fontSize: 13,
@@ -199,5 +225,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  secondaryButtonPressed: {
+    opacity: 0.7,
+  },
+  secondaryButtonDisabled: {
+    opacity: 0.5,
   },
 });

@@ -41,9 +41,11 @@ export default function SettingsChangeEmailModal({
   fieldErrors = {},
 }: Props) {
   const { isDark } = useTheme();
+  const confirmEmailRef = React.useRef<TextInput>(null);
+  const passwordRef = React.useRef<TextInput>(null);
 
   return (
-    <SettingsModalShell visible={visible} onClose={onBack}>
+    <SettingsModalShell visible={visible} onClose={onBack} title="Novo e-mail">
       <View>
         <Text style={[styles.title, { color: isDark ? '#f5fbf6' : '#171d1a' }]}>
           NOVO E-MAIL
@@ -52,6 +54,7 @@ export default function SettingsChangeEmailModal({
         <View style={styles.fields}>
           <TextInput
             testID="settings-change-email-new-email-input"
+            accessibilityLabel="Novo e-mail"
             value={email}
             onChangeText={onChangeEmail}
             placeholder="Novo e-mail"
@@ -62,10 +65,13 @@ export default function SettingsChangeEmailModal({
                 color: isDark ? '#f5fbf6' : '#171d1a',
               },
             ]}
-            placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
+            placeholderTextColor={isDark ? '#aabbb3' : '#56645e'}
             autoCapitalize="none"
             keyboardType="email-address"
             editable={!isSubmitting}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => confirmEmailRef.current?.focus()}
           />
           {fieldErrors.newEmail ? (
             <Text
@@ -78,6 +84,8 @@ export default function SettingsChangeEmailModal({
 
           <TextInput
             testID="settings-change-email-confirm-email-input"
+            ref={confirmEmailRef}
+            accessibilityLabel="Confirmar novo e-mail"
             value={confirmEmail}
             onChangeText={onChangeConfirmEmail}
             placeholder="Confirme o novo e-mail"
@@ -88,10 +96,13 @@ export default function SettingsChangeEmailModal({
                 color: isDark ? '#f5fbf6' : '#171d1a',
               },
             ]}
-            placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
+            placeholderTextColor={isDark ? '#aabbb3' : '#56645e'}
             autoCapitalize="none"
             keyboardType="email-address"
             editable={!isSubmitting}
+            returnKeyType="next"
+            blurOnSubmit={false}
+            onSubmitEditing={() => passwordRef.current?.focus()}
           />
           {fieldErrors.confirmEmail ? (
             <Text
@@ -104,6 +115,8 @@ export default function SettingsChangeEmailModal({
 
           <TextInput
             testID="settings-change-email-password-input"
+            ref={passwordRef}
+            accessibilityLabel="Senha atual"
             value={password}
             onChangeText={onChangePassword}
             placeholder="Confirme sua senha"
@@ -114,9 +127,11 @@ export default function SettingsChangeEmailModal({
                 color: isDark ? '#f5fbf6' : '#171d1a',
               },
             ]}
-            placeholderTextColor={isDark ? '#8fa39a' : '#6d7a74'}
+            placeholderTextColor={isDark ? '#aabbb3' : '#56645e'}
             secureTextEntry
             editable={!isSubmitting}
+            returnKeyType="done"
+            onSubmitEditing={onSubmit}
           />
           {fieldErrors.currentPassword ? (
             <Text
@@ -130,7 +145,7 @@ export default function SettingsChangeEmailModal({
 
         <Text
           testID="settings-change-email-confirmation-info"
-          style={[styles.infoText, { color: isDark ? '#bccac2' : '#6d7a74' }]}
+          style={[styles.infoText, { color: isDark ? '#bccac2' : '#56645e' }]}
         >
           Enviaremos um link para confirmar a mudanca antes de ativar o novo
           e-mail.
@@ -143,9 +158,13 @@ export default function SettingsChangeEmailModal({
         ) : null}
 
         <Pressable
+          accessibilityLabel="Confirmar mudanca de e-mail"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
           disabled={isSubmitting}
-          style={[
+          style={({ pressed }) => [
             styles.primaryButton,
+            pressed && styles.primaryButtonPressed,
             isSubmitting && styles.primaryButtonDisabled,
           ]}
           onPress={onSubmit}
@@ -161,14 +180,21 @@ export default function SettingsChangeEmailModal({
         </Pressable>
 
         <Pressable
+          accessibilityLabel="Voltar para privacidade"
+          accessibilityRole="button"
+          accessibilityState={{ disabled: isSubmitting }}
           disabled={isSubmitting}
           onPress={onBack}
-          style={styles.secondaryButton}
+          style={({ pressed }) => [
+            styles.secondaryButton,
+            pressed && styles.secondaryButtonPressed,
+            isSubmitting && styles.secondaryButtonDisabled,
+          ]}
         >
           <Text
             style={[
               styles.secondaryText,
-              { color: isDark ? '#bccac2' : '#6d7a74' },
+              { color: isDark ? '#bccac2' : '#56645e' },
             ]}
           >
             VOLTAR
@@ -212,12 +238,16 @@ const styles = StyleSheet.create({
     marginTop: 18,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#5A8363',
+    backgroundColor: '#426A4B',
     alignItems: 'center',
     justifyContent: 'center',
   },
   primaryButtonDisabled: {
     opacity: 0.68,
+  },
+  primaryButtonPressed: {
+    opacity: 0.82,
+    transform: [{ scale: 0.985 }],
   },
   primaryText: {
     color: '#ffffff',
@@ -235,6 +265,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  secondaryButtonPressed: {
+    opacity: 0.7,
+  },
+  secondaryButtonDisabled: {
+    opacity: 0.5,
   },
   errorText: {
     marginTop: 12,
