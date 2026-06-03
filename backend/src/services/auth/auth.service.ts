@@ -13,6 +13,7 @@ import {
   requireValidNewEmail,
   requireValidNewPassword,
 } from './settings.validators';
+import { logSettingsCredentialChange } from './settings.observability';
 import { registerUserSession } from '../users/sessions.service';
 
 type SignupInput = {
@@ -210,6 +211,11 @@ export async function changeEmail({
       },
     });
 
+    logSettingsCredentialChange({
+      userId: user.id,
+      changeType: 'email',
+    });
+
     return {
       user: updatedUser,
     };
@@ -280,6 +286,11 @@ export async function changePassword({
 
     throw error;
   }
+
+  logSettingsCredentialChange({
+    userId: user.id,
+    changeType: 'password',
+  });
 
   return {
     ok: true,

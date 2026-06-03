@@ -71,6 +71,12 @@ describe('settings.routes', () => {
     });
   });
 
+  it('GET /users/me exige token valido', async () => {
+    const response = await request(app).get('/users/me');
+
+    expect(response.status).toBe(401);
+  });
+
   it('PATCH /users/me atualiza somente campos enviados e e idempotente', async () => {
     const user = await createTestUser({
       name: 'Conta Original',
@@ -217,6 +223,34 @@ describe('settings.routes', () => {
       code: 'INVALID_CURRENT_PASSWORD',
     });
     expect(persistedUser.deletedAt).toBeNull();
+  });
+
+  it('DELETE /users/me retorna USER_NOT_FOUND quando usuario ja foi deletado', async () => {
+    const user = await createTestUser({
+      email: 'settings-delete-account-already-deleted@test.com',
+      password: 'senha-atual',
+    });
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    const response = await request(app)
+      .delete('/users/me')
+      .set('Authorization', getAuthorization(user))
+      .send({
+        currentPassword: 'senha-atual',
+      });
+
+    expect(response.status).toBe(404);
+    expect(response.body).toMatchObject({
+      code: 'USER_NOT_FOUND',
+    });
   });
 
   it('DELETE /users/me exige token valido', async () => {
