@@ -32,14 +32,22 @@ import {
   mapPromptResponseSummary,
   mapPromptSummary,
 } from '../prompts/mappers';
+import {
+  buildCursorPaginationResult,
+  getCursorPaginationArgs,
+  normalizeCursorPagination,
+} from '../../pagination';
 
-const CLUB_FEED_PROMPTS_LIMIT = 20;
+const CLUB_FEED_PROMPTS_DEFAULT_LIMIT = 20;
+const CLUB_FEED_PROMPTS_MAX_LIMIT = 50;
 const CLUB_FEED_RECENT_RESPONSES_LIMIT = 3;
 
 type GetClubFeedInput = {
   clubId: string;
   viewerId: string;
   order?: unknown;
+  limit?: unknown;
+  cursor?: unknown;
 };
 
 type MarkClubFeedSeenInput = {
@@ -95,6 +103,8 @@ export async function getClubFeed({
   clubId,
   viewerId,
   order,
+  limit,
+  cursor,
 }: GetClubFeedInput): Promise<ClubFeedDto> {
   requireAuthenticatedUser(viewerId);
 
@@ -103,6 +113,16 @@ export async function getClubFeed({
   }
 
   const normalizedOrder = normalizeClubFeedOrder(order);
+  const pagination = normalizeCursorPagination(
+    {
+      limit,
+      cursor,
+    },
+    {
+      defaultLimit: CLUB_FEED_PROMPTS_DEFAULT_LIMIT,
+      maxLimit: CLUB_FEED_PROMPTS_MAX_LIMIT,
+    },
+  );
 
   const club = await prisma.club.findUnique({
     where: {
@@ -143,7 +163,8 @@ export async function getClubFeed({
       removedAt: null,
     },
     orderBy: buildClubFeedPromptOrderBy(normalizedOrder),
-    take: CLUB_FEED_PROMPTS_LIMIT,
+    take: pagination.limit + 1,
+    ...getCursorPaginationArgs(pagination),
     include: {
       author: {
         select: {
@@ -169,8 +190,9 @@ export async function getClubFeed({
       },
     },
   });
+  const promptPage = buildCursorPaginationResult(prompts, pagination.limit);
 
-  const promptIds = prompts.map((prompt) => prompt.id);
+  const promptIds = promptPage.items.map((prompt) => prompt.id);
 
   const [likedPromptIds, answeredPromptIds] = await Promise.all([
     prisma.like.findMany({
@@ -207,7 +229,7 @@ export async function getClubFeed({
     answeredPromptIds.map((response) => response.promptId),
   );
 
-  const items: ClubFeedPromptItemDto[] = prompts.map((prompt) => ({
+  const items: ClubFeedPromptItemDto[] = promptPage.items.map((prompt) => ({
     ...mapPromptSummary(prompt),
     viewerState: {
       likedByMe: likedPromptIdSet.has(prompt.id),
@@ -229,6 +251,7 @@ export async function getClubFeed({
   return {
     club: mapSummary(club, viewerId, unreadCountsByClubId.get(clubId) ?? 0),
     items,
+    nextCursor: promptPage.nextCursor,
   };
 }
 

@@ -23,6 +23,7 @@ type CreateTestUserInput = BaseDateInput & {
   email?: string;
   password?: string;
   username?: string | null;
+  isPrivate?: boolean;
 };
 
 type CreateTestPasswordResetTokenInput = BaseDateInput & {
@@ -218,6 +219,7 @@ export async function createTestUser(input: CreateTestUserInput = {}) {
         name,
         passwordHash,
         username: input.username,
+        isPrivate: input.isPrivate,
       },
     });
   }
@@ -229,6 +231,7 @@ export async function createTestUser(input: CreateTestUserInput = {}) {
         email,
         passwordHash,
         username: input.username,
+        isPrivate: input.isPrivate ?? false,
       },
       input.createdAt,
     ),

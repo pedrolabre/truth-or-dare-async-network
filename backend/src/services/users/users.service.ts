@@ -7,6 +7,11 @@ import {
 } from '../../generated/prisma/client';
 import { prisma } from '../../lib/prisma';
 import {
+  canViewPrivateUserProfile,
+  PRIVATE_PROFILE_LABEL,
+  PRIVATE_PROFILE_NAME,
+} from '../search/privacy';
+import {
   invalidCurrentPasswordError,
   userNotFoundError,
   usernameAlreadyInUseError,
@@ -198,8 +203,27 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
   };
 }
 
+function getRestrictedPublicProfile(userId: string): PublicUserProfile {
+  return {
+    id: userId,
+    name: PRIVATE_PROFILE_NAME,
+    username: null,
+    bio: null,
+    avatarUrl: null,
+    level: null,
+    levelLabel: PRIVATE_PROFILE_LABEL,
+    stats: {
+      createdTruthsCount: 0,
+      createdDaresCount: 0,
+      activePublicClubsCount: 0,
+      publishedClubPromptsCount: 0,
+    },
+  };
+}
+
 export async function getPublicUserProfile(
   userId: string,
+  viewerId?: string | null,
 ): Promise<PublicUserProfile> {
   if (!userId) {
     throw new Error('Usuario nao encontrado');
@@ -214,12 +238,23 @@ export async function getPublicUserProfile(
       name: true,
       username: true,
       bio: true,
+      isPrivate: true,
       deletedAt: true,
     },
   });
 
   if (!user || user.deletedAt) {
     throw new Error('Usuario nao encontrado');
+  }
+
+  if (
+    user.isPrivate &&
+    !(await canViewPrivateUserProfile({
+      viewerId,
+      targetUserId: user.id,
+    }))
+  ) {
+    return getRestrictedPublicProfile(user.id);
   }
 
   const [

@@ -14,6 +14,16 @@ function getClubId(req: Request) {
   return typeof req.params.id === 'string' ? req.params.id : '';
 }
 
+function parseLimit(value: unknown) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+
+  return Number.isNaN(parsed) ? undefined : parsed;
+}
+
 function handleClubFeedControllerError(
   res: Response,
   error: unknown,
@@ -39,6 +49,9 @@ export async function getClubFeedController(req: Request, res: Response) {
       clubId: getClubId(req),
       viewerId: getAuthenticatedUserId(req),
       order: req.query.order,
+      limit: parseLimit(req.query.limit),
+      cursor:
+        typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
     });
 
     return res.status(200).json(feed);
@@ -58,6 +71,9 @@ export async function getClubsAggregatedFeedController(
   try {
     const feed = await getClubsAggregatedFeed({
       viewerId: getAuthenticatedUserId(req),
+      limit: parseLimit(req.query.limit),
+      cursor:
+        typeof req.query.cursor === 'string' ? req.query.cursor : undefined,
     });
 
     return res.status(200).json(feed);

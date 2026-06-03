@@ -1,4 +1,11 @@
-import { Prisma, Notification, NotificationType } from '../generated/prisma/client';
+import {
+  ClubMemberStatus,
+  ClubStatus,
+  ClubVisibility,
+  Prisma,
+  Notification,
+  NotificationType,
+} from '../generated/prisma/client';
 import {
   ListNotificationsQueryDto,
   ListNotificationsResponseDto,
@@ -8,6 +15,15 @@ import {
   UnreadNotificationsCountDto,
 } from '../dtos/notifications.dto';
 import { prisma } from '../lib/prisma';
+import {
+  canViewClubPrivacyRecord,
+  canViewPrivateUserProfile,
+} from './search/privacy';
+import {
+  buildCursorPaginationResult,
+  getCursorPaginationArgs,
+  normalizeCursorPagination,
+} from './pagination';
 
 type NotificationErrorCode =
   | 'NOTIFICATION_NOT_FOUND'
@@ -45,6 +61,88 @@ export const CLUB_FEED_ACTIVITY_NOTIFICATION_TYPES: NotificationType[] = [
   NotificationType.club_mention,
 ];
 
+const PRIVATE_NOTIFICATION_TITLE = 'Atividade privada';
+const PRIVATE_NOTIFICATION_BODY =
+  'Ha uma atualizacao privada disponivel para sua conta.';
+const PRIVATE_NOTIFICATION_DEEP_LINK = '/notifications';
+
+type NotificationPrivacyRecord = Pick<
+  Notification,
+  | 'id'
+  | 'userId'
+  | 'type'
+  | 'title'
+  | 'body'
+  | 'deepLink'
+  | 'actorId'
+  | 'clubId'
+  | 'referenceType'
+  | 'referenceId'
+  | 'readAt'
+  | 'createdAt'
+> & {
+  actor?: {
+    id: string;
+    isPrivate: boolean;
+    deletedAt: Date | null;
+  } | null;
+  club?: {
+    id: string;
+    visibility: ClubVisibility;
+    status: ClubStatus;
+    deletedAt: Date | null;
+    members: Array<{
+      userId: string;
+      status: ClubMemberStatus;
+    }>;
+  } | null;
+};
+
+const notificationBaseSelect = {
+  id: true,
+  userId: true,
+  type: true,
+  title: true,
+  body: true,
+  deepLink: true,
+  actorId: true,
+  clubId: true,
+  referenceType: true,
+  referenceId: true,
+  readAt: true,
+  createdAt: true,
+} satisfies Prisma.NotificationSelect;
+
+function notificationSelectForViewer(viewerId: string) {
+  return {
+    ...notificationBaseSelect,
+    actor: {
+      select: {
+        id: true,
+        isPrivate: true,
+        deletedAt: true,
+      },
+    },
+    club: {
+      select: {
+        id: true,
+        visibility: true,
+        status: true,
+        deletedAt: true,
+        members: {
+          where: {
+            userId: viewerId,
+          },
+          select: {
+            userId: true,
+            status: true,
+          },
+        },
+      },
+    },
+  } satisfies Prisma.NotificationSelect;
+}
+
 function requireUserId(userId: string) {
   if (!userId) {
     throw new NotificationServiceError(
@@ -67,7 +165,9 @@ function validateCreatePayload(payload: CreateNotificationPayload) {
   }
 }
 
-function mapNotification(notification: Notification): NotificationItemDto {
+function mapNotificationRecord(
+  notification: NotificationPrivacyRecord,
+): NotificationItemDto {
   return {
     id: notification.id,
     type: notification.type,
@@ -83,12 +183,53 @@ function mapNotification(notification: Notification): NotificationItemDto {
   };
 }
 
-function normalizeLimit(limit: number | undefined) {
-  if (!limit || Number.isNaN(limit)) {
-    return 20;
+async function shouldSanitizeNotification(
+  notification: NotificationPrivacyRecord,
+  viewerId: string,
+) {
+  if (
+    notification.actor?.isPrivate &&
+    !(await canViewPrivateUserProfile({
+      viewerId,
+      targetUserId: notification.actor.id,
+    }))
+  ) {
+    return true;
   }
 
-  return Math.min(Math.max(Math.trunc(limit), 1), 50);
+  if (
+    notification.club &&
+    !canViewClubPrivacyRecord({
+      viewerId,
+      club: notification.club,
+    })
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+async function mapNotification(
+  notification: NotificationPrivacyRecord,
+  viewerId: string,
+): Promise<NotificationItemDto> {
+  const mappedNotification = mapNotificationRecord(notification);
+
+  if (!(await shouldSanitizeNotification(notification, viewerId))) {
+    return mappedNotification;
+  }
+
+  return {
+    ...mappedNotification,
+    title: PRIVATE_NOTIFICATION_TITLE,
+    body: PRIVATE_NOTIFICATION_BODY,
+    deepLink: PRIVATE_NOTIFICATION_DEEP_LINK,
+    actorId: null,
+    clubId: null,
+    referenceType: null,
+    referenceId: null,
+  };
 }
 
 function getReadFilter(read: boolean | undefined) {
@@ -119,30 +260,96 @@ export async function createNotification(
       where: {
         dedupeKey: payload.dedupeKey,
       },
+      select: notificationSelectForViewer(payload.userId),
     });
 
     if (existingNotification) {
-      return mapNotification(existingNotification);
+      return mapNotification(existingNotification, payload.userId);
     }
   }
+
+  const shouldSanitizePayload = await shouldSanitizeNotification(
+    {
+      id: '',
+      userId: payload.userId,
+      type: payload.type,
+      title: payload.title,
+      body: payload.body,
+      deepLink: payload.deepLink,
+      actorId: payload.actorId ?? null,
+      clubId: payload.clubId ?? null,
+      referenceType: payload.referenceType ?? null,
+      referenceId: payload.referenceId ?? null,
+      readAt: null,
+      createdAt: new Date(),
+      actor: payload.actorId
+        ? await prisma.user.findUnique({
+            where: {
+              id: payload.actorId,
+            },
+            select: {
+              id: true,
+              isPrivate: true,
+              deletedAt: true,
+            },
+          })
+        : null,
+      club: payload.clubId
+        ? await prisma.club.findUnique({
+            where: {
+              id: payload.clubId,
+            },
+            select: {
+              id: true,
+              visibility: true,
+              status: true,
+              deletedAt: true,
+              members: {
+                where: {
+                  userId: payload.userId,
+                },
+                select: {
+                  userId: true,
+                  status: true,
+                },
+              },
+            },
+          })
+        : null,
+    },
+    payload.userId,
+  );
+  const storedPayload = shouldSanitizePayload
+    ? {
+        ...payload,
+        title: PRIVATE_NOTIFICATION_TITLE,
+        body: PRIVATE_NOTIFICATION_BODY,
+        deepLink: PRIVATE_NOTIFICATION_DEEP_LINK,
+        actorId: null,
+        clubId: null,
+        referenceType: null,
+        referenceId: null,
+      }
+    : payload;
 
   try {
     const notification = await prisma.notification.create({
       data: {
-        userId: payload.userId,
-        actorId: payload.actorId ?? null,
-        type: payload.type,
-        title: payload.title,
-        body: payload.body,
-        deepLink: payload.deepLink,
-        clubId: payload.clubId ?? null,
-        referenceType: payload.referenceType ?? null,
-        referenceId: payload.referenceId ?? null,
-        dedupeKey: payload.dedupeKey ?? null,
+        userId: storedPayload.userId,
+        actorId: storedPayload.actorId ?? null,
+        type: storedPayload.type,
+        title: storedPayload.title,
+        body: storedPayload.body,
+        deepLink: storedPayload.deepLink,
+        clubId: storedPayload.clubId ?? null,
+        referenceType: storedPayload.referenceType ?? null,
+        referenceId: storedPayload.referenceId ?? null,
+        dedupeKey: storedPayload.dedupeKey ?? null,
       },
+      select: notificationSelectForViewer(payload.userId),
     });
 
-    return mapNotification(notification);
+    return mapNotification(notification, payload.userId);
   } catch (error) {
     if (payload.dedupeKey && error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {
@@ -150,10 +357,11 @@ export async function createNotification(
           where: {
             dedupeKey: payload.dedupeKey,
           },
+          select: notificationSelectForViewer(payload.userId),
         });
 
         if (existingNotification) {
-          return mapNotification(existingNotification);
+          return mapNotification(existingNotification, payload.userId);
         }
       }
     }
@@ -170,7 +378,10 @@ export async function listNotificationsForUser({
 }: { userId: string } & ListNotificationsQueryDto): Promise<ListNotificationsResponseDto> {
   requireUserId(userId);
 
-  const take = normalizeLimit(limit);
+  const pagination = normalizeCursorPagination({
+    limit,
+    cursor,
+  });
   const notifications = await prisma.notification.findMany({
     where: {
       userId,
@@ -184,23 +395,18 @@ export async function listNotificationsForUser({
         id: 'desc',
       },
     ],
-    take: take + 1,
-    ...(cursor
-      ? {
-          cursor: {
-            id: cursor,
-          },
-          skip: 1,
-        }
-      : {}),
+    take: pagination.limit + 1,
+    ...getCursorPaginationArgs(pagination),
+    select: notificationSelectForViewer(userId),
   });
 
-  const hasNextPage = notifications.length > take;
-  const items = notifications.slice(0, take);
+  const page = buildCursorPaginationResult(notifications, pagination.limit);
 
   return {
-    items: items.map(mapNotification),
-    nextCursor: hasNextPage ? items[items.length - 1]?.id ?? null : null,
+    items: await Promise.all(
+      page.items.map((notification) => mapNotification(notification, userId)),
+    ),
+    nextCursor: page.nextCursor,
   };
 }
 
@@ -314,6 +520,7 @@ export async function markNotificationRead({
     where: {
       id: notificationId,
     },
+    select: notificationSelectForViewer(userId),
   });
 
   if (!notification) {
@@ -334,7 +541,7 @@ export async function markNotificationRead({
 
   if (notification.readAt) {
     return {
-      notification: mapNotification(notification),
+      notification: await mapNotification(notification, userId),
     };
   }
 
@@ -345,10 +552,11 @@ export async function markNotificationRead({
     data: {
       readAt: new Date(),
     },
+    select: notificationSelectForViewer(userId),
   });
 
   return {
-    notification: mapNotification(updatedNotification),
+    notification: await mapNotification(updatedNotification, userId),
   };
 }
 

@@ -20,14 +20,20 @@ import {
   mapPromptResponseSummary,
   mapPromptSummary,
 } from '../prompts/mappers';
+import {
+  buildCursorPaginationResult,
+  normalizeCursorPagination,
+  paginateRecordsInMemory,
+} from '../../pagination';
 
-const AGGREGATED_PROMPTS_LIMIT = 20;
-const AGGREGATED_RESPONSES_LIMIT = 20;
-const AGGREGATED_FEED_LIMIT = 30;
+const AGGREGATED_FEED_DEFAULT_LIMIT = 30;
+const AGGREGATED_FEED_MAX_LIMIT = 50;
 const RECENT_RESPONSES_PER_PROMPT_LIMIT = 3;
 
 type GetClubsAggregatedFeedInput = {
   viewerId: string;
+  limit?: unknown;
+  cursor?: unknown;
 };
 
 type PromptPermissionTarget = Parameters<
@@ -57,8 +63,21 @@ function canInteractWithPrompt({
 
 export async function getClubsAggregatedFeed({
   viewerId,
+  limit,
+  cursor,
 }: GetClubsAggregatedFeedInput): Promise<ClubsAggregatedFeedDto> {
   requireAuthenticatedUser(viewerId);
+  const pagination = normalizeCursorPagination(
+    {
+      limit,
+      cursor,
+    },
+    {
+      defaultLimit: AGGREGATED_FEED_DEFAULT_LIMIT,
+      maxLimit: AGGREGATED_FEED_MAX_LIMIT,
+    },
+  );
+  const candidateLimit = pagination.limit * 2 + 1;
 
   const memberships = await prisma.clubMember.findMany({
     where: {
@@ -78,6 +97,7 @@ export async function getClubsAggregatedFeed({
   if (clubIds.length === 0) {
     return {
       items: [],
+      nextCursor: null,
     };
   }
 
@@ -98,7 +118,7 @@ export async function getClubsAggregatedFeed({
         createdAt: 'desc',
       },
     ],
-    take: AGGREGATED_PROMPTS_LIMIT,
+    take: candidateLimit,
     include: {
       club: {
         include: {
@@ -153,7 +173,7 @@ export async function getClubsAggregatedFeed({
     orderBy: {
       createdAt: 'desc',
     },
-    take: AGGREGATED_RESPONSES_LIMIT,
+    take: candidateLimit,
     include: {
       club: {
         include: {
@@ -253,13 +273,25 @@ export async function getClubsAggregatedFeed({
     }),
   );
 
+  const sortedItems = [...promptItems, ...responseItems].sort(
+    (first, second) => {
+      const dateDiff =
+        new Date(second.activityAt).getTime() -
+        new Date(first.activityAt).getTime();
+
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+
+      return first.id.localeCompare(second.id);
+    },
+  );
+  const page = pagination.cursor
+    ? paginateRecordsInMemory(sortedItems, pagination)
+    : buildCursorPaginationResult(sortedItems, pagination.limit);
+
   return {
-    items: [...promptItems, ...responseItems]
-      .sort(
-        (first, second) =>
-          new Date(second.activityAt).getTime() -
-          new Date(first.activityAt).getTime(),
-      )
-      .slice(0, AGGREGATED_FEED_LIMIT),
+    items: page.items,
+    nextCursor: page.nextCursor,
   };
 }

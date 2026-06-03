@@ -119,6 +119,40 @@ describe('search.service', () => {
     expect(nameResult.items[0]).not.toHaveProperty('passwordHash');
   });
 
+  it('oculta usuario privado sem permissao e exibe quando ha clube ativo em comum', async () => {
+    const viewer = await createTestUser();
+    const outsider = await createTestUser();
+    const owner = await createTestUser();
+    const privateUser = await createTestUser({
+      name: 'Privado Busca Usuario',
+      email: 'private-search-user@test.com',
+      username: 'privado_busca',
+      isPrivate: true,
+    });
+    const sharedClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Privacidade Usuarios',
+    });
+
+    await addUserToClub(sharedClub.id, viewer.id);
+    await addUserToClub(sharedClub.id, privateUser.id);
+
+    const outsiderResult = await searchUsers('Privado Busca', {
+      userId: outsider.id,
+    });
+    const permittedResult = await searchUsers('Privado Busca', {
+      userId: viewer.id,
+    });
+
+    expect(outsiderResult.items).toEqual([]);
+    expect(permittedResult.items).toEqual([
+      expect.objectContaining({
+        id: privateUser.id,
+        username: 'privado_busca',
+      }),
+    ]);
+  });
+
   it('retorna lista vazia quando nao ha resultados', async () => {
     const viewer = await createTestUser();
 
@@ -218,6 +252,36 @@ describe('search.service', () => {
         avatarUrl: null,
         memberCount: 30,
         tags: ['noite'],
+      }),
+    ]);
+  });
+
+  it('exibe clube privado somente para membro ativo', async () => {
+    const viewer = await createTestUser();
+    const outsider = await createTestUser();
+    const owner = await createTestUser();
+    const privateClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Privado Permitido',
+      visibility: ClubVisibility.private,
+      tags: ['privado-permitido'],
+    });
+
+    await addUserToClub(privateClub.id, viewer.id, {
+      status: ClubMemberStatus.active,
+    });
+
+    const outsiderResult = await searchClubs('privado-permitido', {
+      userId: outsider.id,
+    });
+    const memberResult = await searchClubs('privado-permitido', {
+      userId: viewer.id,
+    });
+
+    expect(outsiderResult.items).toEqual([]);
+    expect(memberResult.items).toEqual([
+      expect.objectContaining({
+        id: privateClub.id,
       }),
     ]);
   });
@@ -620,6 +684,52 @@ describe('search.service', () => {
     expect(result.items).toEqual([
       expect.objectContaining({
         id: `club_prompt:${visiblePrompt.id}`,
+      }),
+    ]);
+  });
+
+  it('oculta conteudo de usuarios privados e permite conteudo de clube privado para membro ativo', async () => {
+    const outsider = await createTestUser();
+    const member = await createTestUser();
+    const privateAuthor = await createTestUser({
+      name: 'Autora Privada Conteudo',
+      email: 'private-content-author@test.com',
+      isPrivate: true,
+    });
+    const owner = await createTestUser();
+    const privateClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Conteudo Privado Permitido',
+      visibility: ClubVisibility.private,
+    });
+
+    await addUserToClub(privateClub.id, member.id);
+    await addUserToClub(privateClub.id, owner.id);
+    await createTestTruth({
+      authorId: privateAuthor.id,
+      targetUserId: outsider.id,
+      content: 'Privacidade termo usuario privado.',
+    });
+    const privatePrompt = await createTestClubPrompt({
+      clubId: privateClub.id,
+      authorId: owner.id,
+      content: 'Privacidade termo clube privado.',
+    });
+
+    const outsiderResult = await searchContent('privacidade termo', {
+      userId: outsider.id,
+      limit: 10,
+    });
+    const memberResult = await searchContent('privacidade termo', {
+      userId: member.id,
+      limit: 10,
+    });
+
+    expect(outsiderResult.items).toEqual([]);
+    expect(memberResult.items).toEqual([
+      expect.objectContaining({
+        id: `club_prompt:${privatePrompt.id}`,
+        clubId: privateClub.id,
       }),
     ]);
   });

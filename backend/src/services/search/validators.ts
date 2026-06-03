@@ -1,5 +1,6 @@
 import { queryTooLongError, queryTooShortError } from './errors';
 import { NormalizedSearchPaginationOptions, SearchPaginationOptions } from './types';
+import { normalizeCursorPagination } from '../pagination';
 
 export const SEARCH_QUERY_MIN_LENGTH = 2;
 export const SEARCH_QUERY_MAX_LENGTH = 80;
@@ -30,27 +31,11 @@ export function normalizeSearchQuery(query: unknown) {
 export function normalizePaginationOptions(
   options: SearchPaginationOptions = {},
 ): NormalizedSearchPaginationOptions {
-  const rawLimit = Number(options.limit);
-  const limit = Number.isFinite(rawLimit)
-    ? Math.min(Math.max(Math.trunc(rawLimit), 1), SEARCH_MAX_LIMIT)
-    : SEARCH_DEFAULT_LIMIT;
-
-  const cursor =
-    typeof options.cursor === 'string' && options.cursor.trim()
-      ? options.cursor.trim()
-      : undefined;
-
-  const rawOffset = Number(options.offset);
-  const offset =
-    !cursor && Number.isFinite(rawOffset) && rawOffset > 0
-      ? Math.trunc(rawOffset)
-      : undefined;
-
-  return {
-    limit,
-    cursor,
-    offset,
-  };
+  return normalizeCursorPagination(options, {
+    defaultLimit: SEARCH_DEFAULT_LIMIT,
+    maxLimit: SEARCH_MAX_LIMIT,
+    allowOffset: true,
+  });
 }
 
 export function normalizeTrendingThreshold(value: unknown) {

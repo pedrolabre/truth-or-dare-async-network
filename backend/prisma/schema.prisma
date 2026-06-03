@@ -488,6 +488,7 @@ model ClubAuditLog {
   @@index([targetUserId])
   @@index([action])
   @@index([createdAt])
+  @@index([clubId, createdAt])
 }
 
 model Like {

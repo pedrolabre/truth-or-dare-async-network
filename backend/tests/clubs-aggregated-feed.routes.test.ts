@@ -150,6 +150,7 @@ describe('GET /clubs/feed', () => {
     expect(response.status).toBe(200);
     expect(response.body).toEqual({
       items: [],
+      nextCursor: null,
     });
   });
 

@@ -202,6 +202,7 @@ export type ClubFeedOrderDto =
 export type ClubFeedDto = {
   club: ClubSummaryDto;
   items: ClubFeedPromptItemDto[];
+  nextCursor: string | null;
 };
 
 export type ClubFeedSeenDto = {
@@ -233,6 +234,7 @@ export type ClubsAggregatedFeedItemDto =
 
 export type ClubsAggregatedFeedDto = {
   items: ClubsAggregatedFeedItemDto[];
+  nextCursor: string | null;
 };
 
 export type ClubReportDto = {
@@ -243,4 +245,28 @@ export type ClubReportDto = {
   reason: string;
   details: string | null;
   createdAt: string;
+};
+
+export type ClubAuditMetadataDto =
+  | Record<string, unknown>
+  | unknown[]
+  | string
+  | number
+  | boolean
+  | null;
+
+export type ClubAuditLogDto = {
+  id: string;
+  action: string;
+  actorId: string | null;
+  targetUserId: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  metadata: ClubAuditMetadataDto;
+  createdAt: string;
+};
+
+export type ListClubAuditLogsResponseDto = {
+  items: ClubAuditLogDto[];
+  nextCursor: string | null;
 };

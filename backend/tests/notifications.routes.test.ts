@@ -4,7 +4,10 @@ jest.mock('../src/services/auth/email.service', () =>
 
 import express from 'express';
 import request from 'supertest';
-import { NotificationType } from '../src/generated/prisma/client';
+import {
+  ClubVisibility,
+  NotificationType,
+} from '../src/generated/prisma/client';
 import notificationsRoutes from '../src/routes/notifications.routes';
 import { prisma } from '../src/lib/prisma';
 import {
@@ -409,5 +412,52 @@ describe('notifications.routes', () => {
         },
       }),
     ).resolves.toBe(0);
+  });
+
+  it('nao expoe dados sensiveis de clube privado em notificacoes', async () => {
+    const invitee = await createTestUser();
+    const inviter = await createTestUser();
+    const privateClub = await createTestClub({
+      createdById: inviter.id,
+      name: 'Clube Secreto Notificacao',
+      visibility: ClubVisibility.private,
+    });
+
+    const notification = await emitClubInviteReceivedEvent({
+      clubId: privateClub.id,
+      clubName: privateClub.name,
+      inviteId: 'invite-private-notification',
+      inviteeId: invitee.id,
+      inviterId: inviter.id,
+    });
+    const listResponse = await request(app)
+      .get('/notifications')
+      .set('Authorization', `Bearer ${authTokenFor(invitee)}`);
+    const serializedNotification = JSON.stringify({
+      notification,
+      list: listResponse.body,
+    });
+
+    expect(notification).toMatchObject({
+      title: 'Atividade privada',
+      body: 'Ha uma atualizacao privada disponivel para sua conta.',
+      deepLink: '/notifications',
+      actorId: null,
+      clubId: null,
+      referenceType: null,
+      referenceId: null,
+    });
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.items).toEqual([
+      expect.objectContaining({
+        title: 'Atividade privada',
+        deepLink: '/notifications',
+        clubId: null,
+        referenceType: null,
+        referenceId: null,
+      }),
+    ]);
+    expect(serializedNotification).not.toContain(privateClub.name);
+    expect(serializedNotification).not.toContain(`/clubs/${privateClub.id}`);
   });
 });

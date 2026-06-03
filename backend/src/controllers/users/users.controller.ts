@@ -75,7 +75,8 @@ export async function getPublicUserProfileController(
 ) {
   try {
     const userId = typeof req.params.id === 'string' ? req.params.id : '';
-    const profile = await getPublicUserProfile(userId);
+    const viewerId = req.user?.sub ?? null;
+    const profile = await getPublicUserProfile(userId, viewerId);
 
     return res.status(200).json(profile);
   } catch (error) {

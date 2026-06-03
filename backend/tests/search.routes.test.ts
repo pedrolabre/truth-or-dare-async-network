@@ -159,6 +159,27 @@ describe('search.routes', () => {
     expect(response.body.items[0]).not.toHaveProperty('passwordHash');
   });
 
+  it('GET /search/users oculta contas privadas sem permissao', async () => {
+    const viewer = await createTestUser();
+    await createTestUser({
+      name: 'Privada Rota Busca',
+      email: 'private-search-route-user@test.com',
+      username: 'privada_rota_busca',
+      isPrivate: true,
+    });
+
+    const response = await request(app)
+      .get('/search/users')
+      .query({ query: 'Privada Rota' })
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      items: [],
+      nextCursor: null,
+    });
+  });
+
   it('GET /search/users retorna lista vazia sem resultados', async () => {
     const viewer = await createTestUser();
 
@@ -344,6 +365,38 @@ describe('search.routes', () => {
     expect(response.body.items).toEqual([
       expect.objectContaining({
         id: publicClub.id,
+      }),
+    ]);
+  });
+
+  it('GET /search/clubs permite clube privado apenas para membro ativo', async () => {
+    const viewer = await createTestUser();
+    const outsider = await createTestUser();
+    const owner = await createTestUser();
+    const privateClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Privado Rota Clube',
+      visibility: ClubVisibility.private,
+      tags: ['privado-rota'],
+    });
+
+    await addUserToClub(privateClub.id, viewer.id);
+
+    const outsiderResponse = await request(app)
+      .get('/search/clubs')
+      .query({ query: 'privado-rota' })
+      .set('Authorization', `Bearer ${authTokenFor(outsider)}`);
+    const memberResponse = await request(app)
+      .get('/search/clubs')
+      .query({ query: 'privado-rota' })
+      .set('Authorization', `Bearer ${authTokenFor(viewer)}`);
+
+    expect(outsiderResponse.status).toBe(200);
+    expect(outsiderResponse.body.items).toEqual([]);
+    expect(memberResponse.status).toBe(200);
+    expect(memberResponse.body.items).toEqual([
+      expect.objectContaining({
+        id: privateClub.id,
       }),
     ]);
   });
@@ -633,6 +686,53 @@ describe('search.routes', () => {
     expect(response.body.items).toEqual([
       expect.objectContaining({
         id: `club_prompt:${visiblePrompt.id}`,
+      }),
+    ]);
+  });
+
+  it('GET /search/content oculta conteudo de usuario privado ou clube privado sem permissao', async () => {
+    const outsider = await createTestUser();
+    const member = await createTestUser();
+    const privateAuthor = await createTestUser({
+      name: 'Autora Privada Rota',
+      email: 'private-content-route-author@test.com',
+      isPrivate: true,
+    });
+    const owner = await createTestUser();
+    const privateClub = await createTestClub({
+      createdById: owner.id,
+      name: 'Privado Rota Conteudo',
+      visibility: ClubVisibility.private,
+    });
+
+    await addUserToClub(privateClub.id, member.id);
+    await addUserToClub(privateClub.id, owner.id);
+    await createTestTruth({
+      authorId: privateAuthor.id,
+      targetUserId: outsider.id,
+      content: 'Conteudo rota privado usuario.',
+    });
+    const privatePrompt = await createTestClubPrompt({
+      clubId: privateClub.id,
+      authorId: owner.id,
+      content: 'Conteudo rota privado clube.',
+    });
+
+    const outsiderResponse = await request(app)
+      .get('/search/content')
+      .query({ query: 'conteudo rota privado', limit: 10 })
+      .set('Authorization', `Bearer ${authTokenFor(outsider)}`);
+    const memberResponse = await request(app)
+      .get('/search/content')
+      .query({ query: 'conteudo rota privado', limit: 10 })
+      .set('Authorization', `Bearer ${authTokenFor(member)}`);
+
+    expect(outsiderResponse.status).toBe(200);
+    expect(outsiderResponse.body.items).toEqual([]);
+    expect(memberResponse.status).toBe(200);
+    expect(memberResponse.body.items).toEqual([
+      expect.objectContaining({
+        id: `club_prompt:${privatePrompt.id}`,
       }),
     ]);
   });

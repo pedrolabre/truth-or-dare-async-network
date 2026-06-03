@@ -116,3 +116,23 @@ export function ensureCanArchiveClub(
     forbiddenError();
   }
 }
+
+export function ensureCanViewClubAuditLogs(
+  club: ClubWithViewerMembers,
+  userId: string,
+) {
+  const membership = club.members.find((member) => member.userId === userId);
+  const isActiveMember = membership?.status === ClubMemberStatus.active;
+  const canViewAuditLogs =
+    isActiveMember &&
+    (membership?.role === ClubMemberRole.owner ||
+      membership?.role === ClubMemberRole.admin);
+
+  if (membership?.status === ClubMemberStatus.blocked) {
+    blockedMemberError();
+  }
+
+  if (!canViewAuditLogs) {
+    forbiddenError();
+  }
+}

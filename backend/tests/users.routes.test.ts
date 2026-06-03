@@ -198,6 +198,96 @@ describe('users.routes', () => {
     expect(response.body).not.toHaveProperty('passwordHash');
   });
 
+  it('GET /users/:id/public retorna perfil restrito para conta privada sem permissao', async () => {
+    const user = await createTestUser({
+      name: 'Perfil Privado Busca',
+      email: 'perfil-privado-busca@test.com',
+      username: 'perfil_privado_busca',
+      isPrivate: true,
+    });
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        bio: 'Bio privada nao deve sair',
+      },
+    });
+
+    const response = await request(app).get(`/users/${user.id}/public`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      id: user.id,
+      name: 'Perfil privado',
+      username: null,
+      bio: null,
+      avatarUrl: null,
+      level: null,
+      levelLabel: 'Perfil privado',
+      stats: {
+        createdTruthsCount: 0,
+        createdDaresCount: 0,
+        activePublicClubsCount: 0,
+        publishedClubPromptsCount: 0,
+      },
+    });
+    expect(JSON.stringify(response.body)).not.toContain('Bio privada');
+    expect(JSON.stringify(response.body)).not.toContain('perfil_privado_busca');
+  });
+
+  it('GET /users/:id/public retorna perfil privado completo para viewer com clube ativo em comum', async () => {
+    const viewer = await createTestUser({
+      name: 'Viewer Perfil Privado',
+      email: 'viewer-private-profile@test.com',
+    });
+    const user = await createTestUser({
+      name: 'Perfil Privado Permitido',
+      email: 'perfil-privado-permitido@test.com',
+      username: 'perfil_privado_permitido',
+      isPrivate: true,
+    });
+    const owner = await createTestUser({
+      name: 'Owner Perfil Privado',
+      email: 'owner-private-profile@test.com',
+    });
+    const club = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Perfil Privado',
+    });
+
+    await addUserToClub(club.id, viewer.id);
+    await addUserToClub(club.id, user.id);
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        bio: 'Bio privada autorizada',
+      },
+    });
+
+    const token = generateToken({
+      sub: viewer.id,
+      email: viewer.email,
+      name: viewer.name,
+    });
+    const response = await request(app)
+      .get(`/users/${user.id}/public`)
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: user.id,
+      name: 'Perfil Privado Permitido',
+      username: 'perfil_privado_permitido',
+      bio: 'Bio privada autorizada',
+    });
+    expect(response.body).not.toHaveProperty('email');
+    expect(response.body).not.toHaveProperty('passwordHash');
+  });
+
   it('GET /users/:id/public retorna 404 para usuario inexistente', async () => {
     const response = await request(app).get('/users/usuario-inexistente/public');
 

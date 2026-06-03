@@ -16,7 +16,10 @@ import {
   revokeOtherUserSessionsController,
   revokeUserSessionController,
 } from '../../controllers/users/sessions.controller';
-import { authMiddleware } from '../../middlewares/auth.middleware';
+import {
+  authMiddleware,
+  optionalAuthMiddleware,
+} from '../../middlewares/auth.middleware';
 
 const router = Router();
 
@@ -29,7 +32,7 @@ router.get('/me', authMiddleware, getMyProfileController);
 router.put('/me', authMiddleware, updateMyProfileController);
 router.patch('/me', authMiddleware, patchMyAccountController);
 router.delete('/me', authMiddleware, deleteMyAccountController);
-router.get('/:id/public', getPublicUserProfileController);
+router.get('/:id/public', optionalAuthMiddleware, getPublicUserProfileController);
 router.get('/', authMiddleware, listUsersController);
 
 export default router;

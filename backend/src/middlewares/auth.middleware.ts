@@ -59,3 +59,29 @@ export function authMiddleware(
     });
   }
 }
+
+export function optionalAuthMiddleware(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      return next();
+    }
+
+    const [scheme, token] = authHeader.split(' ');
+
+    if (scheme !== 'Bearer' || !token || !process.env.JWT_SECRET) {
+      return next();
+    }
+
+    req.user = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
+
+    return next();
+  } catch {
+    return next();
+  }
+}

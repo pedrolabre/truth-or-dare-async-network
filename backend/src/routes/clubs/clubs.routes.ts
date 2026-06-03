@@ -9,6 +9,7 @@ import {
   unmuteClubController,
   updateClubMemberRoleController,
 } from '../../controllers/clubs/members-actions.controller';
+import { listClubAuditLogsController } from '../../controllers/clubs/audit.controller';
 import {
   acceptClubInviteController,
   approveClubJoinRequestController,
@@ -50,6 +51,7 @@ router.post(
 );
 router.get('/discover', authMiddleware, discoverClubsController);
 router.get('/search', authMiddleware, searchClubsController);
+router.get('/:id/audit-logs', authMiddleware, listClubAuditLogsController);
 router.get('/:id/members', authMiddleware, listClubMembersController);
 router.post('/:id/invites', authMiddleware, createClubInviteController);
 router.post('/:id/join', authMiddleware, joinClubController);

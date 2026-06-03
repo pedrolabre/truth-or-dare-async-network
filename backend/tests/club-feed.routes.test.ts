@@ -273,6 +273,41 @@ describe('GET /clubs/:id/feed', () => {
     });
   });
 
+  it('pagina feed interno por cursor e limit', async () => {
+    const { member, club, pinnedPrompt, olderPrompt } =
+      await createClubFeedScenario();
+    const token = authTokenFor(member);
+
+    const firstPage = await request(app)
+      .get(`/clubs/${club.id}/feed`)
+      .query({
+        limit: 1,
+      })
+      .set('Authorization', `Bearer ${token}`);
+    const secondPage = await request(app)
+      .get(`/clubs/${club.id}/feed`)
+      .query({
+        limit: 1,
+        cursor: firstPage.body.nextCursor,
+      })
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(firstPage.status).toBe(200);
+    expect(firstPage.body.items).toEqual([
+      expect.objectContaining({
+        id: pinnedPrompt.id,
+      }),
+    ]);
+    expect(firstPage.body.nextCursor).toBe(pinnedPrompt.id);
+    expect(secondPage.status).toBe(200);
+    expect(secondPage.body.items).toEqual([
+      expect.objectContaining({
+        id: olderPrompt.id,
+      }),
+    ]);
+    expect(secondPage.body.nextCursor).toBeNull();
+  });
+
   it('oculta prompts e respostas indisponiveis', async () => {
     const { member, club } = await createClubFeedScenario();
 

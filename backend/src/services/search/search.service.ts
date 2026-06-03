@@ -10,6 +10,12 @@ import { prisma } from '../../lib/prisma';
 import { SearchServiceError, searchUnavailableError } from './errors';
 import { mapClubToSearchResult, mapUserToSearchResult } from './mappers';
 import {
+  buildSearchVisibleClubWhere,
+  buildVisibleClubContentClubWhere,
+  buildVisibleClubPromptAccessWhere,
+  buildVisibleUserWhere,
+} from './privacy';
+import {
   SearchClubsOptions,
   SearchClubResult,
   SearchContentOptions,
@@ -30,6 +36,11 @@ import {
   normalizeTrendingThreshold,
   normalizeTrendingWindowHours,
 } from './validators';
+import {
+  buildCursorPaginationResult,
+  getCursorPaginationArgs,
+  paginateRecordsInMemory,
+} from '../pagination';
 
 export { SearchServiceError } from './errors';
 export type { SearchErrorCode } from './errors';
@@ -265,17 +276,6 @@ function userMatchesLevelFilters({
   return true;
 }
 
-function paginateRecordsInMemory<T extends { id: string }>(
-  records: T[],
-  pagination: { limit: number; cursor?: string; offset?: number },
-) {
-  const startIndex = pagination.cursor
-    ? records.findIndex((record) => record.id === pagination.cursor) + 1
-    : pagination.offset ?? 0;
-
-  return buildPaginationResult(records.slice(Math.max(0, startIndex)), pagination.limit);
-}
-
 async function countRecentUserActivity({
   userIds,
   windowStart,
@@ -477,31 +477,6 @@ async function findTrendingClubIds({
   );
 }
 
-function getPaginationArgs({
-  cursor,
-  offset,
-}: {
-  cursor?: string;
-  offset?: number;
-}): { cursor?: { id: string }; skip?: number } {
-  if (cursor) {
-    return {
-      cursor: {
-        id: cursor,
-      },
-      skip: 1,
-    };
-  }
-
-  if (offset) {
-    return {
-      skip: offset,
-    };
-  }
-
-  return {};
-}
-
 function getDiscoveryLimit(limit?: number) {
   const normalized = normalizePaginationOptions({ limit });
 
@@ -516,19 +491,6 @@ function getTimeScore(date: Date | null | undefined, now: Date) {
   const ageHours = Math.max(0, (now.getTime() - date.getTime()) / 3600000);
 
   return Math.max(0, 1000 - ageHours);
-}
-
-function buildPaginationResult<T extends { id: string }>(
-  records: T[],
-  limit: number,
-) {
-  const hasNextPage = records.length > limit;
-  const items = records.slice(0, limit);
-
-  return {
-    items,
-    nextCursor: hasNextPage ? items[items.length - 1]?.id ?? null : null,
-  };
 }
 
 function getContentSnippet(text: string) {
@@ -615,27 +577,34 @@ export async function searchUsers(
       typeof maxLevel === 'number' ||
       onlineOnly;
     const baseWhere: Prisma.UserWhereInput = {
-      id: {
-        not: options.userId,
-      },
-      OR: [
+      AND: [
+        buildVisibleUserWhere(options.userId),
         {
-          name: {
-            contains: normalizedQuery,
-            mode: 'insensitive',
+          id: {
+            not: options.userId,
           },
         },
         {
-          username: {
-            contains: normalizedQuery,
-            mode: 'insensitive',
-          },
-        },
-        {
-          bio: {
-            contains: normalizedQuery,
-            mode: 'insensitive',
-          },
+          OR: [
+            {
+              name: {
+                contains: normalizedQuery,
+                mode: 'insensitive',
+              },
+            },
+            {
+              username: {
+                contains: normalizedQuery,
+                mode: 'insensitive',
+              },
+            },
+            {
+              bio: {
+                contains: normalizedQuery,
+                mode: 'insensitive',
+              },
+            },
+          ],
         },
       ],
     };
@@ -655,7 +624,7 @@ export async function searchUsers(
         ? {}
         : {
             take: pagination.limit + 1,
-            ...getPaginationArgs(pagination),
+            ...getCursorPaginationArgs(pagination),
           }),
     });
 
@@ -676,7 +645,7 @@ export async function searchUsers(
       : users;
     const page = hasAdvancedUserFilters
       ? paginateRecordsInMemory(filteredUsers, pagination)
-      : buildPaginationResult(filteredUsers, pagination.limit);
+      : buildCursorPaginationResult(filteredUsers, pagination.limit);
     const mutualCounts = await countMutualActiveClubs({
       viewerId: options.userId,
       resultUserIds: page.items.map((user) => user.id),
@@ -717,11 +686,7 @@ export async function searchClubs(
     const normalizedClubTag = normalizeClubTagFilter(options.clubTag);
     const normalizedClubVisibility =
       normalizeClubVisibilityFilter(options.clubVisibility) ??
-      'public';
-    const clubVisibility =
-      normalizedClubVisibility === 'public'
-        ? ClubVisibility.public
-        : ClubVisibility.public;
+      undefined;
     const pagination = normalizePaginationOptions(options);
     const trendingThreshold = normalizeTrendingThreshold(
       options.trendingMemberGrowthThreshold,
@@ -732,45 +697,43 @@ export async function searchClubs(
 
     const clubs = await prisma.club.findMany({
       where: {
-        visibility: clubVisibility,
-        status: ClubStatus.active,
-        deletedAt: null,
-        ...(normalizedClubTag
-          ? {
-              tags: {
-                has: normalizedClubTag,
+        AND: [
+          buildSearchVisibleClubWhere(options.userId, {
+            publicOnly: normalizedClubVisibility === 'public',
+          }),
+          {
+            ...(normalizedClubTag
+              ? {
+                  tags: {
+                    has: normalizedClubTag,
+                  },
+                }
+              : {}),
+            OR: [
+              {
+                name: {
+                  contains: normalizedQuery,
+                  mode: 'insensitive',
+                },
               },
-            }
-          : {}),
-        members: {
-          none: {
-            userId: options.userId,
-            status: ClubMemberStatus.blocked,
-          },
-        },
-        OR: [
-          {
-            name: {
-              contains: normalizedQuery,
-              mode: 'insensitive',
-            },
-          },
-          {
-            description: {
-              contains: normalizedQuery,
-              mode: 'insensitive',
-            },
-          },
-          {
-            slug: {
-              contains: normalizedTag,
-              mode: 'insensitive',
-            },
-          },
-          {
-            tags: {
-              has: normalizedTag,
-            },
+              {
+                description: {
+                  contains: normalizedQuery,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                slug: {
+                  contains: normalizedTag,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                tags: {
+                  has: normalizedTag,
+                },
+              },
+            ],
           },
         ],
       },
@@ -787,10 +750,10 @@ export async function searchClubs(
         },
       ],
       take: pagination.limit + 1,
-      ...getPaginationArgs(pagination),
+      ...getCursorPaginationArgs(pagination),
     });
 
-    const page = buildPaginationResult(clubs, pagination.limit);
+    const page = buildCursorPaginationResult(clubs, pagination.limit);
     const trendingClubIds = await findTrendingClubIds({
       clubIds: page.items.map((club) => club.id),
       now: options.now ?? new Date(),
@@ -832,6 +795,8 @@ export async function searchContent(
     ] = await Promise.all([
       prisma.truth.findMany({
         where: {
+          author: buildVisibleUserWhere(options.userId),
+          targetUser: buildVisibleUserWhere(options.userId),
           content: {
             contains: normalizedQuery,
             mode: 'insensitive',
@@ -859,6 +824,8 @@ export async function searchContent(
       }),
       prisma.dare.findMany({
         where: {
+          author: buildVisibleUserWhere(options.userId),
+          targetUser: buildVisibleUserWhere(options.userId),
           content: {
             contains: normalizedQuery,
             mode: 'insensitive',
@@ -892,6 +859,11 @@ export async function searchContent(
       }),
       prisma.truthComment.findMany({
         where: {
+          user: buildVisibleUserWhere(options.userId),
+          truth: {
+            author: buildVisibleUserWhere(options.userId),
+            targetUser: buildVisibleUserWhere(options.userId),
+          },
           text: {
             contains: normalizedQuery,
             mode: 'insensitive',
@@ -932,6 +904,7 @@ export async function searchContent(
           status: ClubPromptStatus.published,
           archivedAt: null,
           removedAt: null,
+          author: buildVisibleUserWhere(options.userId),
           OR: [
             {
               expiresAt: null,
@@ -942,37 +915,7 @@ export async function searchContent(
               },
             },
           ],
-          club: {
-            status: ClubStatus.active,
-            deletedAt: null,
-          },
-          AND: [
-            {
-              OR: [
-                {
-                  club: {
-                    members: {
-                      some: {
-                        userId: options.userId,
-                        status: ClubMemberStatus.active,
-                      },
-                    },
-                  },
-                },
-                {
-                  isMembersOnly: false,
-                  club: {
-                    visibility: ClubVisibility.public,
-                    members: {
-                      none: {
-                        userId: options.userId,
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-          ],
+          AND: [buildVisibleClubPromptAccessWhere(options.userId)],
         },
         orderBy: {
           createdAt: 'desc',
@@ -1000,6 +943,7 @@ export async function searchContent(
       }),
       prisma.clubPromptComment.findMany({
         where: {
+          user: buildVisibleUserWhere(options.userId),
           text: {
             contains: normalizedQuery,
             mode: 'insensitive',
@@ -1022,6 +966,7 @@ export async function searchContent(
             status: ClubPromptStatus.published,
             archivedAt: null,
             removedAt: null,
+            author: buildVisibleUserWhere(options.userId),
             OR: [
               {
                 expiresAt: null,
@@ -1032,40 +977,9 @@ export async function searchContent(
                 },
               },
             ],
+            AND: [buildVisibleClubPromptAccessWhere(options.userId)],
           },
-          club: {
-            status: ClubStatus.active,
-            deletedAt: null,
-          },
-          AND: [
-            {
-              OR: [
-                {
-                  club: {
-                    members: {
-                      some: {
-                        userId: options.userId,
-                        status: ClubMemberStatus.active,
-                      },
-                    },
-                  },
-                },
-                {
-                  prompt: {
-                    isMembersOnly: false,
-                  },
-                  club: {
-                    visibility: ClubVisibility.public,
-                    members: {
-                      none: {
-                        userId: options.userId,
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-          ],
+          club: buildVisibleClubContentClubWhere(options.userId),
         },
         orderBy: {
           createdAt: 'desc',
@@ -1219,25 +1133,32 @@ export async function getRecommendedUsers(
 
     const users = await prisma.user.findMany({
       where: {
-        id: {
-          not: options.userId,
-        },
-        ...(viewerClubIds.length > 0
-          ? {
-              clubMemberships: {
-                some: {
-                  clubId: {
-                    in: viewerClubIds,
-                  },
-                  status: ClubMemberStatus.active,
-                  club: {
-                    status: ClubStatus.active,
-                    deletedAt: null,
+        AND: [
+          buildVisibleUserWhere(options.userId),
+          {
+            id: {
+              not: options.userId,
+            },
+          },
+          ...(viewerClubIds.length > 0
+            ? [
+                {
+                  clubMemberships: {
+                    some: {
+                      clubId: {
+                        in: viewerClubIds,
+                      },
+                      status: ClubMemberStatus.active,
+                      club: {
+                        status: ClubStatus.active,
+                        deletedAt: null,
+                      },
+                    },
                   },
                 },
-              },
-            }
-          : {}),
+              ]
+            : []),
+        ],
       },
       select: {
         ...searchUserSelect,
@@ -1329,16 +1250,8 @@ export async function getTrendingClubs(
 
     const clubs = await prisma.club.findMany({
       where: {
-        visibility: ClubVisibility.public,
-        status: ClubStatus.active,
+        ...buildSearchVisibleClubWhere(options.userId, { publicOnly: true }),
         archivedAt: null,
-        deletedAt: null,
-        members: {
-          none: {
-            userId: options.userId,
-            status: ClubMemberStatus.blocked,
-          },
-        },
       },
       select: {
         ...searchClubSelect,
