@@ -32,6 +32,8 @@ import {
   samePasswordError,
   validationError,
 } from './password-reset.errors';
+import { recordDailyMetric } from '../observability/metrics';
+import { safeInfo, safeWarn } from '../observability/safe-logger';
 
 export type RequestPasswordResetInput = {
   email: string;
@@ -64,21 +66,47 @@ const MIN_REQUEST_PASSWORD_RESET_DURATION_MS = 200;
 
 type PasswordResetLogLevel = 'info' | 'warn';
 
+function getPasswordResetMetricType(event: unknown) {
+  return typeof event === 'string'
+    ? event.replace(/^password_reset\./, '').replace(/\./g, '_')
+    : 'unknown_event';
+}
+
+function getPasswordResetMetricResult(payload: Record<string, unknown>) {
+  if (typeof payload.result === 'string') {
+    return payload.result;
+  }
+
+  if (typeof payload.reason === 'string') {
+    return payload.reason;
+  }
+
+  return 'success';
+}
+
 function logPasswordResetEvent(
   level: PasswordResetLogLevel,
   payload: Record<string, unknown>,
 ): void {
+  const occurredAt = new Date();
   const entry = {
     ...payload,
-    timestamp: new Date().toISOString(),
+    timestamp: occurredAt.toISOString(),
   };
 
+  recordDailyMetric({
+    domain: 'password_reset',
+    type: getPasswordResetMetricType(payload.event),
+    result: getPasswordResetMetricResult(payload),
+    occurredAt,
+  });
+
   if (level === 'warn') {
-    console.warn(entry);
+    safeWarn(entry);
     return;
   }
 
-  console.info(entry);
+  safeInfo(entry);
 }
 
 async function ensureMinimumDuration(

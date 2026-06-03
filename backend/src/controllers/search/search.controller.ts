@@ -7,6 +7,8 @@ import {
   SearchServiceError,
   searchUsers,
 } from '../../services/search/search.service';
+import { recordDailyMetric } from '../../services/observability/metrics';
+import { safeInfo } from '../../services/observability/safe-logger';
 
 function getAuthenticatedUserId(req: Request) {
   return req.user?.sub ?? '';
@@ -100,9 +102,17 @@ function logSearchQuery({
   clubsResultCount,
   contentResultCount,
 }: SearchLogPayload) {
-  console.info({
+  const occurredAt = new Date();
+
+  recordDailyMetric({
+    domain: 'search',
+    type: 'query_executed',
+    result: searchType,
+    occurredAt,
+  });
+  safeInfo({
     event: 'search.query_executed',
-    timestamp: new Date().toISOString(),
+    timestamp: occurredAt.toISOString(),
     searchType,
     userId,
     queryLength: getQueryLength(query),

@@ -2,6 +2,7 @@ import {
   type SettingsCredentialChangeType,
   recordSettingsCredentialChangeMetric,
 } from './settings.metrics';
+import { safeInfo } from '../observability/safe-logger';
 
 type SettingsCredentialChangeLogInput = {
   userId: string;
@@ -17,7 +18,7 @@ export function logSettingsCredentialChange({
   const timestamp = changedAt.toISOString();
   const metrics = recordSettingsCredentialChangeMetric(changeType, changedAt);
 
-  console.info({
+  safeInfo({
     event: 'settings.credential_change.completed',
     timestamp,
     userId,

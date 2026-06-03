@@ -8,6 +8,10 @@ import {
   markNotificationRead,
   NotificationServiceError,
 } from '../src/services/notifications.service';
+import {
+  getDailyMetric,
+  resetDailyMetrics,
+} from '../src/services/observability/metrics';
 import { emitClubInviteReceivedEvent } from '../src/services/clubs/club-events.service';
 import {
   createTestClub,
@@ -315,5 +319,67 @@ describe('notifications.service', () => {
       referenceId: 'invite-event-1',
       deepLink: `/clubs/${club.id}`,
     });
+  });
+
+  it('registra observabilidade de notificacoes sem conteudo sensivel', async () => {
+    resetDailyMetrics();
+    const infoSpy = jest.spyOn(console, 'info').mockImplementation(() => undefined);
+
+    try {
+      const user = await createTestUser();
+      const rawTitle = 'Titulo privado da notificacao';
+      const rawBody =
+        'Corpo privado com observability-notification@test.com e senha secreta';
+      const rawDeepLink = '/settings?resetToken=reset-token-privado';
+      const rawDedupeKey = 'dedupe-key-privada';
+
+      const notification = await createNotification({
+        userId: user.id,
+        type: NotificationType.club_new_prompt,
+        title: rawTitle,
+        body: rawBody,
+        deepLink: rawDeepLink,
+        referenceType: 'club_prompt',
+        referenceId: 'prompt-observability',
+        dedupeKey: rawDedupeKey,
+      });
+
+      await listNotificationsForUser({
+        userId: user.id,
+      });
+      await markNotificationRead({
+        userId: user.id,
+        notificationId: notification?.id ?? '',
+      });
+      await markAllNotificationsRead(user.id);
+
+      const serializedLogs = JSON.stringify(infoSpy.mock.calls);
+
+      expect(serializedLogs).toContain('notifications.created');
+      expect(serializedLogs).toContain('notifications.listed');
+      expect(serializedLogs).toContain('notifications.read_one');
+      expect(serializedLogs).toContain('notifications.read_all');
+      expect(serializedLogs).not.toContain(rawTitle);
+      expect(serializedLogs).not.toContain(rawBody);
+      expect(serializedLogs).not.toContain(rawDeepLink);
+      expect(serializedLogs).not.toContain(rawDedupeKey);
+      expect(
+        getDailyMetric({
+          domain: 'notifications',
+          type: 'created',
+          result: 'created',
+        }).count,
+      ).toBe(1);
+      expect(
+        getDailyMetric({
+          domain: 'notifications',
+          type: 'listed',
+          result: 'success',
+        }).count,
+      ).toBe(1);
+    } finally {
+      infoSpy.mockRestore();
+      resetDailyMetrics();
+    }
   });
 });

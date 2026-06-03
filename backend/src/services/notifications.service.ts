@@ -24,6 +24,8 @@ import {
   getCursorPaginationArgs,
   normalizeCursorPagination,
 } from './pagination';
+import { recordDailyMetric } from './observability/metrics';
+import { safeInfo } from './observability/safe-logger';
 
 type NotificationErrorCode =
   | 'NOTIFICATION_NOT_FOUND'
@@ -246,12 +248,40 @@ function getReadFilter(read: boolean | undefined) {
   return undefined;
 }
 
+function recordNotificationObservability(
+  event: string,
+  payload: Record<string, unknown>,
+) {
+  const occurredAt = new Date();
+
+  recordDailyMetric({
+    domain: 'notifications',
+    type: event.replace(/^notifications\./, ''),
+    result: typeof payload.result === 'string' ? payload.result : null,
+    occurredAt,
+  });
+  safeInfo({
+    event,
+    timestamp: occurredAt.toISOString(),
+    ...payload,
+  });
+}
+
 export async function createNotification(
   payload: CreateNotificationPayload,
 ): Promise<NotificationItemDto | null> {
   validateCreatePayload(payload);
 
   if (payload.actorId && payload.actorId === payload.userId) {
+    recordNotificationObservability('notifications.created', {
+      userId: payload.userId,
+      notificationType: payload.type,
+      result: 'self_suppressed',
+      hasActor: true,
+      hasClub: Boolean(payload.clubId),
+      referenceType: payload.referenceType ?? null,
+    });
+
     return null;
   }
 
@@ -264,6 +294,15 @@ export async function createNotification(
     });
 
     if (existingNotification) {
+      recordNotificationObservability('notifications.created', {
+        userId: payload.userId,
+        notificationType: existingNotification.type,
+        result: 'deduplicated',
+        hasActor: Boolean(existingNotification.actorId),
+        hasClub: Boolean(existingNotification.clubId),
+        referenceType: existingNotification.referenceType,
+      });
+
       return mapNotification(existingNotification, payload.userId);
     }
   }
@@ -349,7 +388,18 @@ export async function createNotification(
       select: notificationSelectForViewer(payload.userId),
     });
 
-    return mapNotification(notification, payload.userId);
+    const mappedNotification = await mapNotification(notification, payload.userId);
+
+    recordNotificationObservability('notifications.created', {
+      userId: payload.userId,
+      notificationType: storedPayload.type,
+      result: shouldSanitizePayload ? 'created_sanitized' : 'created',
+      hasActor: Boolean(storedPayload.actorId),
+      hasClub: Boolean(storedPayload.clubId),
+      referenceType: storedPayload.referenceType ?? null,
+    });
+
+    return mappedNotification;
   } catch (error) {
     if (payload.dedupeKey && error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === 'P2002') {
@@ -361,6 +411,15 @@ export async function createNotification(
         });
 
         if (existingNotification) {
+          recordNotificationObservability('notifications.created', {
+            userId: payload.userId,
+            notificationType: existingNotification.type,
+            result: 'deduplicated',
+            hasActor: Boolean(existingNotification.actorId),
+            hasClub: Boolean(existingNotification.clubId),
+            referenceType: existingNotification.referenceType,
+          });
+
           return mapNotification(existingNotification, payload.userId);
         }
       }
@@ -401,11 +460,22 @@ export async function listNotificationsForUser({
   });
 
   const page = buildCursorPaginationResult(notifications, pagination.limit);
+  const items = await Promise.all(
+    page.items.map((notification) => mapNotification(notification, userId)),
+  );
+
+  recordNotificationObservability('notifications.listed', {
+    userId,
+    result: 'success',
+    resultCount: items.length,
+    limit: pagination.limit,
+    cursorPresent: Boolean(cursor),
+    nextCursorPresent: Boolean(page.nextCursor),
+    readFilter: read ?? null,
+  });
 
   return {
-    items: await Promise.all(
-      page.items.map((notification) => mapNotification(notification, userId)),
-    ),
+    items,
     nextCursor: page.nextCursor,
   };
 }
@@ -496,6 +566,13 @@ export async function markClubFeedActivityNotificationsRead({
     },
   });
 
+  recordNotificationObservability('notifications.club_feed_activity_read', {
+    userId,
+    result: 'success',
+    clubId,
+    updatedCount: result.count,
+  });
+
   return result.count;
 }
 
@@ -540,6 +617,12 @@ export async function markNotificationRead({
   }
 
   if (notification.readAt) {
+    recordNotificationObservability('notifications.read_one', {
+      userId,
+      notificationType: notification.type,
+      result: 'already_read',
+    });
+
     return {
       notification: await mapNotification(notification, userId),
     };
@@ -553,6 +636,12 @@ export async function markNotificationRead({
       readAt: new Date(),
     },
     select: notificationSelectForViewer(userId),
+  });
+
+  recordNotificationObservability('notifications.read_one', {
+    userId,
+    notificationType: updatedNotification.type,
+    result: 'read',
   });
 
   return {
@@ -573,6 +662,12 @@ export async function markAllNotificationsRead(
     data: {
       readAt: new Date(),
     },
+  });
+
+  recordNotificationObservability('notifications.read_all', {
+    userId,
+    result: 'success',
+    updatedCount: result.count,
   });
 
   return {

@@ -17,6 +17,10 @@ import {
 import { getSentEmails, resetSentEmails } from '../src/services/auth/email.mock';
 import { applyTestDatabaseHooks } from './test-db';
 import { NotificationType } from '../src/generated/prisma/client';
+import {
+  getDailyMetrics,
+  resetDailyMetrics,
+} from '../src/services/observability/metrics';
 
 type SentEmail = ReturnType<typeof getSentEmails>[number];
 
@@ -466,6 +470,67 @@ describe('password-reset.routes', () => {
         referenceType: 'password_reset_token',
         referenceId: primary.token.id,
       });
+    });
+
+    it('registra observabilidade sem e-mail, codigo, token ou senha', async () => {
+      resetDailyMetrics();
+      const infoSpy = jest
+        .spyOn(console, 'info')
+        .mockImplementation(() => undefined);
+      const warnSpy = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+
+      try {
+        const user = await createTestUser({
+          email: 'reset-observability@test.com',
+          password: 'OldPass1',
+        });
+        const newPassword = 'NovaSenha123';
+
+        await request(app)
+          .post('/auth/forgot-password')
+          .send({ email: user.email });
+
+        const emails = getSentEmails();
+        const code = extractResetCode(emails[0]);
+
+        const verifyResponse = await request(app)
+          .post('/auth/verify-reset-code')
+          .send({
+            email: user.email,
+            code,
+          });
+
+        const resetToken = verifyResponse.body.resetToken;
+
+        await request(app)
+          .post('/auth/reset-password')
+          .send({
+            resetToken,
+            newPassword,
+          });
+
+        const serializedObservability = JSON.stringify({
+          info: infoSpy.mock.calls,
+          warn: warnSpy.mock.calls,
+          metrics: getDailyMetrics(),
+        });
+
+        expect(serializedObservability).toContain(
+          'password_reset.request_processed',
+        );
+        expect(serializedObservability).toContain('password_reset.code_verified');
+        expect(serializedObservability).toContain('password_reset.completed');
+        expect(serializedObservability).not.toContain(user.email);
+        expect(serializedObservability).not.toContain(code);
+        expect(serializedObservability).not.toContain(resetToken);
+        expect(serializedObservability).not.toContain(newPassword);
+      } finally {
+        infoSpy.mockRestore();
+        warnSpy.mockRestore();
+        resetDailyMetrics();
+      }
     });
 
     it('rejects invalid reset token', async () => {
