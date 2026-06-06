@@ -29,6 +29,7 @@ export async function signUploadUrlController(
       entityId: req.body?.entityId ?? null,
       fileName: req.body?.fileName,
       contentType: req.body?.contentType,
+      sizeBytes: req.body?.sizeBytes,
     });
 
     return res.status(201).json(result);
