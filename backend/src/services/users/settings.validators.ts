@@ -6,11 +6,13 @@ import {
   noFieldsToUpdateError,
   validationError,
 } from './settings.errors';
+import { normalizeOptionalMediaUrl } from '../uploads/media-url';
 
 export type UpdateMyAccountInput = {
   name?: unknown;
   username?: unknown;
   bio?: unknown;
+  avatarUrl?: unknown;
   isPrivate?: unknown;
 };
 
@@ -22,6 +24,7 @@ export type ValidatedMyAccountUpdate = {
   name?: string;
   username?: string | null;
   bio?: string | null;
+  avatarUrl?: string | null;
   isPrivate?: boolean;
 };
 
@@ -58,6 +61,18 @@ export function validateMyAccountUpdate(
 
     updateData.bio =
       typeof data.bio === 'string' ? data.bio.trim() || null : null;
+  }
+
+  if (hasOwn(data, 'avatarUrl')) {
+    const avatarUrl = normalizeOptionalMediaUrl(
+      data.avatarUrl,
+      'avatarUrl',
+      validationError,
+    );
+
+    if (avatarUrl !== undefined) {
+      updateData.avatarUrl = avatarUrl;
+    }
   }
 
   if (hasOwn(data, 'isPrivate')) {

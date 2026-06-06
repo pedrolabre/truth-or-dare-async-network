@@ -23,6 +23,7 @@ type CreateTestUserInput = BaseDateInput & {
   email?: string;
   password?: string;
   username?: string | null;
+  avatarUrl?: string | null;
   isPrivate?: boolean;
 };
 
@@ -56,6 +57,8 @@ type CreateTestClubInput = BaseDateInput & {
   slug?: string;
   description?: string;
   iconName?: string;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
   visibility?: ClubVisibility;
   status?: ClubStatus;
   memberCount?: number;
@@ -219,6 +222,7 @@ export async function createTestUser(input: CreateTestUserInput = {}) {
         name,
         passwordHash,
         username: input.username,
+        avatarUrl: input.avatarUrl,
         isPrivate: input.isPrivate,
       },
     });
@@ -231,6 +235,7 @@ export async function createTestUser(input: CreateTestUserInput = {}) {
         email,
         passwordHash,
         username: input.username,
+        avatarUrl: input.avatarUrl ?? null,
         isPrivate: input.isPrivate ?? false,
       },
       input.createdAt,
@@ -313,6 +318,8 @@ export async function createTestClub(input: CreateTestClubInput) {
         description:
           input.description ?? 'Clube criado para testes automatizados',
         iconName: input.iconName ?? 'groups',
+        avatarUrl: input.avatarUrl ?? null,
+        coverUrl: input.coverUrl ?? null,
         visibility: input.visibility ?? ClubVisibility.public,
         status: input.status ?? ClubStatus.active,
         memberCount: input.memberCount ?? 0,

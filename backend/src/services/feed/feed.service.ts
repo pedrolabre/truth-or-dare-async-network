@@ -34,6 +34,10 @@ export type FeedItem =
     maxAttempts: number | null;
     completedAt: string | null;
     expiresAt: string | null;
+    proofId: string | null;
+    proofMediaType: 'video' | 'audio' | 'file' | null;
+    proofFileUrl: string | null;
+    proofThumbnailUrl: string | null;
     interactionDisabled: boolean;
     likesCount: number;
     likedByMe: boolean;
@@ -99,6 +103,17 @@ export async function getFeed(userId?: string): Promise<FeedItem[]> {
       take: 10,
       include: {
         author: true,
+        proofs: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+          select: {
+            id: true,
+            mediaType: true,
+            fileUrl: true,
+          },
+        },
       },
     }),
     getFeedClubItems(userId),
@@ -143,6 +158,7 @@ export async function getFeed(userId?: string): Promise<FeedItem[]> {
       const likedByMe = userId
         ? await isLikedByUser(userId, dare.id, 'dare')
         : false;
+      const proof = status === 'concluded' ? dare.proofs[0] ?? null : null;
 
       return {
         id: dare.id,
@@ -165,6 +181,10 @@ export async function getFeed(userId?: string): Promise<FeedItem[]> {
         maxAttempts,
         completedAt: dare.completedAt ? dare.completedAt.toISOString() : null,
         expiresAt: dare.expiresAt ? dare.expiresAt.toISOString() : null,
+        proofId: proof?.id ?? null,
+        proofMediaType: proof?.mediaType ?? null,
+        proofFileUrl: proof?.fileUrl ?? null,
+        proofThumbnailUrl: null,
         interactionDisabled,
         likesCount,
         likedByMe,

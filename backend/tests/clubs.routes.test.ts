@@ -60,9 +60,11 @@ describe('clubs.routes', () => {
       .set('Authorization', `Bearer ${authTokenFor(creator)}`)
       .send({
         name: 'Clube das Rotas',
-        description: 'Criado via rota',
-        iconName: 'groups',
-        visibility: 'public',
+      description: 'Criado via rota',
+      iconName: 'groups',
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-rota.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-rota.png',
+      visibility: 'public',
         initialMemberIds: [member.id],
       });
 
@@ -70,6 +72,8 @@ describe('clubs.routes', () => {
     expect(response.body).toMatchObject({
       name: 'Clube das Rotas',
       slug: 'clube-das-rotas',
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-rota.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-rota.png',
       memberCount: 2,
       viewerMembership: {
         isMember: true,
@@ -112,11 +116,14 @@ describe('clubs.routes', () => {
       name: 'Meu Clube Rota',
       memberCount: 2,
       tags: ['rota'],
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-my.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-my.png',
     });
     const discoverClub = await createTestClub({
       createdById: owner.id,
       name: 'Clube Descoberta',
       memberCount: 1,
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-discover.png',
     });
 
     await addUserToClub(myClub.id, owner.id, {
@@ -149,6 +156,7 @@ describe('clubs.routes', () => {
     expect(myResponse.body).toEqual([
       expect.objectContaining({
         id: myClub.id,
+        avatarUrl: 'https://cdn.example.com/clubs/avatar-my.png',
         viewerMembership: expect.objectContaining({
           role: ClubMemberRole.member,
         }),
@@ -160,6 +168,7 @@ describe('clubs.routes', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: discoverClub.id,
+          avatarUrl: 'https://cdn.example.com/clubs/avatar-discover.png',
         }),
       ]),
     );
@@ -168,6 +177,7 @@ describe('clubs.routes', () => {
     expect(searchResponse.body).toEqual([
       expect.objectContaining({
         id: myClub.id,
+        avatarUrl: 'https://cdn.example.com/clubs/avatar-my.png',
       }),
     ]);
   });
@@ -179,6 +189,8 @@ describe('clubs.routes', () => {
       createdById: owner.id,
       name: 'Publico',
       memberCount: 1,
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-detalhe.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-detalhe.png',
     });
     const privateClub = await createTestClub({
       createdById: owner.id,
@@ -206,6 +218,8 @@ describe('clubs.routes', () => {
     expect(publicResponse.status).toBe(200);
     expect(publicResponse.body).toMatchObject({
       id: publicClub.id,
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-detalhe.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-detalhe.png',
       permissions: {
         canViewFeed: true,
         canEditClub: false,
@@ -240,7 +254,7 @@ describe('clubs.routes', () => {
       .patch(`/clubs/${club.id}`)
       .set('Authorization', `Bearer ${authTokenFor(member)}`)
       .send({
-        name: 'Tentativa',
+        avatarUrl: 'https://cdn.example.com/clubs/avatar-proibido.png',
       });
 
     expect(forbiddenPatch.status).toBe(403);
@@ -254,6 +268,8 @@ describe('clubs.routes', () => {
       .send({
         name: 'Clube Atualizado',
         rules: 'Novas regras',
+        avatarUrl: 'https://cdn.example.com/clubs/avatar-atualizado.png',
+        coverUrl: 'https://cdn.example.com/clubs/capa-atualizada.png',
       });
 
     expect(patchResponse.status).toBe(200);
@@ -261,6 +277,23 @@ describe('clubs.routes', () => {
       id: club.id,
       name: 'Clube Atualizado',
       rules: 'Novas regras',
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-atualizado.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-atualizada.png',
+    });
+
+    const removeMediaResponse = await request(app)
+      .patch(`/clubs/${club.id}`)
+      .set('Authorization', `Bearer ${authTokenFor(owner)}`)
+      .send({
+        avatarUrl: null,
+        coverUrl: null,
+      });
+
+    expect(removeMediaResponse.status).toBe(200);
+    expect(removeMediaResponse.body).toMatchObject({
+      id: club.id,
+      avatarUrl: null,
+      coverUrl: null,
     });
 
     const deleteResponse = await request(app)
@@ -278,6 +311,40 @@ describe('clubs.routes', () => {
       id: club.id,
       status: 'active',
       archivedAt: null,
+    });
+  });
+
+  it('PATCH /clubs/:id permite admin alterar midia de clube', async () => {
+    const owner = await createTestUser();
+    const admin = await createTestUser();
+    const club = await createTestClub({
+      createdById: owner.id,
+      name: 'Clube Admin Midia',
+      memberCount: 2,
+    });
+
+    await addUserToClub(club.id, owner.id, {
+      role: ClubMemberRole.owner,
+      status: ClubMemberStatus.active,
+    });
+    await addUserToClub(club.id, admin.id, {
+      role: ClubMemberRole.admin,
+      status: ClubMemberStatus.active,
+    });
+
+    const response = await request(app)
+      .patch(`/clubs/${club.id}`)
+      .set('Authorization', `Bearer ${authTokenFor(admin)}`)
+      .send({
+        avatarUrl: 'https://cdn.example.com/clubs/avatar-admin.png',
+        coverUrl: 'https://cdn.example.com/clubs/capa-admin.png',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: club.id,
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-admin.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-admin.png',
     });
   });
 });

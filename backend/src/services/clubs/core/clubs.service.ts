@@ -31,6 +31,7 @@ import {
   CLUB_DESCRIPTION_MAX_LENGTH,
   CLUB_RULES_MAX_LENGTH,
   normalizeBlockedWords,
+  normalizeClubMediaUrl,
   normalizeIconName,
   normalizeInitialMemberIds,
   normalizeName,
@@ -84,6 +85,8 @@ export async function createClub(input: CreateClubInput): Promise<ClubDetailsDto
     CLUB_DESCRIPTION_MAX_LENGTH,
   );
   const iconName = normalizeIconName(input.iconName);
+  const avatarUrl = normalizeClubMediaUrl(input.avatarUrl, 'avatarUrl');
+  const coverUrl = normalizeClubMediaUrl(input.coverUrl, 'coverUrl');
   const visibility = normalizeVisibility(input.visibility);
   const rules = normalizeOptionalText(input.rules, 'Regras', CLUB_RULES_MAX_LENGTH);
   const initialMemberIds = normalizeInitialMemberIds(
@@ -106,6 +109,8 @@ export async function createClub(input: CreateClubInput): Promise<ClubDetailsDto
           slug,
           description,
           iconName,
+          ...(avatarUrl !== undefined ? { avatarUrl } : {}),
+          ...(coverUrl !== undefined ? { coverUrl } : {}),
           visibility,
           rules,
           tags,
@@ -393,6 +398,14 @@ export async function updateClub(input: UpdateClubInput): Promise<ClubDetailsDto
 
   if (input.iconName !== undefined) {
     data.iconName = normalizeIconName(input.iconName);
+  }
+
+  if (input.avatarUrl !== undefined) {
+    data.avatarUrl = normalizeClubMediaUrl(input.avatarUrl, 'avatarUrl');
+  }
+
+  if (input.coverUrl !== undefined) {
+    data.coverUrl = normalizeClubMediaUrl(input.coverUrl, 'coverUrl');
   }
 
   if (input.visibility !== undefined) {

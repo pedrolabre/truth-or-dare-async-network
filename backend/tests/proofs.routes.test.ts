@@ -144,6 +144,9 @@ describe('POST /dares/:id/proof', () => {
       userId: author.id,
       actorId: targetUser.id,
       type: NotificationType.feed_dare_proof_submitted,
+      deepLink: expect.stringContaining(
+        `proofId=${encodeURIComponent(response.body.proof.id)}`,
+      ),
       referenceType: 'dare_proof',
       referenceId: response.body.proof.id,
     });

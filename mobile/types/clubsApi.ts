@@ -86,6 +86,8 @@ export type CreateClubPayloadApi = {
   name: string;
   description: string | null;
   iconName: ClubIconNameApi;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
   visibility: ClubVisibilityApi;
   rules: string | null;
   tags: string[];
@@ -300,6 +302,8 @@ export type UpdateClubPayloadApi = {
   name?: string;
   description?: string | null;
   iconName?: ClubIconNameApi;
+  avatarUrl?: string | null;
+  coverUrl?: string | null;
   visibility?: ClubVisibilityApi;
   rules?: string | null;
   tags?: string[];

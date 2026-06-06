@@ -1,6 +1,8 @@
 import express from 'express';
 import request from 'supertest';
 import feedRoutes from '../src/routes/feed/feed.routes';
+import { ProofMediaType } from '../src/generated/prisma/client';
+import { prisma } from '../src/lib/prisma';
 import {
   buildFeedScenario,
   resetFeedData,
@@ -160,6 +162,55 @@ describe('GET /feed', () => {
       badge: expect.stringMatching(/^(Verdade|Desafio)$/),
       quote: expect.any(String),
       answersCount: expect.any(Number),
+    });
+  });
+
+  it('deve incluir resumo de prova quando dare estiver concluido', async () => {
+    const scenario = await buildFeedScenario();
+    const proof = await prisma.dareProof.create({
+      data: {
+        dareId: scenario.dares[0].id,
+        userId: scenario.dares[0].targetUserId,
+        mediaType: ProofMediaType.video,
+        fileUrl: 'https://cdn.example.com/proofs/feed-video.mp4',
+        durationSeconds: 30,
+        text: 'Prova para resumo do feed.',
+      },
+    });
+
+    await prisma.dare.update({
+      where: {
+        id: scenario.dares[0].id,
+      },
+      data: {
+        completedAt: proof.createdAt,
+      },
+    });
+
+    const token = generateToken({
+      sub: scenario.users.owner.id,
+      email: scenario.users.owner.email,
+      name: scenario.users.owner.name,
+    });
+
+    const response = await request(app)
+      .get('/feed')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+
+    const dareItem = response.body.find(
+      (item: any) => item.id === scenario.dares[0].id,
+    );
+
+    expect(dareItem).toMatchObject({
+      id: scenario.dares[0].id,
+      type: 'dare',
+      status: 'concluded',
+      proofId: proof.id,
+      proofMediaType: 'video',
+      proofFileUrl: 'https://cdn.example.com/proofs/feed-video.mp4',
+      proofThumbnailUrl: null,
     });
   });
 

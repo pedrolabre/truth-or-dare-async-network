@@ -9,6 +9,7 @@ export type ProfileUser = {
   name: string;
   username: string;
   bio?: string;
+  avatarUrl?: string | null;
   initials: string;
   stats: ProfileStats;
 };

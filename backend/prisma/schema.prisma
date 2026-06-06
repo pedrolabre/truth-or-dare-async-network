@@ -15,6 +15,7 @@ model User {
   createdAt       DateTime       @default(now())
   deletedAt       DateTime?
   bio             String?
+  avatarUrl       String?
   username        String?        @unique
   isPrivate       Boolean        @default(false)
   clubsCreated    Club[]

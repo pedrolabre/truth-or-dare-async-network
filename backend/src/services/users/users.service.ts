@@ -15,6 +15,7 @@ import {
   invalidCurrentPasswordError,
   userNotFoundError,
   usernameAlreadyInUseError,
+  validationError,
 } from './settings.errors';
 import {
   type DeleteMyAccountInput,
@@ -22,6 +23,7 @@ import {
   requireDeleteAccountCurrentPassword,
   validateMyAccountUpdate,
 } from './settings.validators';
+import { normalizeOptionalMediaUrl } from '../uploads/media-url';
 
 type ListUsersInput = {
   currentUserId: string;
@@ -131,6 +133,7 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
       email: true,
       username: true,
       bio: true,
+      avatarUrl: true,
       isPrivate: true,
       createdAt: true,
       deletedAt: true,
@@ -189,7 +192,7 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
     email: user.email,
     username: user.username,
     bio: user.bio,
-    avatarUrl: null,
+    avatarUrl: user.avatarUrl,
     isPrivate: user.isPrivate,
     createdAt: user.createdAt,
     createdTruthsCount,
@@ -238,6 +241,7 @@ export async function getPublicUserProfile(
       name: true,
       username: true,
       bio: true,
+      avatarUrl: true,
       isPrivate: true,
       deletedAt: true,
     },
@@ -304,7 +308,7 @@ export async function getPublicUserProfile(
     name: user.name,
     username: user.username,
     bio: user.bio,
-    avatarUrl: null,
+    avatarUrl: user.avatarUrl,
     level: null,
     levelLabel: 'Nivel indisponivel',
     stats: {
@@ -320,6 +324,7 @@ type UpdateMyProfileInput = {
   name?: string;
   username?: string | null;
   bio?: string | null;
+  avatarUrl?: string | null;
 };
 
 export async function updateMyProfile(
@@ -330,12 +335,13 @@ export async function updateMyProfile(
     throw new Error('Usuário autenticado não encontrado');
   }
 
-  const { name, username, bio } = data;
+  const { name, username, bio, avatarUrl } = data;
 
   const updateData: {
     name?: string;
     username?: string | null;
     bio?: string | null;
+    avatarUrl?: string | null;
   } = {};
 
   if (typeof name === 'string') {
@@ -360,10 +366,23 @@ export async function updateMyProfile(
     updateData.bio = trimmedBio || null;
   }
 
-if (
+  if (avatarUrl !== undefined) {
+    const normalizedAvatarUrl = normalizeOptionalMediaUrl(
+      avatarUrl,
+      'avatarUrl',
+      validationError,
+    );
+
+    if (normalizedAvatarUrl !== undefined) {
+      updateData.avatarUrl = normalizedAvatarUrl;
+    }
+  }
+
+  if (
     updateData.name === undefined &&
     updateData.username === undefined &&
-    updateData.bio === undefined
+    updateData.bio === undefined &&
+    updateData.avatarUrl === undefined
   ) {
     throw new Error('Nenhum campo válido para atualização');
   }

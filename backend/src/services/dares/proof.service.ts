@@ -3,6 +3,42 @@ import { createNotification } from '../notifications.service';
 
 type ProofMediaTypeValue = 'video' | 'audio' | 'file';
 
+type DareProofDetailUser = {
+  id: string;
+  name: string;
+  username: string | null;
+  avatarUrl: string | null;
+};
+
+export type DareProofDetails = {
+  id: string;
+  dareId: string;
+  userId: string;
+  mediaType: ProofMediaTypeValue;
+  fileUrl: string;
+  durationSeconds: number | null;
+  text: string | null;
+  createdAt: string;
+  author: DareProofDetailUser;
+  dare: {
+    id: string;
+    content: string;
+    authorId: string;
+    targetUserId: string;
+    completedAt: string | null;
+  };
+};
+
+export class DareProofServiceError extends Error {
+  constructor(
+    public code: 'PROOF_NOT_FOUND' | 'PROOF_FORBIDDEN' | 'PROOF_UNAUTHENTICATED',
+    message: string,
+    public statusCode: number,
+  ) {
+    super(message);
+  }
+}
+
 type SubmitDareProofInput = {
   dareId: string;
   userId: string;
@@ -181,4 +217,106 @@ export async function submitDareProofService({
   });
 
   return proof;
+}
+
+export async function getDareProofDetailsService({
+  proofId,
+  userId,
+}: {
+  proofId: string;
+  userId: string;
+}): Promise<DareProofDetails> {
+  if (!userId) {
+    throw new DareProofServiceError(
+      'PROOF_UNAUTHENTICATED',
+      'Nao autorizado',
+      401,
+    );
+  }
+
+  if (!proofId) {
+    throw new DareProofServiceError(
+      'PROOF_NOT_FOUND',
+      'Prova nao encontrada',
+      404,
+    );
+  }
+
+  const proof = await prisma.dareProof.findUnique({
+    where: {
+      id: proofId,
+    },
+    select: {
+      id: true,
+      dareId: true,
+      userId: true,
+      mediaType: true,
+      fileUrl: true,
+      durationSeconds: true,
+      text: true,
+      createdAt: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          avatarUrl: true,
+        },
+      },
+      dare: {
+        select: {
+          id: true,
+          content: true,
+          authorId: true,
+          targetUserId: true,
+          completedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!proof) {
+    throw new DareProofServiceError(
+      'PROOF_NOT_FOUND',
+      'Prova nao encontrada',
+      404,
+    );
+  }
+
+  const canViewProof =
+    proof.userId === userId ||
+    proof.dare.authorId === userId ||
+    proof.dare.targetUserId === userId;
+
+  if (!canViewProof) {
+    throw new DareProofServiceError(
+      'PROOF_FORBIDDEN',
+      'Sem permissao para ver esta prova',
+      403,
+    );
+  }
+
+  return {
+    id: proof.id,
+    dareId: proof.dareId,
+    userId: proof.userId,
+    mediaType: proof.mediaType,
+    fileUrl: proof.fileUrl,
+    durationSeconds: proof.durationSeconds,
+    text: proof.text,
+    createdAt: proof.createdAt.toISOString(),
+    author: {
+      id: proof.user.id,
+      name: proof.user.name,
+      username: proof.user.username,
+      avatarUrl: proof.user.avatarUrl,
+    },
+    dare: {
+      id: proof.dare.id,
+      content: proof.dare.content,
+      authorId: proof.dare.authorId,
+      targetUserId: proof.dare.targetUserId,
+      completedAt: proof.dare.completedAt?.toISOString() ?? null,
+    },
+  };
 }

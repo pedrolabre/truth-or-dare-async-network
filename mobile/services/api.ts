@@ -27,6 +27,7 @@ import type {
   SearchUserItem,
 } from '../types/search';
 import type { PublicUserProfile } from '../types/user';
+import type { DareProofDetailsResponse } from '../types/proof';
 import type {
   SubmitDareProofPayload,
   SubmitDareProofResponse,
@@ -696,8 +697,17 @@ export type MyProfileResponse = {
   email: string;
   username: string | null;
   bio: string | null;
+  avatarUrl: string | null;
+  isPrivate: boolean;
+  createdAt: string;
   createdTruthsCount: number;
   createdDaresCount: number;
+  stats: {
+    createdTruthsCount: number;
+    createdDaresCount: number;
+    activePublicClubsCount: number;
+    publishedClubPromptsCount: number;
+  };
 };
 
 export async function getMyProfile(): Promise<MyProfileResponse> {
@@ -738,6 +748,7 @@ type UpdateMyProfileInput = {
   name?: string;
   username?: string | null;
   bio?: string | null;
+  avatarUrl?: string | null;
 };
 
 export async function updateMyProfile(
@@ -942,6 +953,30 @@ export async function submitDareProof(
     },
     body: JSON.stringify(payload),
   });
+
+  return parseResponse(response);
+}
+
+export async function getDareProof(
+  proofId: string,
+): Promise<DareProofDetailsResponse> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nÃ£o encontrado');
+  }
+
+  const response = await fetch(
+    `${baseUrl}/dares/proofs/${encodeURIComponent(proofId)}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
 
   return parseResponse(response);
 }

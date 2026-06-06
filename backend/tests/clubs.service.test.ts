@@ -44,6 +44,8 @@ describe('clubs.service', () => {
       name: 'Clube Coragem',
       description: 'Um clube para desafios',
       iconName: 'celebration',
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-criacao.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-criacao.png',
       visibility: 'public',
       rules: 'Respeite todo mundo',
       tags: ['coragem'],
@@ -51,6 +53,12 @@ describe('clubs.service', () => {
     });
 
     expect(club.slug).toBe('clube-coragem-2');
+    expect(club.avatarUrl).toBe(
+      'https://cdn.example.com/clubs/avatar-criacao.png',
+    );
+    expect(club.coverUrl).toBe(
+      'https://cdn.example.com/clubs/capa-criacao.png',
+    );
     expect(club.memberCount).toBe(2);
     expect(club.viewerMembership).toMatchObject({
       isMember: true,
@@ -113,6 +121,16 @@ describe('clubs.service', () => {
         creatorId: creator.id,
         name: 'Criador Duplicado',
         initialMemberIds: [creator.id],
+      }),
+    ).rejects.toMatchObject<Partial<ClubServiceError>>({
+      code: 'CLUB_VALIDATION_ERROR',
+    });
+
+    await expect(
+      createClub({
+        creatorId: creator.id,
+        name: 'Midia Invalida',
+        avatarUrl: 'http://cdn.example.com/clubs/avatar.png',
       }),
     ).rejects.toMatchObject<Partial<ClubServiceError>>({
       code: 'CLUB_VALIDATION_ERROR',
@@ -232,13 +250,46 @@ describe('clubs.service', () => {
       userId: owner.id,
       name: 'Novo Nome',
       iconName: 'favorite',
+      avatarUrl: 'https://cdn.example.com/clubs/avatar-editado.png',
+      coverUrl: 'https://cdn.example.com/clubs/capa-editada.png',
       visibility: 'invite_only',
     });
 
     expect(updated.name).toBe('Novo Nome');
     expect(updated.slug).toBe(club.slug);
     expect(updated.iconName).toBe('favorite');
+    expect(updated.avatarUrl).toBe(
+      'https://cdn.example.com/clubs/avatar-editado.png',
+    );
+    expect(updated.coverUrl).toBe(
+      'https://cdn.example.com/clubs/capa-editada.png',
+    );
     expect(updated.visibility).toBe(ClubVisibility.invite_only);
+
+    const auditLog = await prisma.clubAuditLog.findFirst({
+      where: {
+        clubId: club.id,
+        action: 'club_updated',
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    expect(auditLog?.metadata).toEqual({
+      fields: expect.arrayContaining(['avatarUrl', 'coverUrl']),
+    });
+    expect(JSON.stringify(auditLog?.metadata)).not.toContain('https://');
+
+    const withoutMedia = await updateClub({
+      clubId: club.id,
+      userId: owner.id,
+      avatarUrl: null,
+      coverUrl: null,
+    });
+
+    expect(withoutMedia.avatarUrl).toBeNull();
+    expect(withoutMedia.coverUrl).toBeNull();
 
     await archiveClub({
       clubId: club.id,

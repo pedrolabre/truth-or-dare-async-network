@@ -1,4 +1,5 @@
 import { ClubVisibility } from '../../../generated/prisma/client';
+import { normalizeOptionalMediaUrl } from '../../uploads/media-url';
 import { validationError } from './errors';
 
 export const CLUB_DESCRIPTION_MAX_LENGTH = 280;
@@ -72,6 +73,10 @@ export function normalizeIconName(value: unknown) {
   }
 
   return iconName;
+}
+
+export function normalizeClubMediaUrl(value: unknown, fieldName: string) {
+  return normalizeOptionalMediaUrl(value, fieldName, validationError);
 }
 
 export function normalizeVisibility(value: unknown) {

@@ -133,11 +133,121 @@ describe('users.routes', () => {
     });
   });
 
+  it('GET /users/me retorna avatarUrl do usuario autenticado', async () => {
+    const user = await createTestUser({
+      name: 'Perfil Com Avatar',
+      email: 'perfil-com-avatar@test.com',
+      avatarUrl: 'https://cdn.example.com/users/perfil-com-avatar.png',
+    });
+
+    const token = generateToken({
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    });
+
+    const response = await request(app)
+      .get('/users/me')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      id: user.id,
+      avatarUrl: 'https://cdn.example.com/users/perfil-com-avatar.png',
+    });
+  });
+
+  it('PUT /users/me atualiza e remove avatarUrl', async () => {
+    const user = await createTestUser({
+      name: 'Perfil Update Avatar',
+      email: 'perfil-update-avatar@test.com',
+    });
+
+    const token = generateToken({
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    });
+
+    const updateResponse = await request(app)
+      .put('/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        avatarUrl: 'https://cdn.example.com/users/avatar-novo.png',
+      });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.avatarUrl).toBe(
+      'https://cdn.example.com/users/avatar-novo.png',
+    );
+
+    const removeResponse = await request(app)
+      .put('/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        avatarUrl: null,
+      });
+
+    expect(removeResponse.status).toBe(200);
+    expect(removeResponse.body.avatarUrl).toBeNull();
+  });
+
+  it('PUT /users/me rejeita avatarUrl sem https', async () => {
+    const user = await createTestUser({
+      name: 'Perfil Avatar Invalido',
+      email: 'perfil-avatar-invalido@test.com',
+    });
+
+    const token = generateToken({
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    });
+
+    const response = await request(app)
+      .put('/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        avatarUrl: 'http://cdn.example.com/users/avatar.png',
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.error).toBe(
+      'avatarUrl deve ser uma URL https valida ou null',
+    );
+  });
+
+  it('PATCH /users/me aceita avatarUrl no endpoint de configuracoes', async () => {
+    const user = await createTestUser({
+      name: 'Perfil Patch Avatar',
+      email: 'perfil-patch-avatar@test.com',
+    });
+
+    const token = generateToken({
+      sub: user.id,
+      email: user.email,
+      name: user.name,
+    });
+
+    const response = await request(app)
+      .patch('/users/me')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        avatarUrl: 'https://cdn.example.com/users/avatar-config.png',
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.avatarUrl).toBe(
+      'https://cdn.example.com/users/avatar-config.png',
+    );
+  });
+
   it('GET /users/:id/public retorna perfil publico com contrato seguro', async () => {
     const user = await createTestUser({
       name: 'Perfil Publico Busca',
       email: 'perfil-publico-busca@test.com',
       username: 'perfil_publico_busca',
+      avatarUrl: 'https://cdn.example.com/users/perfil-publico.png',
     });
     const owner = await createTestUser({
       name: 'Owner Perfil Publico',
@@ -184,7 +294,7 @@ describe('users.routes', () => {
       name: 'Perfil Publico Busca',
       username: 'perfil_publico_busca',
       bio: 'Bio publica da busca',
-      avatarUrl: null,
+      avatarUrl: 'https://cdn.example.com/users/perfil-publico.png',
       level: null,
       levelLabel: 'Nivel indisponivel',
       stats: {
@@ -204,6 +314,7 @@ describe('users.routes', () => {
       email: 'perfil-privado-busca@test.com',
       username: 'perfil_privado_busca',
       isPrivate: true,
+      avatarUrl: 'https://cdn.example.com/users/perfil-privado.png',
     });
 
     await prisma.user.update({
@@ -235,6 +346,7 @@ describe('users.routes', () => {
     });
     expect(JSON.stringify(response.body)).not.toContain('Bio privada');
     expect(JSON.stringify(response.body)).not.toContain('perfil_privado_busca');
+    expect(JSON.stringify(response.body)).not.toContain('perfil-privado.png');
   });
 
   it('GET /users/:id/public retorna perfil privado completo para viewer com clube ativo em comum', async () => {
@@ -247,6 +359,7 @@ describe('users.routes', () => {
       email: 'perfil-privado-permitido@test.com',
       username: 'perfil_privado_permitido',
       isPrivate: true,
+      avatarUrl: 'https://cdn.example.com/users/perfil-privado-permitido.png',
     });
     const owner = await createTestUser({
       name: 'Owner Perfil Privado',
@@ -283,6 +396,7 @@ describe('users.routes', () => {
       name: 'Perfil Privado Permitido',
       username: 'perfil_privado_permitido',
       bio: 'Bio privada autorizada',
+      avatarUrl: 'https://cdn.example.com/users/perfil-privado-permitido.png',
     });
     expect(response.body).not.toHaveProperty('email');
     expect(response.body).not.toHaveProperty('passwordHash');

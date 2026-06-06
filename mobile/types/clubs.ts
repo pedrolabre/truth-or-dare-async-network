@@ -43,6 +43,7 @@ export type ClubListItem = {
   membersLabel: string;
   statusLabel?: string;
   iconName?: string;
+  avatarUrl?: string | null;
   isActive?: boolean;
   viewerActivity: ClubViewerActivityApi;
   unreadCount: number;
@@ -57,6 +58,7 @@ export type ClubDiscoverItem = {
   membersLabel: string;
   badgeLabel?: string;
   iconName?: string;
+  avatarUrl?: string | null;
   isTrending?: boolean;
   isMember: boolean;
   membershipStatus?:

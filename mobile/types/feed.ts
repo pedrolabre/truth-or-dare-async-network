@@ -32,6 +32,10 @@ export type FeedDareItem = {
   maxAttempts: number | null;
   completedAt: string | null;
   expiresAt: string | null;
+  proofId: string | null;
+  proofMediaType: 'video' | 'audio' | 'file' | null;
+  proofFileUrl: string | null;
+  proofThumbnailUrl: string | null;
   interactionDisabled: boolean;
   likesCount: number;
   likedByMe: boolean;

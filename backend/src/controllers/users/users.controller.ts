@@ -97,12 +97,13 @@ export async function updateMyProfileController(req: Request, res: Response) {
   try {
     const userId = req.user?.sub ?? '';
 
-    const { name, username, bio } = req.body;
+    const { name, username, bio, avatarUrl } = req.body;
 
     const updatedProfile = await updateMyProfile(userId, {
       name,
       username,
       bio,
+      avatarUrl,
     });
 
     return res.status(200).json(updatedProfile);
@@ -118,6 +119,12 @@ export async function updateMyProfileController(req: Request, res: Response) {
       error instanceof Error
         ? error.message
         : 'Erro interno ao atualizar perfil';
+
+    if (message === 'avatarUrl deve ser uma URL https valida ou null') {
+      return res.status(400).json({
+        error: message,
+      });
+    }
 
     const status =
       message === 'Usuário autenticado não encontrado'
@@ -141,7 +148,7 @@ export async function patchMyAccountController(req: Request, res: Response) {
   try {
     const userId = req.user?.sub ?? '';
     const body = req.body ?? {};
-    const { name, username, bio, isPrivate } = body;
+    const { name, username, bio, avatarUrl, isPrivate } = body;
 
     const updatedProfile = await updateMyAccount(userId, {
       ...(Object.prototype.hasOwnProperty.call(body, 'name')
@@ -151,6 +158,9 @@ export async function patchMyAccountController(req: Request, res: Response) {
         ? { username }
         : {}),
       ...(Object.prototype.hasOwnProperty.call(body, 'bio') ? { bio } : {}),
+      ...(Object.prototype.hasOwnProperty.call(body, 'avatarUrl')
+        ? { avatarUrl }
+        : {}),
       ...(Object.prototype.hasOwnProperty.call(body, 'isPrivate')
         ? { isPrivate }
         : {}),

@@ -157,5 +157,6 @@ export type UpdateAccountPayload = {
   name?: string;
   username?: string | null;
   bio?: string | null;
+  avatarUrl?: string | null;
   isPrivate?: boolean;
 };

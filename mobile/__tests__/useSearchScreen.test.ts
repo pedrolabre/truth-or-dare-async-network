@@ -204,8 +204,17 @@ describe('useSearchScreen', () => {
       email: 'pedro@example.com',
       username: 'pedro',
       bio: null,
+      avatarUrl: null,
+      isPrivate: false,
+      createdAt: '2026-06-06T00:00:00.000Z',
       createdTruthsCount: 0,
       createdDaresCount: 0,
+      stats: {
+        createdTruthsCount: 0,
+        createdDaresCount: 0,
+        activePublicClubsCount: 0,
+        publishedClubPromptsCount: 0,
+      },
     });
     mockedGetRecommendedUsers.mockResolvedValue([makeUser()]);
     mockedGetTrendingClubs.mockResolvedValue([makeClub()]);

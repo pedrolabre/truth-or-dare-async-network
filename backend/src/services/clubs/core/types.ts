@@ -6,6 +6,8 @@ export type CreateClubInput = {
   name: unknown;
   description?: unknown;
   iconName?: unknown;
+  avatarUrl?: unknown;
+  coverUrl?: unknown;
   visibility?: unknown;
   rules?: unknown;
   initialMemberIds?: unknown;
@@ -18,6 +20,8 @@ export type UpdateClubInput = {
   name?: unknown;
   description?: unknown;
   iconName?: unknown;
+  avatarUrl?: unknown;
+  coverUrl?: unknown;
   visibility?: unknown;
   rules?: unknown;
   blockedWords?: unknown;

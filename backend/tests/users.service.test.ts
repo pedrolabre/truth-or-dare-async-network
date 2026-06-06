@@ -1,4 +1,9 @@
-import { listUsersForChallenge } from '../src/services/users/users.service';
+import {
+  getMyProfile,
+  getPublicUserProfile,
+  listUsersForChallenge,
+  updateMyProfile,
+} from '../src/services/users/users.service';
 import { applyTestDatabaseHooks } from './test-db';
 import { createTestUser, resetFeedData } from '../src/test-utils/factories';
 
@@ -89,5 +94,47 @@ describe('users.service', () => {
         currentUserId: '',
       }),
     ).rejects.toThrow('Usuário autenticado não encontrado');
+  });
+
+  it('deve retornar, atualizar e remover avatarUrl do perfil proprio', async () => {
+    const user = await createTestUser({
+      name: 'Avatar Service User',
+      email: 'avatar-service-user@test.com',
+      avatarUrl: 'https://cdn.example.com/users/avatar-inicial.png',
+    });
+
+    const profile = await getMyProfile(user.id);
+
+    expect(profile.avatarUrl).toBe(
+      'https://cdn.example.com/users/avatar-inicial.png',
+    );
+
+    const updated = await updateMyProfile(user.id, {
+      avatarUrl: 'https://cdn.example.com/users/avatar-atualizado.png',
+    });
+
+    expect(updated.avatarUrl).toBe(
+      'https://cdn.example.com/users/avatar-atualizado.png',
+    );
+
+    const removed = await updateMyProfile(user.id, {
+      avatarUrl: null,
+    });
+
+    expect(removed.avatarUrl).toBeNull();
+  });
+
+  it('deve retornar avatarUrl em perfil publico permitido', async () => {
+    const user = await createTestUser({
+      name: 'Avatar Publico Service',
+      email: 'avatar-publico-service@test.com',
+      avatarUrl: 'https://cdn.example.com/users/avatar-publico.png',
+    });
+
+    const profile = await getPublicUserProfile(user.id);
+
+    expect(profile.avatarUrl).toBe(
+      'https://cdn.example.com/users/avatar-publico.png',
+    );
   });
 });

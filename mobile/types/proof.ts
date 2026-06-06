@@ -1,4 +1,5 @@
 export type ProofMediaType = 'image' | 'video';
+export type DareProofMediaTypeApi = 'video' | 'audio' | 'file';
 
 export type ProofChallengeType = 'truth' | 'dare' | 'club';
 
@@ -36,6 +37,30 @@ export type ProofDetailItem = {
 
 export type ProofDetailParams = {
   proofId?: string;
+};
+
+export type DareProofDetailsResponse = {
+  id: string;
+  dareId: string;
+  userId: string;
+  mediaType: DareProofMediaTypeApi;
+  fileUrl: string;
+  durationSeconds: number | null;
+  text: string | null;
+  createdAt: string;
+  author: {
+    id: string;
+    name: string;
+    username: string | null;
+    avatarUrl: string | null;
+  };
+  dare: {
+    id: string;
+    content: string;
+    authorId: string;
+    targetUserId: string;
+    completedAt: string | null;
+  };
 };
 
 export type ProofDetailState = {
