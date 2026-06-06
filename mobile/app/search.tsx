@@ -482,7 +482,7 @@ export default function SearchScreen() {
               <SearchEmptyState
                 colors={colors}
                 title="Nenhum resultado encontrado"
-                description="Tente buscar outro nome, usuario, clube ou conteudo para continuar explorando."
+                description="Nao houve resultados visiveis para sua busca. Tente outros termos ou ajuste os filtros."
               />
             ) : null}
           </ScrollView>

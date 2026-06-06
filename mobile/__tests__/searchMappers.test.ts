@@ -69,7 +69,7 @@ describe('search mappers', () => {
     expect(item).toEqual({
       id: 'fallback',
       name: 'Usuario',
-      username: 'usuario-fallback',
+      username: 'usuario',
       bio: undefined,
       level: null,
       levelLabel: 'Nivel inicial',

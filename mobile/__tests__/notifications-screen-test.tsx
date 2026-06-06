@@ -375,6 +375,52 @@ describe('NotificationsScreen', () => {
     expect(mockRouterPush).not.toHaveBeenCalled();
   });
 
+  it('mantem notificacao privada sanitizada sem navegar para entidade oculta', async () => {
+    const notification = makeNotification({
+      id: 'private',
+      title: 'Atividade privada',
+      body: 'Ha uma atualizacao privada disponivel para sua conta.',
+      deepLink: '/notifications',
+      actorId: null,
+      clubId: null,
+      referenceType: null,
+      referenceId: null,
+    });
+    const handlePressNotification = jest
+      .fn()
+      .mockResolvedValue({ type: 'unsupported' });
+
+    mockedUseNotificationsScreen.mockReturnValue(
+      makeHookState({
+        items: [notification],
+        groupedItems: [
+          {
+            id: 'today',
+            title: 'Hoje',
+            items: [notification],
+          },
+        ],
+        handlePressNotification,
+      }),
+    );
+
+    const { getByText, queryByText } = render(<NotificationsScreen />);
+
+    expect(getByText('Atividade privada')).toBeTruthy();
+    expect(
+      getByText('Ha uma atualizacao privada disponivel para sua conta.'),
+    ).toBeTruthy();
+    expect(queryByText('Ana')).toBeNull();
+    expect(queryByText('Bons Desafios')).toBeNull();
+
+    fireEvent.press(getByText('Atividade privada'));
+
+    await waitFor(() => {
+      expect(handlePressNotification).toHaveBeenCalledWith(notification);
+    });
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
   it('renderiza loading, estado vazio e estado de erro sem depender de layout fragil', () => {
     mockedUseNotificationsScreen.mockReturnValue(
       makeHookState({

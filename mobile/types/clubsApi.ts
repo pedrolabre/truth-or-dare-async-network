@@ -326,3 +326,42 @@ export type ToggleClubLikeApi = {
   liked: boolean;
   likesCount: number;
 };
+
+export type ClubAuditMetadataPrimitiveApi =
+  | string
+  | number
+  | boolean
+  | null;
+
+export type ClubAuditMetadataApi =
+  | ClubAuditMetadataPrimitiveApi
+  | ClubAuditMetadataApi[]
+  | {
+      [key: string]: ClubAuditMetadataApi;
+    };
+
+export type ClubAuditLogApi = {
+  id: string;
+  action: string;
+  actorId: string | null;
+  targetUserId: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  metadata: ClubAuditMetadataApi;
+  createdAt: string;
+};
+
+export type ClubAuditLogsApi = {
+  items: ClubAuditLogApi[];
+  nextCursor: string | null;
+};
+
+export type ClubAuditLogsQueryApi = {
+  limit?: number;
+  cursor?: string | null;
+  action?: string | null;
+  targetUserId?: string | null;
+  entityType?: string | null;
+  from?: string | null;
+  to?: string | null;
+};

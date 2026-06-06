@@ -224,6 +224,32 @@ describe('club detail components', () => {
     expect(onChangeTab).toHaveBeenCalledWith('about');
   });
 
+  it('renderiza aba de auditoria somente quando liberada', () => {
+    const onChangeTab = jest.fn();
+    const { getByTestId, queryByTestId, rerender } = render(
+      <ClubDetailTabs
+        activeTab="feed"
+        colors={LIGHT_CLUBS_COLORS}
+        onChangeTab={onChangeTab}
+      />,
+    );
+
+    expect(queryByTestId('club-detail-tab-audit')).toBeNull();
+
+    rerender(
+      <ClubDetailTabs
+        activeTab="feed"
+        colors={LIGHT_CLUBS_COLORS}
+        showAudit
+        onChangeTab={onChangeTab}
+      />,
+    );
+
+    fireEvent.press(getByTestId('club-detail-tab-audit'));
+
+    expect(onChangeTab).toHaveBeenCalledWith('audit');
+  });
+
   it('renderiza header com identidade, badges, tags e contadores', () => {
     const { getAllByText, getByText, getByTestId } = render(
       <ClubHeaderCard club={makeClubDetail()} colors={LIGHT_CLUBS_COLORS} />,

@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import FeedBottomNav from '../../components/feed/FeedBottomNav';
 import ClubActionBar from '../../components/clubs/ClubActionBar';
 import ClubAboutPanel from '../../components/clubs/ClubAboutPanel';
+import ClubAuditLogPanel from '../../components/clubs/ClubAuditLogPanel';
 import ClubDareProofModal from '../../components/clubs/ClubDareProofModal';
 import ClubDetailStateCard from '../../components/clubs/ClubDetailStateCard';
 import ClubDetailTabs from '../../components/clubs/ClubDetailTabs';
@@ -36,6 +37,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 import { FEED_BOTTOM_NAV_ITEMS } from '../../data/feedMock';
 import { useClubDetailsScreen } from '../../hooks/useClubDetailsScreen';
+import { useClubAuditLog } from '../../hooks/useClubAuditLog';
 import { useClubFeed } from '../../hooks/useClubFeed';
 import { useClubMembers } from '../../hooks/useClubMembers';
 import { useClubModeration } from '../../hooks/useClubModeration';
@@ -90,6 +92,11 @@ export default function ClubDetailScreen() {
   } = useClubDetailsScreen({
     clubId: params.id,
   });
+  const canViewAuditLog = Boolean(
+    club?.permissions.canManageMembers &&
+      (club.viewerMembership.role === 'owner' ||
+        club.viewerMembership.role === 'admin'),
+  );
   const clubFeed = useClubFeed({
     clubId,
     isActive: contentState === 'ready' && activeTab === 'feed',
@@ -105,9 +112,20 @@ export default function ClubDetailScreen() {
     clubId,
     isActive: contentState === 'ready' && activeTab === 'members',
   });
+  const clubAuditLog = useClubAuditLog({
+    clubId,
+    isActive:
+      contentState === 'ready' && activeTab === 'audit' && canViewAuditLog,
+    canViewAudit: canViewAuditLog,
+  });
   React.useEffect(() => {
     setActiveTab('feed');
   }, [clubId]);
+  React.useEffect(() => {
+    if (activeTab === 'audit' && !canViewAuditLog) {
+      setActiveTab('feed');
+    }
+  }, [activeTab, canViewAuditLog]);
 
   async function handleBlockMember(member: ClubMemberApi) {
     if (!clubId) {
@@ -175,6 +193,13 @@ export default function ClubDetailScreen() {
     switch (activeTab) {
       case 'about':
         return <ClubAboutPanel club={readyClub} colors={colors} />;
+      case 'audit':
+        return (
+          <ClubAuditLogPanel
+            colors={colors}
+            auditLog={clubAuditLog}
+          />
+        );
       case 'media':
         return <ClubMediaPanel colors={colors} />;
       case 'members':
@@ -377,6 +402,7 @@ export default function ClubDetailScreen() {
           <ClubDetailTabs
             activeTab={activeTab}
             colors={colors}
+            showAudit={canViewAuditLog}
             onChangeTab={setActiveTab}
           />
 

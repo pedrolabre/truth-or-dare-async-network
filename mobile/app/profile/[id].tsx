@@ -44,6 +44,9 @@ const DARK = {
   white: '#f9f9f9',
 };
 
+const PRIVATE_PROFILE_NAME = 'Perfil privado';
+const PRIVATE_PROFILE_LABEL = 'Perfil privado';
+
 type RouteParams = {
   id?: string | string[];
 };
@@ -110,6 +113,12 @@ export default function PublicProfileScreen() {
     return profile.username.replace(/^@/, '');
   }, [profile?.username]);
 
+  const isRestrictedProfile = Boolean(
+    profile &&
+      profile.name === PRIVATE_PROFILE_NAME &&
+      profile.levelLabel === PRIVATE_PROFILE_LABEL &&
+      !profile.username,
+  );
   const initials = profile ? getInitials(profile.name) || '?' : '?';
 
   function renderContent() {
@@ -162,6 +171,52 @@ export default function PublicProfileScreen() {
             <MaterialIcons name="refresh" size={18} color={colors.white} />
             <Text style={[styles.retryText, { color: colors.white }]}>
               Tentar novamente
+            </Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    if (isRestrictedProfile) {
+      return (
+        <View
+          accessibilityRole="text"
+          accessibilityLabel="Perfil privado"
+          style={[
+            styles.identityCard,
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.outline,
+            },
+          ]}
+        >
+          <View style={[styles.avatar, { backgroundColor: colors.green }]}>
+            <MaterialIcons name="lock-outline" size={34} color={colors.white} />
+          </View>
+
+          <Text style={[styles.name, { color: colors.text }]}>
+            Perfil privado
+          </Text>
+          <Text style={[styles.bio, { color: colors.sub }]}>
+            Este perfil nao exibe dados publicos para sua conta.
+          </Text>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Voltar para busca"
+            onPress={() => router.back()}
+            style={({ pressed }) => [
+              styles.restrictedBackButton,
+              {
+                backgroundColor: colors.surfaceSoft,
+                borderColor: colors.outline,
+              },
+              pressed && styles.pressed,
+            ]}
+          >
+            <MaterialIcons name="arrow-back" size={18} color={colors.text} />
+            <Text style={[styles.secondaryActionText, { color: colors.text }]}>
+              Voltar
             </Text>
           </Pressable>
         </View>
@@ -431,6 +486,18 @@ const styles = StyleSheet.create({
   },
   secondaryAction: {
     minHeight: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  restrictedBackButton: {
+    width: '100%',
+    minHeight: 48,
+    marginTop: 20,
     borderRadius: 14,
     borderWidth: 1,
     paddingHorizontal: 16,

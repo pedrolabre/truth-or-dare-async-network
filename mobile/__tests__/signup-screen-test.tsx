@@ -5,8 +5,24 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import SignupScreen from '../app/signup-screen';
 import { signup } from '../services/api';
 
+jest.mock('@expo/vector-icons', () => {
+  const React = require('react');
+  const { Text } = require('react-native');
+
+  return {
+    MaterialIcons: ({ name }: { name: string }) =>
+      React.createElement(Text, null, name),
+  };
+});
+
 jest.mock('../services/api', () => ({
   signup: jest.fn(),
+}));
+
+jest.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({
+    isDark: false,
+  }),
 }));
 
 describe('SignupScreen', () => {

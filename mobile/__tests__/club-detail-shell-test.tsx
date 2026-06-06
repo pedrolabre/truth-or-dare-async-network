@@ -3,9 +3,11 @@ import { fireEvent, render } from '@testing-library/react-native';
 
 import ClubDetailScreen from '../app/clubs/[id]';
 import { useClubDetailsScreen } from '../hooks/useClubDetailsScreen';
+import { useClubAuditLog } from '../hooks/useClubAuditLog';
 import { useClubFeed } from '../hooks/useClubFeed';
 import { useClubMembers } from '../hooks/useClubMembers';
 import type {
+  ClubAuditLogScreenState,
   ClubDetail,
   ClubFeedScreenState,
   ClubMembersScreenState,
@@ -53,6 +55,10 @@ jest.mock('../hooks/useClubDetailsScreen', () => ({
   useClubDetailsScreen: jest.fn(),
 }));
 
+jest.mock('../hooks/useClubAuditLog', () => ({
+  useClubAuditLog: jest.fn(),
+}));
+
 jest.mock('../hooks/useClubFeed', () => ({
   useClubFeed: jest.fn(),
 }));
@@ -63,6 +69,9 @@ jest.mock('../hooks/useClubMembers', () => ({
 
 const mockedUseClubDetailsScreen = useClubDetailsScreen as jest.MockedFunction<
   typeof useClubDetailsScreen
+>;
+const mockedUseClubAuditLog = useClubAuditLog as jest.MockedFunction<
+  typeof useClubAuditLog
 >;
 const mockedUseClubFeed = useClubFeed as jest.MockedFunction<typeof useClubFeed>;
 const mockedUseClubMembers = useClubMembers as jest.MockedFunction<
@@ -256,6 +265,39 @@ function makeMembersState(
   };
 }
 
+function makeAuditState(
+  overrides: Partial<ClubAuditLogScreenState> = {},
+): ClubAuditLogScreenState {
+  return {
+    items: [],
+    filters: {
+      action: null,
+      targetUserId: null,
+      entityType: null,
+      from: null,
+      to: null,
+    },
+    contentState: 'empty',
+    nextCursor: null,
+    isInitialLoading: false,
+    isRefreshing: false,
+    isLoadingMore: false,
+    errorMessage: null,
+    canRetry: true,
+    canLoadMore: false,
+    setActionFilter: jest.fn(),
+    setTargetUserIdFilter: jest.fn(),
+    setEntityTypeFilter: jest.fn(),
+    setFromFilter: jest.fn(),
+    setToFilter: jest.fn(),
+    clearFilters: jest.fn(),
+    handleRetry: jest.fn().mockResolvedValue(undefined),
+    handleRefresh: jest.fn().mockResolvedValue(undefined),
+    handleLoadMore: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
 describe('ClubDetailScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -263,6 +305,7 @@ describe('ClubDetailScreen', () => {
       id: 'club-real-123',
     });
     mockedUseClubDetailsScreen.mockReturnValue(makeHookState());
+    mockedUseClubAuditLog.mockReturnValue(makeAuditState());
     mockedUseClubFeed.mockReturnValue(makeFeedState());
     mockedUseClubMembers.mockReturnValue(makeMembersState());
   });
@@ -295,6 +338,7 @@ describe('ClubDetailScreen', () => {
     expect(getByTestId('club-detail-tab-members')).toBeTruthy();
     expect(getByTestId('club-detail-tab-media')).toBeTruthy();
     expect(getByTestId('club-detail-tab-about')).toBeTruthy();
+    expect(getByTestId('club-detail-tab-audit')).toBeTruthy();
   });
 
   it('mantem navegacao de volta em sucesso', () => {
@@ -330,6 +374,55 @@ describe('ClubDetailScreen', () => {
     fireEvent.press(getByTestId('club-detail-tab-feed'));
     expect(getByTestId('club-feed-panel')).toBeTruthy();
     expect(handleRefresh).not.toHaveBeenCalled();
+  });
+
+  it('exibe auditoria apenas para owner ou admin', () => {
+    const { getByTestId, queryByTestId, rerender } = render(
+      <ClubDetailScreen />,
+    );
+
+    fireEvent.press(getByTestId('club-detail-tab-audit'));
+
+    expect(getByTestId('club-audit-empty')).toBeTruthy();
+    expect(mockedUseClubAuditLog).toHaveBeenLastCalledWith({
+      clubId: 'club-real-123',
+      isActive: true,
+      canViewAudit: true,
+    });
+
+    const memberClub = makeClubDetail({
+      viewerMembership: {
+        isMember: true,
+        role: 'member',
+        status: 'active',
+      },
+      membershipLabel: 'Membro',
+      permissions: {
+        canViewFeed: true,
+        canPostPrompt: true,
+        canInviteMembers: false,
+        canManageMembers: false,
+        canEditClub: false,
+        canArchiveClub: false,
+        canTransferOwnership: false,
+      },
+    });
+
+    mockedUseClubDetailsScreen.mockReturnValue(
+      makeHookState({
+        club: memberClub,
+        permissions: memberClub.permissions,
+      }),
+    );
+
+    rerender(<ClubDetailScreen />);
+
+    expect(queryByTestId('club-detail-tab-audit')).toBeNull();
+    expect(mockedUseClubAuditLog).toHaveBeenLastCalledWith({
+      clubId: 'club-real-123',
+      isActive: false,
+      canViewAudit: false,
+    });
   });
 
   it('navega para estado indisponivel de comentarios do prompt do clube', () => {

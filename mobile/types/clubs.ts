@@ -1,6 +1,7 @@
 import type {
   ClubFeedItemApi,
   ClubJoinPolicyApi,
+  ClubAuditLogsQueryApi,
   ClubMemberApi,
   ClubMemberRoleApi,
   ClubMemberStatusApi,
@@ -19,7 +20,12 @@ import type {
 
 export type ClubsTabKey = 'my-clubs' | 'discover';
 
-export type ClubDetailTabKey = 'feed' | 'members' | 'media' | 'about';
+export type ClubDetailTabKey =
+  | 'feed'
+  | 'members'
+  | 'media'
+  | 'about'
+  | 'audit';
 
 export type ClubsContentState =
   | 'loading'
@@ -251,4 +257,62 @@ export type ClubMembersScreenState = {
   handleRefresh: () => Promise<void>;
   handleLoadMore: () => Promise<void>;
   replaceMember: (member: ClubMemberApi) => void;
+};
+
+export type ClubAuditMetadataEntry = {
+  label: string;
+  value: string;
+};
+
+export type ClubAuditLogItem = {
+  id: string;
+  action: string;
+  actionLabel: string;
+  actorId: string | null;
+  actorLabel: string;
+  targetUserId: string | null;
+  targetLabel: string | null;
+  entityType: string | null;
+  entityId: string | null;
+  entityLabel: string | null;
+  createdAt: string;
+  createdAtLabel: string;
+  metadataEntries: ClubAuditMetadataEntry[];
+};
+
+export type ClubAuditFilters = Required<
+  Pick<
+    ClubAuditLogsQueryApi,
+    'action' | 'targetUserId' | 'entityType' | 'from' | 'to'
+  >
+>;
+
+export type ClubAuditLogContentState =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'empty'
+  | 'error'
+  | 'access-denied';
+
+export type ClubAuditLogScreenState = {
+  items: ClubAuditLogItem[];
+  filters: ClubAuditFilters;
+  contentState: ClubAuditLogContentState;
+  nextCursor: string | null;
+  isInitialLoading: boolean;
+  isRefreshing: boolean;
+  isLoadingMore: boolean;
+  errorMessage: string | null;
+  canRetry: boolean;
+  canLoadMore: boolean;
+  setActionFilter: (value: string) => void;
+  setTargetUserIdFilter: (value: string) => void;
+  setEntityTypeFilter: (value: string) => void;
+  setFromFilter: (value: string) => void;
+  setToFilter: (value: string) => void;
+  clearFilters: () => void;
+  handleRetry: () => Promise<void>;
+  handleRefresh: () => Promise<void>;
+  handleLoadMore: () => Promise<void>;
 };

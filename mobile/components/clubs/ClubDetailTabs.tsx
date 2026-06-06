@@ -7,6 +7,7 @@ import type { ClubDetailTabKey } from '../../types/clubs';
 type Props = {
   activeTab: ClubDetailTabKey;
   colors: ClubsThemeColors;
+  showAudit?: boolean;
   onChangeTab: (tab: ClubDetailTabKey) => void;
 };
 
@@ -25,8 +26,13 @@ const TABS: TabItem[] = [
 export default function ClubDetailTabs({
   activeTab,
   colors,
+  showAudit = false,
   onChangeTab,
 }: Props) {
+  const tabs = showAudit
+    ? [...TABS, { key: 'audit' as const, label: 'Auditoria' }]
+    : TABS;
+
   return (
     <View
       testID="club-detail-tabs"
@@ -37,7 +43,7 @@ export default function ClubDetailTabs({
         },
       ]}
     >
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const isActive = tab.key === activeTab;
         const contentColor = isActive ? colors.green : colors.muted;
 

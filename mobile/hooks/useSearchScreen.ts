@@ -14,6 +14,11 @@ import {
   removeRecentSearch,
   saveRecentSearch,
 } from '../services/recentSearches';
+import {
+  clearSearchFilters,
+  loadSearchFilters,
+  saveSearchFilters,
+} from '../services/searchPreferences';
 import type {
   SearchClubItem,
   SearchContentItem,
@@ -176,6 +181,11 @@ export function useSearchScreen(
   const paginationRequestIdRef = useRef(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipNextDebouncedSearchRef = useRef<string | null>(null);
+  const searchPreferencesLoadIdRef = useRef(0);
+  const filtersChangedByUserRef = useRef(false);
+  const lastSearchPreferencesUserIdRef = useRef<string | null | undefined>(
+    undefined,
+  );
 
   const trimmedQuery = query.trim();
   const normalizedFilters = useMemo(() => normalizeFilters(filters), [filters]);
@@ -317,6 +327,31 @@ export function useSearchScreen(
       isMounted = false;
     };
   }, [applyResolvedUserId, resolveRecentSearchesUserId]);
+
+  useEffect(() => {
+    const preferencesUserId = currentUserId?.trim() || null;
+    const loadId = searchPreferencesLoadIdRef.current + 1;
+
+    searchPreferencesLoadIdRef.current = loadId;
+
+    if (lastSearchPreferencesUserIdRef.current !== preferencesUserId) {
+      filtersChangedByUserRef.current = false;
+      lastSearchPreferencesUserIdRef.current = preferencesUserId;
+      setFilters(EMPTY_SEARCH_FILTERS);
+    }
+
+    void loadSearchFilters(preferencesUserId).then((storedFilters) => {
+      if (
+        searchPreferencesLoadIdRef.current !== loadId ||
+        filtersChangedByUserRef.current ||
+        !storedFilters
+      ) {
+        return;
+      }
+
+      setFilters(normalizeFilters(storedFilters));
+    });
+  }, [currentUserId]);
 
   const runImmediateSearch = useCallback(
     async (term: string) => {
@@ -753,16 +788,32 @@ export function useSearchScreen(
     options.onPressFilter?.();
   }, [options]);
 
-  const applyFilters = useCallback((nextFilters: SearchFilters) => {
-    cancelCurrentSearch();
-    cancelCurrentPagination();
-    setFilters(normalizeFilters(nextFilters));
-  }, [cancelCurrentPagination, cancelCurrentSearch]);
+  const applyFilters = useCallback(
+    (nextFilters: SearchFilters) => {
+      const normalizedNextFilters = normalizeFilters(nextFilters);
+      const userId = currentUserIdRef.current;
+
+      filtersChangedByUserRef.current = true;
+      cancelCurrentSearch();
+      cancelCurrentPagination();
+      setFilters(normalizedNextFilters);
+      if (areSearchFiltersActive(normalizedNextFilters)) {
+        void saveSearchFilters(userId, normalizedNextFilters);
+      } else {
+        void clearSearchFilters(userId);
+      }
+    },
+    [cancelCurrentPagination, cancelCurrentSearch],
+  );
 
   const clearFilters = useCallback(() => {
+    const userId = currentUserIdRef.current;
+
+    filtersChangedByUserRef.current = true;
     cancelCurrentSearch();
     cancelCurrentPagination();
     setFilters(EMPTY_SEARCH_FILTERS);
+    void clearSearchFilters(userId);
   }, [cancelCurrentPagination, cancelCurrentSearch]);
 
   const onPressUserResult = useCallback(

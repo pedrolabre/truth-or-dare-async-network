@@ -6,12 +6,14 @@ import ClubDetailScreen from '../app/clubs/[id]';
 import CreateGroupScreen from '../app/create-group';
 import FeedCommentsScreen from '../app/feed-comments';
 import { useClubDetailsScreen } from '../hooks/useClubDetailsScreen';
+import { useClubAuditLog } from '../hooks/useClubAuditLog';
 import { useClubFeed } from '../hooks/useClubFeed';
 import { useClubMembers } from '../hooks/useClubMembers';
 import { useClubsScreen } from '../hooks/useClubsScreen';
 import { useCreateGroupScreen } from '../hooks/useCreateGroupScreen';
 import { publishMyClubsUpsert } from '../services/clubsLocalUpdates';
 import type {
+  ClubAuditLogScreenState,
   ClubDetail,
   ClubFeedScreenState,
   ClubMembersScreenState,
@@ -61,6 +63,10 @@ jest.mock('../hooks/useClubDetailsScreen', () => ({
   useClubDetailsScreen: jest.fn(),
 }));
 
+jest.mock('../hooks/useClubAuditLog', () => ({
+  useClubAuditLog: jest.fn(),
+}));
+
 jest.mock('../hooks/useClubFeed', () => ({
   useClubFeed: jest.fn(),
 }));
@@ -92,6 +98,9 @@ jest.mock('../services/clubsLocalUpdates', () => ({
 
 const mockedUseClubDetailsScreen = useClubDetailsScreen as jest.MockedFunction<
   typeof useClubDetailsScreen
+>;
+const mockedUseClubAuditLog = useClubAuditLog as jest.MockedFunction<
+  typeof useClubAuditLog
 >;
 const mockedUseClubFeed = useClubFeed as jest.MockedFunction<typeof useClubFeed>;
 const mockedUseClubMembers = useClubMembers as jest.MockedFunction<
@@ -327,6 +336,39 @@ function makeMembersState(
   };
 }
 
+function makeAuditState(
+  overrides: Partial<ClubAuditLogScreenState> = {},
+): ClubAuditLogScreenState {
+  return {
+    items: [],
+    filters: {
+      action: null,
+      targetUserId: null,
+      entityType: null,
+      from: null,
+      to: null,
+    },
+    contentState: 'empty',
+    nextCursor: null,
+    isInitialLoading: false,
+    isRefreshing: false,
+    isLoadingMore: false,
+    errorMessage: null,
+    canRetry: true,
+    canLoadMore: false,
+    setActionFilter: jest.fn(),
+    setTargetUserIdFilter: jest.fn(),
+    setEntityTypeFilter: jest.fn(),
+    setFromFilter: jest.fn(),
+    setToFilter: jest.fn(),
+    clearFilters: jest.fn(),
+    handleRetry: jest.fn().mockResolvedValue(undefined),
+    handleRefresh: jest.fn().mockResolvedValue(undefined),
+    handleLoadMore: jest.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
 function makeClubsState(
   overrides: Partial<ReturnType<typeof useClubsScreen>> = {},
 ): ReturnType<typeof useClubsScreen> {
@@ -431,6 +473,7 @@ describe('club detail navigation coverage', () => {
       id: 'club-real-123',
     });
     mockedUseClubDetailsScreen.mockReturnValue(makeDetailState());
+    mockedUseClubAuditLog.mockReturnValue(makeAuditState());
     mockedUseClubFeed.mockReturnValue(makeFeedState());
     mockedUseClubMembers.mockReturnValue(makeMembersState());
     mockedUseClubsScreen.mockReturnValue(makeClubsState());

@@ -15,6 +15,11 @@ import {
   removeRecentSearch,
   saveRecentSearch,
 } from '../services/recentSearches';
+import {
+  clearSearchFilters,
+  loadSearchFilters,
+  saveSearchFilters,
+} from '../services/searchPreferences';
 import type {
   SearchClubItem,
   SearchContentItem,
@@ -38,6 +43,12 @@ jest.mock('../services/recentSearches', () => ({
   loadRecentSearches: jest.fn(),
   removeRecentSearch: jest.fn(),
   saveRecentSearch: jest.fn(),
+}));
+
+jest.mock('../services/searchPreferences', () => ({
+  clearSearchFilters: jest.fn(),
+  loadSearchFilters: jest.fn(),
+  saveSearchFilters: jest.fn(),
 }));
 
 const mockedGetMyProfile = getMyProfile as jest.MockedFunction<
@@ -65,6 +76,15 @@ const mockedRemoveRecentSearch = removeRecentSearch as jest.MockedFunction<
 >;
 const mockedClearRecentSearches = clearRecentSearches as jest.MockedFunction<
   typeof clearRecentSearches
+>;
+const mockedLoadSearchFilters = loadSearchFilters as jest.MockedFunction<
+  typeof loadSearchFilters
+>;
+const mockedSaveSearchFilters = saveSearchFilters as jest.MockedFunction<
+  typeof saveSearchFilters
+>;
+const mockedClearSearchFilters = clearSearchFilters as jest.MockedFunction<
+  typeof clearSearchFilters
 >;
 
 function makeUser(overrides: Partial<SearchUserItem> = {}): SearchUserItem {
@@ -193,6 +213,9 @@ describe('useSearchScreen', () => {
     mockedSaveRecentSearch.mockResolvedValue(undefined);
     mockedRemoveRecentSearch.mockResolvedValue(undefined);
     mockedClearRecentSearches.mockResolvedValue(undefined);
+    mockedLoadSearchFilters.mockResolvedValue(null);
+    mockedSaveSearchFilters.mockResolvedValue(undefined);
+    mockedClearSearchFilters.mockResolvedValue(undefined);
     mockedSearchUsers.mockResolvedValue(makeUserPage());
     mockedSearchClubs.mockResolvedValue(makeClubPage());
     mockedSearchContent.mockResolvedValue(makeContentPage());
@@ -231,6 +254,137 @@ describe('useSearchScreen', () => {
     });
 
     expect(mockedGetMyProfile).toHaveBeenCalledTimes(1);
+  });
+
+  it('restaura filtros salvos por usuario sem persistir termo bruto', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    mockedLoadSearchFilters.mockResolvedValue({
+      query: 'termo bruto nao deve voltar',
+      minLevel: 2,
+      maxLevel: 8,
+      onlineOnly: true,
+      clubVisibility: 'public',
+      clubTag: 'noite',
+    });
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.filters).toEqual({
+        minLevel: 2,
+        maxLevel: 8,
+        onlineOnly: true,
+        clubVisibility: 'public',
+        clubTag: 'noite',
+      });
+    });
+
+    expect(mockedLoadSearchFilters).toHaveBeenCalledWith('viewer-1');
+    expect(result.current.query).toBe('');
+  });
+
+  it('nao sobrescreve alteracao local quando leitura de filtros ainda esta pendente', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    const storedFilters = createDeferred<{
+      onlineOnly: boolean;
+      minLevel: number;
+    } | null>();
+    mockedLoadSearchFilters.mockReturnValue(storedFilters.promise);
+
+    const { result } = renderHook(() =>
+      useSearchScreen({ userId: 'viewer-1' }),
+    );
+
+    act(() => {
+      result.current.applyFilters({
+        onlineOnly: true,
+      });
+    });
+
+    await act(async () => {
+      storedFilters.resolve({
+        onlineOnly: false,
+        minLevel: 9,
+      });
+      await storedFilters.promise;
+    });
+
+    expect(result.current.filters).toEqual({
+      minLevel: null,
+      maxLevel: null,
+      onlineOnly: true,
+      clubVisibility: undefined,
+      clubTag: null,
+    });
+    expect(mockedSaveSearchFilters).toHaveBeenCalledWith('viewer-1', {
+      minLevel: null,
+      maxLevel: null,
+      onlineOnly: true,
+      clubVisibility: undefined,
+      clubTag: null,
+    });
+  });
+
+  it('salva, limpa e isola filtros quando usuario troca', async () => {
+    mockedLoadRecentSearches.mockResolvedValue([]);
+    mockedLoadSearchFilters
+      .mockResolvedValueOnce({
+        onlineOnly: true,
+      })
+      .mockResolvedValueOnce({
+        clubTag: 'outro-usuario',
+      });
+
+    const { result, rerender } = renderHook(
+      ({ userId }: { userId: string }) => useSearchScreen({ userId }),
+      {
+        initialProps: {
+          userId: 'viewer-1',
+        },
+      },
+    );
+
+    await waitFor(() => {
+      expect(result.current.filters.onlineOnly).toBe(true);
+    });
+
+    act(() => {
+      result.current.applyFilters({
+        query: 'termo bruto nao persiste',
+        clubVisibility: 'public',
+        clubTag: 'desafio',
+      });
+    });
+
+    expect(mockedSaveSearchFilters).toHaveBeenCalledWith('viewer-1', {
+      minLevel: null,
+      maxLevel: null,
+      onlineOnly: false,
+      clubVisibility: 'public',
+      clubTag: 'desafio',
+    });
+    expect(JSON.stringify(mockedSaveSearchFilters.mock.calls[0][1])).not.toContain(
+      'termo bruto',
+    );
+
+    act(() => {
+      result.current.clearFilters();
+    });
+
+    expect(mockedClearSearchFilters).toHaveBeenCalledWith('viewer-1');
+
+    rerender({
+      userId: 'viewer-2',
+    });
+
+    await waitFor(() => {
+      expect(mockedLoadSearchFilters).toHaveBeenLastCalledWith('viewer-2');
+    });
+    await waitFor(() => {
+      expect(result.current.filters.clubTag).toBe('outro-usuario');
+    });
   });
 
   it('mantem o hook utilizavel quando sugestoes ou recentes falham', async () => {

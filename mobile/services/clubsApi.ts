@@ -1,5 +1,7 @@
 import { getApiUrl, getToken, parseResponse } from './api';
 import type {
+  ClubAuditLogsApi,
+  ClubAuditLogsQueryApi,
   ClubDetailsApi,
   ClubFeedApi,
   ClubFeedOrderApi,
@@ -37,6 +39,43 @@ function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return error instanceof Error && error.message
     ? error.message
     : fallbackMessage;
+}
+
+function appendOptionalSearchParam(
+  searchParams: URLSearchParams,
+  key: string,
+  value: string | null | undefined,
+) {
+  const normalizedValue = value?.trim();
+
+  if (normalizedValue) {
+    searchParams.set(key, normalizedValue);
+  }
+}
+
+function buildClubAuditLogsUrl(
+  baseUrl: string,
+  clubId: string,
+  query: ClubAuditLogsQueryApi,
+) {
+  const searchParams = new URLSearchParams();
+
+  if (typeof query.limit === 'number' && Number.isFinite(query.limit)) {
+    searchParams.set('limit', String(query.limit));
+  }
+
+  appendOptionalSearchParam(searchParams, 'cursor', query.cursor);
+  appendOptionalSearchParam(searchParams, 'action', query.action);
+  appendOptionalSearchParam(searchParams, 'targetUserId', query.targetUserId);
+  appendOptionalSearchParam(searchParams, 'entityType', query.entityType);
+  appendOptionalSearchParam(searchParams, 'from', query.from);
+  appendOptionalSearchParam(searchParams, 'to', query.to);
+
+  const queryString = searchParams.toString();
+
+  return queryString
+    ? `${baseUrl}/clubs/${clubId}/audit-logs?${queryString}`
+    : `${baseUrl}/clubs/${clubId}/audit-logs`;
 }
 
 export async function createClub(
@@ -200,6 +239,44 @@ export async function getClubMembers(
     : `${baseUrl}/clubs/${clubId}/members`;
 
   const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    try {
+      await parseResponse(response);
+    } catch (error) {
+      throw new ClubsApiError(
+        response.status,
+        getErrorMessage(error, `Erro na requisicao (${response.status})`),
+      );
+    }
+
+    throw new ClubsApiError(
+      response.status,
+      `Erro na requisicao (${response.status})`,
+    );
+  }
+
+  return parseResponse(response);
+}
+
+export async function getClubAuditLogs(
+  clubId: string,
+  query: ClubAuditLogsQueryApi = {},
+): Promise<ClubAuditLogsApi> {
+  const baseUrl = getApiUrl();
+  const token = await getToken();
+
+  if (!token) {
+    throw new Error('Token nao encontrado');
+  }
+
+  const response = await fetch(buildClubAuditLogsUrl(baseUrl, clubId, query), {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

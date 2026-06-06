@@ -39,9 +39,9 @@ function normalizeName(
 
 function normalizeUsername(
   username: string | null | undefined,
-  userId: string,
+  _userId: string,
 ): string {
-  return trimToUndefined(username)?.replace(/^@/, '') || `usuario-${userId}`;
+  return trimToUndefined(username)?.replace(/^@/, '') || 'usuario';
 }
 
 function normalizeCount(value: number | null | undefined): number {
