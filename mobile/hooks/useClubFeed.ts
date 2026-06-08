@@ -322,6 +322,8 @@ export function useClubFeed({
     responseSubmittingPromptId,
     errorMessage,
     responseErrorMessage,
+    isFromCache: false,
+    syncErrorMessage: null,
     canRetry: Boolean(clubId) && canViewFeed && !isInitialLoading,
     hasRealPromptPagination: CLUB_FEED_HAS_REAL_PROMPT_PAGINATION,
     handleRetry,

@@ -57,6 +57,12 @@ export default function CreateGroupScreen() {
     memberSearchError,
     isSubmitting,
     createGroupError,
+    avatarDraft,
+    coverDraft,
+    isUploadingMedia,
+    isUploadingAvatar,
+    isUploadingCover,
+    mediaErrorMessage,
     selectedCount,
     nameError,
     descriptionError,
@@ -80,12 +86,18 @@ export default function CreateGroupScreen() {
     openIconModal,
     closeIconModal,
     selectIcon,
+    pickAvatarFromCamera,
+    pickAvatarFromGallery,
+    pickCoverFromCamera,
+    pickCoverFromGallery,
+    removeAvatarDraft,
+    removeCoverDraft,
     handleCreateGroup,
     retryCreateGroup,
   } = useCreateGroupScreen();
 
   const isSuccessPending = successMessage !== null;
-  const isCreateFlowLocked = isSubmitting || isSuccessPending;
+  const isCreateFlowLocked = isSubmitting || isUploadingMedia || isSuccessPending;
   const canPressCreate = canCreate && !isCreateFlowLocked;
 
   React.useEffect(() => {
@@ -204,9 +216,19 @@ export default function CreateGroupScreen() {
               descriptionWarning={descriptionWarning}
               descriptionCharacterCount={descriptionCharacterCount}
               descriptionMaxLength={descriptionMaxLength}
+              avatarPreviewUri={avatarDraft?.localUri ?? null}
+              coverPreviewUri={coverDraft?.localUri ?? null}
+              isUploadingAvatar={isUploadingAvatar}
+              isUploadingCover={isUploadingCover}
               onChangeName={setName}
               onChangeDescription={setDescription}
               onPressIcon={openIconModal}
+              onPickAvatarCamera={pickAvatarFromCamera}
+              onPickAvatarGallery={pickAvatarFromGallery}
+              onRemoveAvatar={removeAvatarDraft}
+              onPickCoverCamera={pickCoverFromCamera}
+              onPickCoverGallery={pickCoverFromGallery}
+              onRemoveCover={removeCoverDraft}
             />
 
             <CreateGroupSettingsCard
@@ -258,7 +280,9 @@ export default function CreateGroupScreen() {
                 <Text style={[styles.createButtonText, { color: colors.white }]}>
                   {isSuccessPending
                     ? 'Clube criado'
-                    : isSubmitting
+                    : isUploadingMedia
+                      ? 'Enviando midias...'
+                      : isSubmitting
                       ? 'Criando Grupo...'
                       : 'Criar Grupo'}
                 </Text>
@@ -278,6 +302,24 @@ export default function CreateGroupScreen() {
                     style={[styles.submitSuccessText, { color: colors.green }]}
                   >
                     {successMessage}
+                  </Text>
+                </View>
+              ) : null}
+
+              {mediaErrorMessage ? (
+                <View
+                  style={[
+                    styles.submitWarningBox,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.outline,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[styles.submitWarningText, { color: colors.muted }]}
+                  >
+                    {mediaErrorMessage}
                   </Text>
                 </View>
               ) : null}
@@ -421,6 +463,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   submitSuccessText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  submitWarningBox: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  submitWarningText: {
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '800',

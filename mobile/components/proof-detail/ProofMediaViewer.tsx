@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ProofDetailItem } from '../../types/proof';
 
@@ -14,6 +14,7 @@ type ProofMediaViewerProps = {
   accentColor: string;
   accentTextColor: string;
   onPressPlay?: () => void;
+  onPressOpenMedia?: () => void;
 };
 
 function formatDuration(durationSeconds?: number | null) {
@@ -27,6 +28,77 @@ function formatDuration(durationSeconds?: number | null) {
   return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+function getMediaIcon(mediaType: ProofDetailItem['mediaType']) {
+  if (mediaType === 'video') {
+    return 'videocam';
+  }
+
+  if (mediaType === 'audio') {
+    return 'mic';
+  }
+
+  if (mediaType === 'image') {
+    return 'image';
+  }
+
+  return 'insert-drive-file';
+}
+
+function getMediaTitle(mediaType: ProofDetailItem['mediaType']) {
+  if (mediaType === 'video') {
+    return 'Video da prova';
+  }
+
+  if (mediaType === 'audio') {
+    return 'Audio da prova';
+  }
+
+  if (mediaType === 'image') {
+    return 'Imagem da prova';
+  }
+
+  return 'Arquivo da prova';
+}
+
+function getMediaSubtitle(
+  mediaType: ProofDetailItem['mediaType'],
+  hasMedia: boolean,
+) {
+  if (!hasMedia) {
+    return 'Midia indisponivel para visualizacao.';
+  }
+
+  if (mediaType === 'video') {
+    return 'Abra o video para assistir no player do dispositivo.';
+  }
+
+  if (mediaType === 'audio') {
+    return 'Abra o audio para ouvir no player do dispositivo.';
+  }
+
+  if (mediaType === 'file') {
+    return 'Abra o arquivo para visualizar no aplicativo compativel.';
+  }
+
+  return 'Imagem carregada a partir da prova enviada.';
+}
+
+function getInfoTag(proof: ProofDetailItem) {
+  if (proof.mediaType === 'video') {
+    return `${formatDuration(proof.durationSeconds)} / VIDEO`;
+  }
+
+  if (proof.mediaType === 'audio') {
+    return `${formatDuration(proof.durationSeconds)} / AUDIO`;
+  }
+
+  if (proof.mediaType === 'image') {
+    return 'IMAGEM';
+  }
+
+  return 'ARQUIVO';
+}
+
 export default function ProofMediaViewer({
   proof,
   backgroundColor,
@@ -37,8 +109,15 @@ export default function ProofMediaViewer({
   accentColor,
   accentTextColor,
   onPressPlay,
+  onPressOpenMedia,
 }: ProofMediaViewerProps) {
-  const isVideo = proof.mediaType === 'video';
+  const hasMedia = Boolean(proof.mediaUri || proof.thumbnailUri);
+  const isImage = proof.mediaType === 'image';
+  const canOpenExternally =
+    proof.mediaType === 'video' ||
+    proof.mediaType === 'audio' ||
+    proof.mediaType === 'file';
+  const openMedia = onPressOpenMedia ?? onPressPlay;
 
   return (
     <View
@@ -51,46 +130,56 @@ export default function ProofMediaViewer({
       ]}
     >
       <View style={[styles.mediaArea, { backgroundColor: overlayColor }]}>
-        <View style={styles.mediaTint} />
+        {isImage && proof.mediaUri ? (
+          <Image
+            source={{ uri: proof.mediaUri }}
+            resizeMode="cover"
+            style={styles.realImage}
+          />
+        ) : (
+          <View style={styles.mediaTint} />
+        )}
 
-        <View style={styles.mediaContent}>
-          <View style={[styles.mediaIconWrap, { backgroundColor: accentColor }]}>
-            <MaterialIcons
-              name={isVideo ? 'videocam' : 'image'}
-              size={30}
-              color={accentTextColor}
-            />
+        {!isImage || !proof.mediaUri ? (
+          <View style={styles.mediaContent}>
+            <View style={[styles.mediaIconWrap, { backgroundColor: accentColor }]}>
+              <MaterialIcons
+                name={getMediaIcon(proof.mediaType)}
+                size={30}
+                color={accentTextColor}
+              />
+            </View>
+
+            <Text style={[styles.mediaTitle, { color: titleColor }]}>
+              {getMediaTitle(proof.mediaType)}
+            </Text>
+
+            <Text style={[styles.mediaSubtitle, { color: metaColor }]}>
+              {getMediaSubtitle(proof.mediaType, hasMedia)}
+            </Text>
           </View>
+        ) : null}
 
-          <Text style={[styles.mediaTitle, { color: titleColor }]}>
-            {isVideo ? 'Prévia do vídeo da prova' : 'Prévia da imagem da prova'}
-          </Text>
-
-          <Text style={[styles.mediaSubtitle, { color: metaColor }]}>
-            {isVideo
-              ? 'Área pronta para player de vídeo real'
-              : 'Área pronta para visualizador de imagem real'}
-          </Text>
-        </View>
-
-        {isVideo ? (
+        {canOpenExternally && hasMedia ? (
           <Pressable
-            onPress={onPressPlay}
+            onPress={openMedia}
             style={({ pressed }) => [
               styles.playButton,
               { backgroundColor: accentColor },
               pressed && styles.pressed,
             ]}
           >
-            <MaterialIcons name="play-arrow" size={34} color={accentTextColor} />
+            <MaterialIcons
+              name={proof.mediaType === 'video' ? 'play-arrow' : 'open-in-new'}
+              size={34}
+              color={accentTextColor}
+            />
           </Pressable>
         ) : null}
 
         <View style={styles.infoTag}>
           <Text style={[styles.infoTagText, { color: titleColor }]}>
-            {isVideo
-              ? `${formatDuration(proof.durationSeconds)} / PREVIEW`
-              : 'IMAGEM / PREVIEW'}
+            {getInfoTag(proof)}
           </Text>
         </View>
 
@@ -122,6 +211,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  realImage: {
+    width: '100%',
+    height: '100%',
+  },
   mediaTint: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.25,
@@ -146,7 +239,6 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: '900',
     textAlign: 'center',
-    letterSpacing: -0.5,
   },
   mediaSubtitle: {
     fontSize: 13,

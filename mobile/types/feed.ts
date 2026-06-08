@@ -33,7 +33,7 @@ export type FeedDareItem = {
   completedAt: string | null;
   expiresAt: string | null;
   proofId: string | null;
-  proofMediaType: 'video' | 'audio' | 'file' | null;
+  proofMediaType: 'image' | 'video' | 'audio' | 'file' | null;
   proofFileUrl: string | null;
   proofThumbnailUrl: string | null;
   interactionDisabled: boolean;

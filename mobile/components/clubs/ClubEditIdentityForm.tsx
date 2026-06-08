@@ -18,6 +18,7 @@ import type {
   ClubIconNameApi,
   ClubVisibilityApi,
 } from '../../types/clubsApi';
+import EditableImageField from '../media/EditableImageField';
 
 type MaterialIconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -53,6 +54,10 @@ type Props = {
   visibility: ClubVisibilityApi;
   selectedIcon: ClubIconNameApi;
   selectedTags: string[];
+  avatarPreviewUri?: string | null;
+  coverPreviewUri?: string | null;
+  isUploadingAvatar?: boolean;
+  isUploadingCover?: boolean;
   nameError: string | null;
   descriptionError: string | null;
   rulesError: string | null;
@@ -67,6 +72,12 @@ type Props = {
   onChangeVisibility: (value: ClubVisibilityApi) => void;
   onSelectIcon: (value: ClubIconNameApi) => void;
   onToggleTag: (value: string) => void;
+  onPickAvatarCamera: () => void;
+  onPickAvatarGallery: () => void;
+  onRemoveAvatar: () => void;
+  onPickCoverCamera: () => void;
+  onPickCoverGallery: () => void;
+  onRemoveCover: () => void;
 };
 
 export default function ClubEditIdentityForm({
@@ -77,6 +88,10 @@ export default function ClubEditIdentityForm({
   visibility,
   selectedIcon,
   selectedTags,
+  avatarPreviewUri,
+  coverPreviewUri,
+  isUploadingAvatar = false,
+  isUploadingCover = false,
   nameError,
   descriptionError,
   rulesError,
@@ -91,11 +106,58 @@ export default function ClubEditIdentityForm({
   onChangeVisibility,
   onSelectIcon,
   onToggleTag,
+  onPickAvatarCamera,
+  onPickAvatarGallery,
+  onRemoveAvatar,
+  onPickCoverCamera,
+  onPickCoverGallery,
+  onRemoveCover,
 }: Props) {
   const showNameError = name.length > 0 && nameError !== null;
+  const mediaColors = {
+    surface: colors.surface,
+    surfaceSoft: colors.surfaceSoft,
+    border: colors.cardBorder,
+    outline: colors.cardBorder,
+    text: colors.text,
+    muted: colors.muted,
+    green: colors.green,
+    red: colors.red,
+    white: colors.white,
+  };
 
   return (
     <View testID="club-edit-identity-form" style={styles.form}>
+      <View style={styles.mediaFields}>
+        <EditableImageField
+          colors={mediaColors}
+          title="Avatar"
+          helperText="Imagem quadrada exibida em listas e no perfil."
+          imageUri={avatarPreviewUri}
+          variant="avatar"
+          fallbackIconName={selectedIcon}
+          isUploading={isUploadingAvatar}
+          loadingLabel="Enviando avatar..."
+          onCamera={onPickAvatarCamera}
+          onGallery={onPickAvatarGallery}
+          onRemove={onRemoveAvatar}
+        />
+
+        <EditableImageField
+          colors={mediaColors}
+          title="Capa"
+          helperText="Imagem horizontal exibida no topo do clube."
+          imageUri={coverPreviewUri}
+          variant="cover"
+          fallbackIconName="panorama"
+          isUploading={isUploadingCover}
+          loadingLabel="Enviando capa..."
+          onCamera={onPickCoverCamera}
+          onGallery={onPickCoverGallery}
+          onRemove={onRemoveCover}
+        />
+      </View>
+
       <View style={styles.fieldBlock}>
         <Text style={[styles.fieldLabel, { color: colors.green }]}>
           Nome
@@ -360,6 +422,9 @@ function TagChip({
 const styles = StyleSheet.create({
   form: {
     gap: 18,
+  },
+  mediaFields: {
+    gap: 16,
   },
   fieldBlock: {
     gap: 8,

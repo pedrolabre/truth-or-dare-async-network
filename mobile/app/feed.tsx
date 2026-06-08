@@ -400,6 +400,24 @@ export default function FeedScreen() {
         });
       }
 }
+                      onPressOpenProof={(dareItem) => {
+                        if (!dareItem.proofId) {
+                          return;
+                        }
+
+                        router.push({
+                          pathname: '/proof-detail',
+                          params: {
+                            proofId: dareItem.proofId,
+                            dareId: dareItem.id,
+                            title: dareItem.title,
+                            challenger: dareItem.challenger,
+                            mediaType: dareItem.proofMediaType ?? '',
+                            localUri: dareItem.proofFileUrl ?? '',
+                            source: 'backend',
+                          },
+                        });
+                      }}
                       onPressShare={(id) => {
                         console.log('Compartilhar desafio:', id);
                       }}

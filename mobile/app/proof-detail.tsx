@@ -1,6 +1,9 @@
+import { MaterialIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
 import {
-  Image,
+  ActivityIndicator,
+  Linking,
   Pressable,
   ScrollView,
   StatusBar,
@@ -8,17 +11,15 @@ import {
   Text,
   View,
 } from 'react-native';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useTheme } from '../context/ThemeContext';
+import ProofMediaViewer from '../components/proof-detail/ProofMediaViewer';
 import {
   DARK_PROOF_DETAIL_COLORS,
   LIGHT_PROOF_DETAIL_COLORS,
 } from '../constants/proofDetailTheme';
-
-type LocalProofMediaType = 'video' | 'audio' | 'file';
+import { useTheme } from '../context/ThemeContext';
+import { useProofDetailScreen } from '../hooks/useProofDetailScreen';
 
 type ProofDetailRouteParams = {
   proofId?: string | string[];
@@ -33,83 +34,20 @@ type ProofDetailRouteParams = {
   source?: string | string[];
 };
 
-function getParamValue(value?: string | string[]) {
-  if (Array.isArray(value)) {
-    return value[0];
+function getMediaTypeLabel(mediaType: string) {
+  if (mediaType === 'image') {
+    return 'Imagem';
   }
 
-  return value;
-}
-
-function getMediaType(value?: string | string[]): LocalProofMediaType {
-  const mediaType = getParamValue(value);
-
-  if (mediaType === 'video' || mediaType === 'audio' || mediaType === 'file') {
-    return mediaType;
-  }
-
-  return 'file';
-}
-
-function formatDuration(value?: string | string[]) {
-  const rawValue = getParamValue(value);
-  const durationSeconds = rawValue ? Number(rawValue) : 0;
-
-  if (!durationSeconds || Number.isNaN(durationSeconds) || durationSeconds <= 0) {
-    return 'Duração não informada';
-  }
-
-  const minutes = Math.floor(durationSeconds / 60);
-  const seconds = durationSeconds % 60;
-
-  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-}
-
-function isImageFile(fileName?: string | null, localUri?: string | null) {
-  const source = `${fileName ?? ''} ${localUri ?? ''}`.toLowerCase();
-
-  return (
-    source.includes('.jpg') ||
-    source.includes('.jpeg') ||
-    source.includes('.png') ||
-    source.includes('.webp')
-  );
-}
-
-function getMediaLabel(mediaType: LocalProofMediaType) {
   if (mediaType === 'video') {
-    return 'Vídeo em rascunho';
+    return 'Video';
   }
 
   if (mediaType === 'audio') {
-    return 'Áudio em rascunho';
+    return 'Audio';
   }
 
-  return 'Arquivo em rascunho';
-}
-
-function getMediaIcon(mediaType: LocalProofMediaType) {
-  if (mediaType === 'video') {
-    return 'videocam';
-  }
-
-  if (mediaType === 'audio') {
-    return 'mic';
-  }
-
-  return 'insert-drive-file';
-}
-
-function getMediaDescription(mediaType: LocalProofMediaType) {
-  if (mediaType === 'video') {
-    return 'Vídeo selecionado localmente. O player real pode ser conectado depois, sem depender de Storage agora.';
-  }
-
-  if (mediaType === 'audio') {
-    return 'Áudio gravado ou selecionado localmente. A tela já está preparada para o fluxo de rascunho.';
-  }
-
-  return 'Arquivo selecionado localmente. A tela não tenta abrir o arquivo para evitar comportamento quebrado.';
+  return 'Arquivo';
 }
 
 export default function ProofDetailScreen() {
@@ -117,29 +55,43 @@ export default function ProofDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
+  const [openErrorMessage, setOpenErrorMessage] = React.useState<string | null>(
+    null,
+  );
 
   const colors = isDark
     ? DARK_PROOF_DETAIL_COLORS
     : LIGHT_PROOF_DETAIL_COLORS;
+  const { proof, state, contentState, errorMessage, handleRetry } =
+    useProofDetailScreen(params);
 
-  const mediaType = getMediaType(params.mediaType);
-  const localUri = getParamValue(params.localUri) ?? null;
-  const fileName = getParamValue(params.fileName) ?? null;
-  const title = getParamValue(params.title) ?? 'Desafio';
-  const challenger = getParamValue(params.challenger) ?? 'Autor não informado';
-  const text = getParamValue(params.text) ?? '';
-  const dareId = getParamValue(params.dareId) ?? '';
-  const proofId = getParamValue(params.proofId) ?? 'proof-draft-local';
-  const durationLabel = formatDuration(params.durationSeconds);
-  const isLocalDraft = getParamValue(params.source) === 'local-draft';
+  async function handleOpenMedia() {
+    const mediaUri = proof.mediaUri?.trim();
 
-  const shouldShowImagePreview =
-    mediaType === 'file' && !!localUri && isImageFile(fileName, localUri);
+    if (!mediaUri) {
+      setOpenErrorMessage('Midia indisponivel para abrir.');
+      return;
+    }
 
-  const accentColor = colors.primary;
-  const accentSoftColor = isDark
-    ? 'rgba(225,29,46,0.18)'
-    : 'rgba(215,0,21,0.10)';
+    try {
+      setOpenErrorMessage(null);
+      await Linking.openURL(mediaUri);
+    } catch {
+      setOpenErrorMessage('Nao foi possivel abrir esta midia no dispositivo.');
+    }
+  }
+
+  const isLoading = contentState === 'loading';
+  const isError =
+    contentState === 'error' ||
+    contentState === 'access-denied' ||
+    contentState === 'not-found';
+  const statusTitle =
+    contentState === 'local-draft' ? 'Rascunho local' : 'Prova carregada';
+  const statusDescription =
+    contentState === 'local-draft'
+      ? 'Esta tela mostra a midia que ainda esta no celular.'
+      : 'Dados da prova carregados a partir do backend.';
 
   return (
     <View style={[styles.root, { backgroundColor: colors.headerBackground }]}>
@@ -149,30 +101,6 @@ export default function ProofDetailScreen() {
       />
 
       <View style={[styles.screen, { backgroundColor: colors.background }]}>
-        <View pointerEvents="none" style={styles.backgroundLayer}>
-          <View
-            style={[
-              styles.blurBlob,
-              styles.blurTop,
-              { backgroundColor: accentColor, opacity: isDark ? 0.12 : 0.08 },
-            ]}
-          />
-          <View
-            style={[
-              styles.blurBlob,
-              styles.blurRight,
-              { backgroundColor: colors.comment, opacity: isDark ? 0.1 : 0.06 },
-            ]}
-          />
-          <View
-            style={[
-              styles.blurBlob,
-              styles.blurBottom,
-              { backgroundColor: colors.like, opacity: isDark ? 0.08 : 0.05 },
-            ]}
-          />
-        </View>
-
         <View
           style={[
             styles.header,
@@ -201,7 +129,7 @@ export default function ProofDetailScreen() {
               VISUALIZAR PROVA
             </Text>
             <Text style={[styles.headerTitle, { color: colors.headerText }]}>
-              Rascunho local
+              {contentState === 'local-draft' ? 'Rascunho' : 'Backend'}
             </Text>
           </View>
 
@@ -223,178 +151,249 @@ export default function ProofDetailScreen() {
               PROVA DO DESAFIO
             </Text>
 
-            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>
+              {proof.relatedChallenge.title}
+            </Text>
 
             <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-              Criado por {challenger}
+              Criado por {proof.author.name}
             </Text>
           </View>
 
-          <View
-            style={[
-              styles.statusCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderSoft,
-              },
-            ]}
-          >
+          {isLoading ? (
             <View
               style={[
-                styles.statusIcon,
+                styles.statusCard,
                 {
-                  backgroundColor: accentSoftColor,
-                },
-              ]}
-            >
-              <MaterialIcons
-                name={isLocalDraft ? 'phone-android' : 'cloud-done'}
-                size={22}
-                color={accentColor}
-              />
-            </View>
-
-            <View style={styles.statusTextWrap}>
-              <Text style={[styles.statusTitle, { color: colors.text }]}>
-                {isLocalDraft
-                  ? 'Prova local ainda não enviada'
-                  : 'Prova carregada'}
-              </Text>
-
-              <Text style={[styles.statusDescription, { color: colors.textMuted }]}>
-                {isLocalDraft
-                  ? 'Esta tela mostra a mídia que está no celular. Ela ainda não foi enviada para Storage nem salva como proof final no backend.'
-                  : 'Esta prova possui dados carregados para visualização.'}
-              </Text>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.mediaCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderSoft,
-              },
-            ]}
-          >
-            <View
-              style={[
-                styles.mediaPreview,
-                {
-                  backgroundColor: colors.mediaBackground,
+                  backgroundColor: colors.surface,
                   borderColor: colors.borderSoft,
                 },
               ]}
             >
-              {shouldShowImagePreview ? (
-                <Image source={{ uri: localUri }} style={styles.imagePreview} />
-              ) : (
-                <View style={styles.mediaFallback}>
-                  <View
-                    style={[
-                      styles.mediaIconWrap,
-                      {
-                        backgroundColor: accentColor,
-                      },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name={getMediaIcon(mediaType)}
-                      size={34}
-                      color="#ffffff"
-                    />
-                  </View>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.statusTitle, { color: colors.text }]}>
+                Carregando prova...
+              </Text>
+            </View>
+          ) : null}
 
-                  <Text style={[styles.mediaTitle, { color: colors.text }]}>
-                    {getMediaLabel(mediaType)}
+          {isError ? (
+            <View
+              style={[
+                styles.stateCard,
+                {
+                  backgroundColor: colors.surface,
+                  borderColor: colors.borderSoft,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.statusIcon,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(225,29,46,0.18)'
+                      : 'rgba(215,0,21,0.10)',
+                  },
+                ]}
+              >
+                <MaterialIcons
+                  name={
+                    contentState === 'access-denied'
+                      ? 'lock-outline'
+                      : 'error-outline'
+                  }
+                  size={22}
+                  color={colors.primary}
+                />
+              </View>
+              <Text style={[styles.statusTitle, { color: colors.text }]}>
+                Nao foi possivel abrir a prova
+              </Text>
+              <Text style={[styles.statusDescription, { color: colors.textMuted }]}>
+                {errorMessage}
+              </Text>
+              <Pressable
+                onPress={() => {
+                  void handleRetry();
+                }}
+                style={({ pressed }) => [
+                  styles.retryButton,
+                  { backgroundColor: colors.primary },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.retryButtonText, { color: '#ffffff' }]}>
+                  Tentar novamente
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {!isLoading && !isError ? (
+            <>
+              <View
+                style={[
+                  styles.statusCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.borderSoft,
+                  },
+                ]}
+              >
+                <View
+                  style={[
+                    styles.statusIcon,
+                    {
+                      backgroundColor: isDark
+                        ? 'rgba(225,29,46,0.18)'
+                        : 'rgba(215,0,21,0.10)',
+                    },
+                  ]}
+                >
+                  <MaterialIcons
+                    name={
+                      contentState === 'local-draft'
+                        ? 'phone-android'
+                        : 'cloud-done'
+                    }
+                    size={22}
+                    color={colors.primary}
+                  />
+                </View>
+
+                <View style={styles.statusTextWrap}>
+                  <Text style={[styles.statusTitle, { color: colors.text }]}>
+                    {statusTitle}
                   </Text>
 
-                  <Text style={[styles.mediaDescription, { color: colors.textMuted }]}>
-                    {getMediaDescription(mediaType)}
+                  <Text
+                    style={[styles.statusDescription, { color: colors.textMuted }]}
+                  >
+                    {statusDescription}
                   </Text>
                 </View>
-              )}
-            </View>
-
-            <View style={styles.mediaInfoStack}>
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: colors.textSoft }]}>
-                  Tipo
-                </Text>
-                <Text style={[styles.infoValue, { color: colors.text }]}>
-                  {getMediaLabel(mediaType)}
-                </Text>
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: colors.textSoft }]}>
-                  Arquivo
-                </Text>
-                <Text
-                  numberOfLines={2}
-                  style={[styles.infoValue, { color: colors.text }]}
+              {state.isFromCache ? (
+                <View
+                  style={[
+                    styles.cacheNotice,
+                    {
+                      backgroundColor: colors.surface,
+                      borderColor: colors.borderSoft,
+                    },
+                  ]}
                 >
-                  {fileName || 'Nome não informado'}
+                  <MaterialIcons
+                    name="info-outline"
+                    size={17}
+                    color={colors.textMuted}
+                  />
+                  <Text style={[styles.cacheNoticeText, { color: colors.textMuted }]}>
+                    Dados salvos neste dispositivo
+                  </Text>
+                </View>
+              ) : null}
+
+              <ProofMediaViewer
+                proof={proof}
+                backgroundColor={colors.surface}
+                overlayColor={colors.mediaBackground}
+                borderColor={colors.borderSoft}
+                titleColor={colors.text}
+                metaColor={colors.textMuted}
+                accentColor={colors.primary}
+                accentTextColor="#ffffff"
+                onPressOpenMedia={handleOpenMedia}
+              />
+
+              {openErrorMessage ? (
+                <Text style={[styles.feedbackText, { color: colors.primary }]}>
+                  {openErrorMessage}
                 </Text>
+              ) : null}
+
+              <View
+                style={[
+                  styles.mediaInfoStack,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.borderSoft,
+                  },
+                ]}
+              >
+                <InfoRow
+                  label="Tipo"
+                  value={getMediaTypeLabel(proof.mediaType)}
+                  labelColor={colors.textSoft}
+                  valueColor={colors.text}
+                />
+                <InfoRow
+                  label="Autor"
+                  value={proof.author.name}
+                  labelColor={colors.textSoft}
+                  valueColor={colors.text}
+                />
+                <InfoRow
+                  label="Criado em"
+                  value={proof.createdAtLabel}
+                  labelColor={colors.textSoft}
+                  valueColor={colors.text}
+                />
+                <InfoRow
+                  label="Dare ID"
+                  value={proof.challengeId}
+                  labelColor={colors.textSoft}
+                  valueColor={colors.text}
+                />
+                <InfoRow
+                  label="Proof ID"
+                  value={proof.id}
+                  labelColor={colors.textSoft}
+                  valueColor={colors.text}
+                />
               </View>
 
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: colors.textSoft }]}>
-                  Duração
+              <View
+                style={[
+                  styles.textCard,
+                  {
+                    backgroundColor: colors.surface,
+                    borderColor: colors.borderSoft,
+                  },
+                ]}
+              >
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>
+                  Texto da prova
                 </Text>
-                <Text style={[styles.infoValue, { color: colors.text }]}>
-                  {mediaType === 'file' ? 'Não se aplica' : durationLabel}
+
+                <Text style={[styles.proofText, { color: colors.textMuted }]}>
+                  {proof.description}
                 </Text>
               </View>
-
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: colors.textSoft }]}>
-                  Dare ID
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.infoValue, { color: colors.text }]}
-                >
-                  {dareId || 'Não informado'}
-                </Text>
-              </View>
-
-              <View style={styles.infoRow}>
-                <Text style={[styles.infoLabel, { color: colors.textSoft }]}>
-                  Proof ID
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.infoValue, { color: colors.text }]}
-                >
-                  {proofId}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View
-            style={[
-              styles.textCard,
-              {
-                backgroundColor: colors.surface,
-                borderColor: colors.borderSoft,
-              },
-            ]}
-          >
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>
-              Texto da prova
-            </Text>
-
-            <Text style={[styles.proofText, { color: colors.textMuted }]}>
-              {text.trim()
-                ? text.trim()
-                : 'Nenhum texto foi adicionado. O comentário da prova é opcional.'}
-            </Text>
-          </View>
+            </>
+          ) : null}
         </ScrollView>
       </View>
+    </View>
+  );
+}
+
+type InfoRowProps = {
+  label: string;
+  value: string;
+  labelColor: string;
+  valueColor: string;
+};
+
+function InfoRow({ label, value, labelColor, valueColor }: InfoRowProps) {
+  return (
+    <View style={styles.infoRow}>
+      <Text style={[styles.infoLabel, { color: labelColor }]}>{label}</Text>
+      <Text numberOfLines={2} style={[styles.infoValue, { color: valueColor }]}>
+        {value || 'Nao informado'}
+      </Text>
     </View>
   );
 }
@@ -405,32 +404,6 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-  },
-  backgroundLayer: {
-    ...StyleSheet.absoluteFillObject,
-    overflow: 'hidden',
-  },
-  blurBlob: {
-    position: 'absolute',
-    borderRadius: 999,
-  },
-  blurTop: {
-    width: 260,
-    height: 260,
-    top: -100,
-    left: -80,
-  },
-  blurRight: {
-    width: 220,
-    height: 220,
-    top: 220,
-    right: -100,
-  },
-  blurBottom: {
-    width: 320,
-    height: 320,
-    bottom: -150,
-    left: 30,
   },
   header: {
     minHeight: 92,
@@ -485,7 +458,6 @@ const styles = StyleSheet.create({
     fontSize: 30,
     lineHeight: 34,
     fontWeight: '900',
-    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 14,
@@ -497,6 +469,7 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     padding: 16,
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 14,
   },
   statusIcon: {
@@ -520,51 +493,44 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '500',
   },
-  mediaCard: {
+  stateCard: {
     borderWidth: 1,
     borderRadius: 24,
-    padding: 16,
-    gap: 16,
-  },
-  mediaPreview: {
-    minHeight: 230,
-    borderRadius: 22,
-    borderWidth: 1,
-    overflow: 'hidden',
-  },
-  imagePreview: {
-    width: '100%',
-    height: 230,
-    resizeMode: 'cover',
-  },
-  mediaFallback: {
-    minHeight: 230,
-    padding: 22,
+    padding: 18,
     alignItems: 'center',
-    justifyContent: 'center',
     gap: 12,
   },
-  mediaIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 28,
+  retryButton: {
+    minHeight: 42,
+    borderRadius: 999,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  mediaTitle: {
-    fontSize: 20,
-    lineHeight: 24,
+  retryButtonText: {
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '900',
-    textAlign: 'center',
   },
-  mediaDescription: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontWeight: '600',
-    textAlign: 'center',
-    maxWidth: 270,
+  cacheNotice: {
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cacheNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
   },
   mediaInfoStack: {
+    borderWidth: 1,
+    borderRadius: 22,
+    padding: 16,
     gap: 12,
   },
   infoRow: {
@@ -597,6 +563,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontWeight: '500',
+  },
+  feedbackText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '800',
   },
   pressed: {
     opacity: 0.72,

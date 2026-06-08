@@ -176,7 +176,7 @@ export type ClubPromptResponseApi = {
   userName: string;
   text: string | null;
   mediaUrl: string | null;
-  mediaType: 'video' | 'audio' | 'file' | null;
+  mediaType: 'image' | 'video' | 'audio' | 'file' | null;
   dareProofId: string | null;
   attemptsUsed: number;
   completedAt: string | null;
@@ -191,7 +191,7 @@ export type ClubPromptResponseSummaryApi = ClubPromptResponseApi;
 export type CreateClubPromptResponsePayloadApi = {
   text?: string | null;
   mediaUrl?: string | null;
-  mediaType?: 'video' | 'audio' | 'file' | null;
+  mediaType?: 'image' | 'video' | 'audio' | 'file' | null;
   dareProofId?: string | null;
 };
 

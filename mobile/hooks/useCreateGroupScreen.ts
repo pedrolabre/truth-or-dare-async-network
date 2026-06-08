@@ -10,8 +10,22 @@ import {
   normalizeCreateGroupTag,
 } from '../constants/createGroupTags';
 import { getUsers, type ChallengeUser } from '../services/api';
-import { createClub } from '../services/clubsApi';
-import type { ClubDetailsApi, ClubVisibilityApi } from '../types/clubsApi';
+import { createClub, updateClub } from '../services/clubsApi';
+import {
+  CLUB_AVATAR_PICKER_OPTIONS,
+  CLUB_COVER_PICKER_OPTIONS,
+  MediaPickerError,
+  pickImageFromCamera,
+  pickImageFromGallery,
+  type MediaPickerImageOptions,
+  type PickedImageFile,
+} from '../services/mediaPicker';
+import { uploadAppFile } from '../services/uploads';
+import type {
+  ClubDetailsApi,
+  ClubVisibilityApi,
+  UpdateClubPayloadApi,
+} from '../types/clubsApi';
 import type {
   CreateGroupMemberOption,
   CreateGroupSubmitPayload,
@@ -31,11 +45,24 @@ type SearchUsers = (query?: string) => Promise<ChallengeUser[]>;
 type SubmitCreateClub = (
   payload: CreateGroupSubmitPayload,
 ) => Promise<ClubDetailsApi>;
+type SubmitUpdateClub = (
+  clubId: string,
+  payload: UpdateClubPayloadApi,
+) => Promise<ClubDetailsApi>;
+type PickClubImage = (
+  options?: MediaPickerImageOptions,
+) => Promise<PickedImageFile | null>;
+type UploadClubMedia = typeof uploadAppFile;
+type ClubMediaTarget = 'avatar' | 'cover';
 
 type UseCreateGroupScreenOptions = {
   searchUsers?: SearchUsers;
   memberSearchDebounceMs?: number;
   submitCreateClub?: SubmitCreateClub;
+  submitUpdateClub?: SubmitUpdateClub;
+  uploadFile?: UploadClubMedia;
+  pickCameraImage?: PickClubImage;
+  pickGalleryImage?: PickClubImage;
 };
 
 function getNameValidationMessage(name: string) {
@@ -122,10 +149,36 @@ function getCreateGroupApiErrorMessage(error: unknown) {
   return `Nao foi possivel criar o clube. ${message}`;
 }
 
+function getClubMediaPickerErrorMessage(error: unknown) {
+  if (error instanceof MediaPickerError) {
+    return error.message;
+  }
+
+  return 'Nao foi possivel selecionar a midia do clube agora.';
+}
+
+function getClubMediaUploadErrorMessage(target: ClubMediaTarget) {
+  return target === 'avatar'
+    ? 'Clube criado, mas o avatar nao foi enviado. Voce pode tentar novamente nas configuracoes.'
+    : 'Clube criado, mas a capa nao foi enviada. Voce pode tentar novamente nas configuracoes.';
+}
+
+function omitMediaDrafts(
+  payload: CreateGroupSubmitPayload,
+): CreateGroupSubmitPayload {
+  const { avatarDraft, coverDraft, ...createPayload } = payload;
+
+  return createPayload;
+}
+
 export function useCreateGroupScreen({
   searchUsers = getUsers,
   memberSearchDebounceMs = CREATE_GROUP_MEMBER_SEARCH_DEBOUNCE_MS,
   submitCreateClub = createClub,
+  submitUpdateClub = updateClub,
+  uploadFile = uploadAppFile,
+  pickCameraImage = pickImageFromCamera,
+  pickGalleryImage = pickImageFromGallery,
 }: UseCreateGroupScreenOptions = {}) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -150,6 +203,14 @@ export function useCreateGroupScreen({
   const [createGroupError, setCreateGroupError] = useState<string | null>(null);
   const [hasCreateGroupRetryPayload, setHasCreateGroupRetryPayload] =
     useState(false);
+  const [avatarDraft, setAvatarDraft] = useState<PickedImageFile | null>(null);
+  const [coverDraft, setCoverDraft] = useState<PickedImageFile | null>(null);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [uploadingMediaTarget, setUploadingMediaTarget] =
+    useState<ClubMediaTarget | null>(null);
+  const [mediaErrorMessage, setMediaErrorMessage] = useState<string | null>(
+    null,
+  );
   const latestMemberSearchId = useRef(0);
   const isSubmittingRef = useRef(false);
   const lastValidPayloadRef = useRef<CreateGroupSubmitPayload | null>(null);
@@ -247,6 +308,58 @@ export function useCreateGroupScreen({
     setIconModalVisible(false);
   }
 
+  async function pickClubMedia(
+    target: ClubMediaTarget,
+    source: 'camera' | 'gallery',
+  ) {
+    if (isSubmitting || isUploadingMedia) {
+      return;
+    }
+
+    setMediaErrorMessage(null);
+
+    try {
+      const options =
+        target === 'avatar'
+          ? CLUB_AVATAR_PICKER_OPTIONS
+          : CLUB_COVER_PICKER_OPTIONS;
+      const pickedImage =
+        source === 'camera'
+          ? await pickCameraImage(options)
+          : await pickGalleryImage(options);
+
+      if (!pickedImage) {
+        return;
+      }
+
+      if (target === 'avatar') {
+        setAvatarDraft(pickedImage);
+      } else {
+        setCoverDraft(pickedImage);
+      }
+    } catch (error) {
+      setMediaErrorMessage(getClubMediaPickerErrorMessage(error));
+    }
+  }
+
+  function removeAvatarDraft() {
+    if (isSubmitting || isUploadingMedia) {
+      return;
+    }
+
+    setAvatarDraft(null);
+    setMediaErrorMessage(null);
+  }
+
+  function removeCoverDraft() {
+    if (isSubmitting || isUploadingMedia) {
+      return;
+    }
+
+    setCoverDraft(null);
+    setMediaErrorMessage(null);
+  }
+
   function toggleTag(value: string) {
     const normalizedTag = normalizeCreateGroupTag(value);
 
@@ -273,8 +386,7 @@ export function useCreateGroupScreen({
   const buildPayload = useCallback((): CreateGroupSubmitPayload => {
     const trimmedDescription = description.trim();
     const trimmedRules = rules.trim();
-
-    return {
+    const payload: CreateGroupSubmitPayload = {
       name: name.trim(),
       description: trimmedDescription ? trimmedDescription : null,
       iconName: selectedIcon,
@@ -283,7 +395,19 @@ export function useCreateGroupScreen({
       tags: Array.from(new Set(selectedTags.map(normalizeCreateGroupTag))),
       initialMemberIds: Array.from(new Set(selectedMembers)),
     };
+
+    if (avatarDraft) {
+      payload.avatarDraft = avatarDraft;
+    }
+
+    if (coverDraft) {
+      payload.coverDraft = coverDraft;
+    }
+
+    return payload;
   }, [
+    avatarDraft,
+    coverDraft,
     description,
     name,
     rules,
@@ -292,6 +416,88 @@ export function useCreateGroupScreen({
     selectedTags,
     visibility,
   ]);
+
+  const uploadCreatedClubMedia = useCallback(
+    async (
+      createdClub: ClubDetailsApi,
+      payload: CreateGroupSubmitPayload,
+    ): Promise<ClubDetailsApi> => {
+      const mediaPayload: UpdateClubPayloadApi = {};
+      let mediaError: string | null = null;
+
+      async function uploadDraft(
+        target: ClubMediaTarget,
+        draft: PickedImageFile,
+      ) {
+        setUploadingMediaTarget(target);
+
+        const uploadedMedia = await uploadFile({
+          localUri: draft.localUri,
+          fileName: draft.fileName,
+          mimeType: draft.mimeType,
+          usage: target === 'avatar' ? 'club-avatar' : 'club-cover',
+          entityId: createdClub.id,
+          sizeBytes: draft.sizeBytes,
+        });
+
+        return uploadedMedia.fileUrl;
+      }
+
+      if (!payload.avatarDraft && !payload.coverDraft) {
+        return createdClub;
+      }
+
+      setIsUploadingMedia(true);
+      setMediaErrorMessage(null);
+
+      try {
+        if (payload.avatarDraft) {
+          try {
+            mediaPayload.avatarUrl = await uploadDraft(
+              'avatar',
+              payload.avatarDraft,
+            );
+          } catch {
+            mediaError = getClubMediaUploadErrorMessage('avatar');
+          }
+        }
+
+        if (payload.coverDraft) {
+          try {
+            mediaPayload.coverUrl = await uploadDraft('cover', payload.coverDraft);
+          } catch {
+            mediaError = getClubMediaUploadErrorMessage('cover');
+          }
+        }
+
+        if (Object.keys(mediaPayload).length === 0) {
+          setMediaErrorMessage(mediaError);
+          return createdClub;
+        }
+
+        setUploadingMediaTarget(null);
+        const updatedClub = await submitUpdateClub(createdClub.id, mediaPayload);
+
+        if (!mediaError) {
+          setAvatarDraft(null);
+          setCoverDraft(null);
+        }
+
+        setMediaErrorMessage(mediaError);
+
+        return updatedClub;
+      } catch {
+        setMediaErrorMessage(
+          'Clube criado, mas nao foi possivel salvar as midias. Tente novamente nas configuracoes.',
+        );
+        return createdClub;
+      } finally {
+        setIsUploadingMedia(false);
+        setUploadingMediaTarget(null);
+      }
+    },
+    [submitUpdateClub, uploadFile],
+  );
 
   const submitPayload = useCallback(
     async (payload: CreateGroupSubmitPayload) => {
@@ -304,7 +510,9 @@ export function useCreateGroupScreen({
       setCreateGroupError(null);
 
       try {
-        return await submitCreateClub(payload);
+        const createdClub = await submitCreateClub(omitMediaDrafts(payload));
+
+        return uploadCreatedClubMedia(createdClub, payload);
       } catch (error) {
         setCreateGroupError(getCreateGroupApiErrorMessage(error));
         return null;
@@ -313,7 +521,7 @@ export function useCreateGroupScreen({
         setIsSubmitting(false);
       }
     },
-    [submitCreateClub],
+    [submitCreateClub, uploadCreatedClubMedia],
   );
 
   const handleCreateGroup = useCallback(async () => {
@@ -354,6 +562,11 @@ export function useCreateGroupScreen({
     memberSearchError,
     isSubmitting,
     createGroupError,
+    avatarDraft,
+    coverDraft,
+    isUploadingMedia,
+    uploadingMediaTarget,
+    mediaErrorMessage,
     selectedCount,
     nameError,
     descriptionError,
@@ -365,7 +578,12 @@ export function useCreateGroupScreen({
     rulesMaxLength: CREATE_GROUP_RULES_MAX_LENGTH,
     tagMaxCount: CREATE_GROUP_TAG_MAX_COUNT,
     canCreate,
-    canRetryCreateGroup: hasCreateGroupRetryPayload && !isSubmitting,
+    isUploadingAvatar:
+      isUploadingMedia && uploadingMediaTarget === 'avatar',
+    isUploadingCover:
+      isUploadingMedia && uploadingMediaTarget === 'cover',
+    canRetryCreateGroup:
+      hasCreateGroupRetryPayload && !isSubmitting && !isUploadingMedia,
     setName,
     setDescription,
     setVisibility,
@@ -377,6 +595,13 @@ export function useCreateGroupScreen({
     openIconModal,
     closeIconModal,
     selectIcon,
+    pickAvatarFromCamera: () => pickClubMedia('avatar', 'camera'),
+    pickAvatarFromGallery: () => pickClubMedia('avatar', 'gallery'),
+    pickCoverFromCamera: () => pickClubMedia('cover', 'camera'),
+    pickCoverFromGallery: () => pickClubMedia('cover', 'gallery'),
+    removeAvatarDraft,
+    removeCoverDraft,
+    clearMediaErrorMessage: () => setMediaErrorMessage(null),
     buildPayload,
     handleCreateGroup,
     retryCreateGroup,

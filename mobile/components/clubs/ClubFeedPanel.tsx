@@ -143,6 +143,41 @@ export default function ClubFeedPanel({
         </Pressable>
       </View>
 
+      {feed.isFromCache ? (
+        <View
+          testID="club-feed-cache-notice"
+          style={[
+            styles.notice,
+            {
+              backgroundColor: colors.surfaceSoft,
+              borderColor: colors.cardBorder,
+            },
+          ]}
+        >
+          <MaterialIcons name="info-outline" size={17} color={colors.muted} />
+          <Text style={[styles.noticeText, { color: colors.subText }]}>
+            Dados salvos neste dispositivo
+          </Text>
+        </View>
+      ) : null}
+
+      {feed.syncErrorMessage ? (
+        <View
+          testID="club-feed-sync-error"
+          style={[
+            styles.feedbackBanner,
+            {
+              backgroundColor: colors.redSoft,
+              borderColor: colors.cardBorder,
+            },
+          ]}
+        >
+          <Text style={[styles.feedbackText, { color: colors.red }]}>
+            {feed.syncErrorMessage}
+          </Text>
+        </View>
+      ) : null}
+
       {feed.errorMessage ? (
         <View
           testID="club-feed-refresh-error"

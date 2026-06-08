@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import type { CreateGroupThemeColors } from '../../constants/createGroupTheme';
 import type { GroupIconName } from '../../types/createGroup';
+import EditableImageField from '../media/EditableImageField';
 
 type Props = {
   colors: CreateGroupThemeColors;
@@ -20,9 +21,19 @@ type Props = {
   descriptionWarning: string | null;
   descriptionCharacterCount: number;
   descriptionMaxLength: number;
+  avatarPreviewUri?: string | null;
+  coverPreviewUri?: string | null;
+  isUploadingAvatar?: boolean;
+  isUploadingCover?: boolean;
   onChangeName: (value: string) => void;
   onChangeDescription: (value: string) => void;
   onPressIcon: () => void;
+  onPickAvatarCamera: () => void;
+  onPickAvatarGallery: () => void;
+  onRemoveAvatar: () => void;
+  onPickCoverCamera: () => void;
+  onPickCoverGallery: () => void;
+  onRemoveCover: () => void;
 };
 
 export default function CreateGroupIdentityCard({
@@ -35,13 +46,34 @@ export default function CreateGroupIdentityCard({
   descriptionWarning,
   descriptionCharacterCount,
   descriptionMaxLength,
+  avatarPreviewUri,
+  coverPreviewUri,
+  isUploadingAvatar = false,
+  isUploadingCover = false,
   onChangeName,
   onChangeDescription,
   onPressIcon,
+  onPickAvatarCamera,
+  onPickAvatarGallery,
+  onRemoveAvatar,
+  onPickCoverCamera,
+  onPickCoverGallery,
+  onRemoveCover,
 }: Props) {
   const shouldShowNameError = name.length > 0 && nameError !== null;
   const descriptionFeedback = descriptionError ?? descriptionWarning;
   const descriptionFeedbackColor = descriptionError ? colors.red : colors.green;
+  const mediaColors = {
+    surface: colors.surface,
+    surfaceSoft: colors.white,
+    border: colors.outline,
+    outline: colors.outline,
+    text: colors.text,
+    muted: colors.muted,
+    green: colors.green,
+    red: colors.red,
+    white: colors.white,
+  };
 
   return (
     <View
@@ -142,6 +174,36 @@ export default function CreateGroupIdentityCard({
           </Text>
         )}
       </View>
+
+      <View style={styles.mediaFields}>
+        <EditableImageField
+          colors={mediaColors}
+          title="Avatar do Clube"
+          helperText="Imagem quadrada para listas e detalhes."
+          imageUri={avatarPreviewUri}
+          variant="avatar"
+          fallbackIconName={selectedIcon}
+          isUploading={isUploadingAvatar}
+          loadingLabel="Enviando avatar..."
+          onCamera={onPickAvatarCamera}
+          onGallery={onPickAvatarGallery}
+          onRemove={onRemoveAvatar}
+        />
+
+        <EditableImageField
+          colors={mediaColors}
+          title="Capa do Clube"
+          helperText="Imagem horizontal para o topo do perfil do clube."
+          imageUri={coverPreviewUri}
+          variant="cover"
+          fallbackIconName="panorama"
+          isUploading={isUploadingCover}
+          loadingLabel="Enviando capa..."
+          onCamera={onPickCoverCamera}
+          onGallery={onPickCoverGallery}
+          onRemove={onRemoveCover}
+        />
+      </View>
     </View>
   );
 }
@@ -177,6 +239,9 @@ const styles = StyleSheet.create({
   },
   fieldBlock: {
     gap: 8,
+  },
+  mediaFields: {
+    gap: 16,
   },
   fieldLabel: {
     fontSize: 12,

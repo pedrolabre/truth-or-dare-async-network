@@ -220,6 +220,8 @@ export type ClubFeedScreenState = {
   responseSubmittingPromptId: string | null;
   errorMessage: string | null;
   responseErrorMessage: string | null;
+  isFromCache: boolean;
+  syncErrorMessage: string | null;
   canRetry: boolean;
   hasRealPromptPagination: false;
   handleRetry: () => Promise<void>;

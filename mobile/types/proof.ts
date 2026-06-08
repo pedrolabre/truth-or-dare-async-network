@@ -1,5 +1,5 @@
-export type ProofMediaType = 'image' | 'video';
-export type DareProofMediaTypeApi = 'video' | 'audio' | 'file';
+export type ProofMediaType = 'image' | 'video' | 'audio' | 'file';
+export type DareProofMediaTypeApi = 'image' | 'video' | 'audio' | 'file';
 
 export type ProofChallengeType = 'truth' | 'dare' | 'club';
 
@@ -37,6 +37,15 @@ export type ProofDetailItem = {
 
 export type ProofDetailParams = {
   proofId?: string;
+  dareId?: string;
+  title?: string;
+  challenger?: string;
+  mediaType?: string;
+  localUri?: string;
+  fileName?: string;
+  durationSeconds?: string;
+  text?: string;
+  source?: string;
 };
 
 export type DareProofDetailsResponse = {
@@ -66,7 +75,13 @@ export type DareProofDetailsResponse = {
 export type ProofDetailState = {
   proof: ProofDetailItem;
   isVideo: boolean;
+  isAudio: boolean;
+  isImage: boolean;
   hasMedia: boolean;
   canDelete: boolean;
   primaryActionLabel: string;
+  contentState: 'local-draft' | 'loading' | 'ready' | 'error' | 'access-denied' | 'not-found';
+  errorMessage: string | null;
+  isFromCache: boolean;
+  syncErrorMessage: string | null;
 };

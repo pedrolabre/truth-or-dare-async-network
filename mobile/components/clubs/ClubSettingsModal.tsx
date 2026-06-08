@@ -116,6 +116,14 @@ export default function ClubSettingsModal({
                 />
               ) : null}
 
+              {settings.mediaErrorMessage ? (
+                <FeedbackBanner
+                  colors={colors}
+                  tone="danger"
+                  message={settings.mediaErrorMessage}
+                />
+              ) : null}
+
               <ScrollView
                 style={styles.scroll}
                 contentContainerStyle={styles.scrollContent}
@@ -130,6 +138,14 @@ export default function ClubSettingsModal({
                   visibility={settings.visibility}
                   selectedIcon={settings.selectedIcon}
                   selectedTags={settings.selectedTags}
+                  avatarPreviewUri={
+                    settings.avatarDraft?.localUri ?? settings.avatarUrl
+                  }
+                  coverPreviewUri={
+                    settings.coverDraft?.localUri ?? settings.coverUrl
+                  }
+                  isUploadingAvatar={settings.isUploadingAvatar}
+                  isUploadingCover={settings.isUploadingCover}
                   nameError={settings.nameError}
                   descriptionError={settings.descriptionError}
                   rulesError={settings.rulesError}
@@ -144,6 +160,12 @@ export default function ClubSettingsModal({
                   onChangeVisibility={settings.setVisibility}
                   onSelectIcon={settings.selectIcon}
                   onToggleTag={settings.toggleTag}
+                  onPickAvatarCamera={settings.pickAvatarFromCamera}
+                  onPickAvatarGallery={settings.pickAvatarFromGallery}
+                  onRemoveAvatar={settings.removeAvatar}
+                  onPickCoverCamera={settings.pickCoverFromCamera}
+                  onPickCoverGallery={settings.pickCoverFromGallery}
+                  onRemoveCover={settings.removeCover}
                 />
               </ScrollView>
 

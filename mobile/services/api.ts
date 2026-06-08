@@ -978,6 +978,24 @@ export async function getDareProof(
     },
   );
 
+  if (!response.ok) {
+    try {
+      await parseResponse(response);
+    } catch (error) {
+      throw Object.assign(
+        error instanceof Error
+          ? error
+          : new Error(`Erro na requisicao (${response.status})`),
+        { status: response.status },
+      );
+    }
+
+    throw Object.assign(
+      new Error(`Erro na requisicao (${response.status})`),
+      { status: response.status },
+    );
+  }
+
   return parseResponse(response);
 }
 

@@ -18,6 +18,16 @@ import {
 } from './useCreateGroupScreen';
 import { updateClub } from '../services/clubsApi';
 import { publishMyClubsUpsert } from '../services/clubsLocalUpdates';
+import {
+  CLUB_AVATAR_PICKER_OPTIONS,
+  CLUB_COVER_PICKER_OPTIONS,
+  MediaPickerError,
+  pickImageFromCamera,
+  pickImageFromGallery,
+  type MediaPickerImageOptions,
+  type PickedImageFile,
+} from '../services/mediaPicker';
+import { uploadAppFile } from '../services/uploads';
 import type { ClubDetail } from '../types/clubs';
 import type {
   ClubDetailsApi,
@@ -30,12 +40,20 @@ type SubmitUpdateClub = (
   clubId: string,
   payload: UpdateClubPayloadApi,
 ) => Promise<ClubDetailsApi>;
+type PickClubImage = (
+  options?: MediaPickerImageOptions,
+) => Promise<PickedImageFile | null>;
+type UploadClubMedia = typeof uploadAppFile;
+type ClubMediaTarget = 'avatar' | 'cover';
 
 type UseClubSettingsOptions = {
   club: ClubDetail | null;
   visible: boolean;
   canEdit: boolean;
   submitUpdateClub?: SubmitUpdateClub;
+  uploadFile?: UploadClubMedia;
+  pickCameraImage?: PickClubImage;
+  pickGalleryImage?: PickClubImage;
   onUpdated?: (clubDetails: ClubDetailsApi) => void;
 };
 
@@ -45,6 +63,14 @@ function getErrorMessage(error: unknown, fallbackMessage: string) {
   return error instanceof Error && error.message
     ? error.message
     : fallbackMessage;
+}
+
+function getClubMediaPickerErrorMessage(error: unknown) {
+  if (error instanceof MediaPickerError) {
+    return error.message;
+  }
+
+  return 'Nao foi possivel selecionar a midia do clube agora.';
 }
 
 function normalizeOptionalText(value: string) {
@@ -97,6 +123,9 @@ export function useClubSettings({
   visible,
   canEdit,
   submitUpdateClub = updateClub,
+  uploadFile = uploadAppFile,
+  pickCameraImage = pickImageFromCamera,
+  pickGalleryImage = pickImageFromGallery,
   onUpdated,
 }: UseClubSettingsOptions) {
   const [name, setName] = useState('');
@@ -108,12 +137,24 @@ export function useClubSettings({
     DEFAULT_CREATE_GROUP_ICON_NAME,
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [avatarDraft, setAvatarDraft] = useState<PickedImageFile | null>(null);
+  const [coverDraft, setCoverDraft] = useState<PickedImageFile | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const [uploadingMediaTarget, setUploadingMediaTarget] =
+    useState<ClubMediaTarget | null>(null);
+  const [mediaErrorMessage, setMediaErrorMessage] = useState<string | null>(
+    null,
+  );
   const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(
     null,
   );
   const latestClubIdRef = useRef<string | null>(null);
+  const initialAvatarUrlRef = useRef<string | null>(null);
+  const initialCoverUrlRef = useRef<string | null>(null);
   const wasVisibleRef = useRef(false);
 
   const resetFromClub = useCallback((nextClub: ClubDetail) => {
@@ -127,6 +168,13 @@ export function useClubSettings({
         : DEFAULT_CREATE_GROUP_ICON_NAME,
     );
     setSelectedTags(normalizeTags(nextClub.tags));
+    setAvatarUrl(nextClub.avatarUrl);
+    setCoverUrl(nextClub.coverUrl);
+    setAvatarDraft(null);
+    setCoverDraft(null);
+    initialAvatarUrlRef.current = nextClub.avatarUrl;
+    initialCoverUrlRef.current = nextClub.coverUrl;
+    setMediaErrorMessage(null);
     setSaveErrorMessage(null);
     setSaveSuccessMessage(null);
   }, []);
@@ -168,6 +216,7 @@ export function useClubSettings({
     Boolean(club) &&
     canEdit &&
     !isSaving &&
+    !isUploadingMedia &&
     nameError === null &&
     descriptionError === null &&
     rulesError === null &&
@@ -204,16 +253,130 @@ export function useClubSettings({
     });
   }
 
-  const buildPayload = useCallback((): UpdateClubPayloadApi => {
-    return {
-      name: name.trim(),
-      description: normalizeOptionalText(description),
-      iconName: selectedIcon,
+  async function pickClubMedia(
+    target: ClubMediaTarget,
+    source: 'camera' | 'gallery',
+  ) {
+    if (!canEdit || isSaving || isUploadingMedia) {
+      return;
+    }
+
+    setMediaErrorMessage(null);
+    setSaveErrorMessage(null);
+    setSaveSuccessMessage(null);
+
+    try {
+      const options =
+        target === 'avatar'
+          ? CLUB_AVATAR_PICKER_OPTIONS
+          : CLUB_COVER_PICKER_OPTIONS;
+      const pickedImage =
+        source === 'camera'
+          ? await pickCameraImage(options)
+          : await pickGalleryImage(options);
+
+      if (!pickedImage) {
+        return;
+      }
+
+      if (target === 'avatar') {
+        setAvatarDraft(pickedImage);
+      } else {
+        setCoverDraft(pickedImage);
+      }
+    } catch (error) {
+      setMediaErrorMessage(getClubMediaPickerErrorMessage(error));
+    }
+  }
+
+  function removeAvatar() {
+    if (!canEdit || isSaving || isUploadingMedia) {
+      return;
+    }
+
+    setAvatarUrl(null);
+    setAvatarDraft(null);
+    setMediaErrorMessage(null);
+    setSaveSuccessMessage(null);
+  }
+
+  function removeCover() {
+    if (!canEdit || isSaving || isUploadingMedia) {
+      return;
+    }
+
+    setCoverUrl(null);
+    setCoverDraft(null);
+    setMediaErrorMessage(null);
+    setSaveSuccessMessage(null);
+  }
+
+  const buildPayload = useCallback(
+    (
+      mediaOverrides: Partial<
+        Pick<UpdateClubPayloadApi, 'avatarUrl' | 'coverUrl'>
+      > = {},
+    ): UpdateClubPayloadApi => {
+      const payload: UpdateClubPayloadApi = {
+        name: name.trim(),
+        description: normalizeOptionalText(description),
+        iconName: selectedIcon,
+        visibility,
+        rules: normalizeOptionalText(rules),
+        tags: normalizeTags(selectedTags),
+      };
+      const nextAvatarUrl =
+        'avatarUrl' in mediaOverrides
+          ? mediaOverrides.avatarUrl ?? null
+          : avatarUrl;
+      const nextCoverUrl =
+        'coverUrl' in mediaOverrides
+          ? mediaOverrides.coverUrl ?? null
+          : coverUrl;
+
+      if (nextAvatarUrl !== initialAvatarUrlRef.current) {
+        payload.avatarUrl = nextAvatarUrl;
+      }
+
+      if (nextCoverUrl !== initialCoverUrlRef.current) {
+        payload.coverUrl = nextCoverUrl;
+      }
+
+      return payload;
+    },
+    [
+      avatarUrl,
+      coverUrl,
+      description,
+      name,
+      rules,
+      selectedIcon,
+      selectedTags,
       visibility,
-      rules: normalizeOptionalText(rules),
-      tags: normalizeTags(selectedTags),
-    };
-  }, [description, name, rules, selectedIcon, selectedTags, visibility]);
+    ],
+  );
+
+  async function uploadDraft(
+    target: ClubMediaTarget,
+    draft: PickedImageFile,
+  ) {
+    if (!club) {
+      throw new Error('Clube nao identificado para atualizar midia.');
+    }
+
+    setUploadingMediaTarget(target);
+
+    const uploadedMedia = await uploadFile({
+      localUri: draft.localUri,
+      fileName: draft.fileName,
+      mimeType: draft.mimeType,
+      usage: target === 'avatar' ? 'club-avatar' : 'club-cover',
+      entityId: club.id,
+      sizeBytes: draft.sizeBytes,
+    });
+
+    return uploadedMedia.fileUrl;
+  }
 
   async function handleSave() {
     if (!club || !canSave) {
@@ -223,9 +386,33 @@ export function useClubSettings({
     setIsSaving(true);
     setSaveErrorMessage(null);
     setSaveSuccessMessage(null);
+    setMediaErrorMessage(null);
 
     try {
-      const updatedClub = await submitUpdateClub(club.id, buildPayload());
+      let nextAvatarUrl = avatarUrl;
+      let nextCoverUrl = coverUrl;
+
+      if (avatarDraft || coverDraft) {
+        setIsUploadingMedia(true);
+      }
+
+      if (avatarDraft) {
+        nextAvatarUrl = await uploadDraft('avatar', avatarDraft);
+      }
+
+      if (coverDraft) {
+        nextCoverUrl = await uploadDraft('cover', coverDraft);
+      }
+
+      setUploadingMediaTarget(null);
+
+      const updatedClub = await submitUpdateClub(
+        club.id,
+        buildPayload({
+          avatarUrl: nextAvatarUrl,
+          coverUrl: nextCoverUrl,
+        }),
+      );
 
       onUpdated?.(updatedClub);
 
@@ -244,19 +431,38 @@ export function useClubSettings({
           : DEFAULT_CREATE_GROUP_ICON_NAME,
       );
       setSelectedTags(normalizeTags(updatedClub.tags));
+      setAvatarUrl(updatedClub.avatarUrl);
+      setCoverUrl(updatedClub.coverUrl);
+      setAvatarDraft(null);
+      setCoverDraft(null);
+      initialAvatarUrlRef.current = updatedClub.avatarUrl;
+      initialCoverUrlRef.current = updatedClub.coverUrl;
 
       return updatedClub;
     } catch (error) {
-      setSaveErrorMessage(
-        getErrorMessage(error, 'Nao foi possivel salvar as configuracoes.'),
-      );
+      const isMediaSave = Boolean(avatarDraft || coverDraft);
+      const message = isMediaSave
+        ? 'Nao foi possivel enviar as midias do clube. Tente novamente.'
+        : getErrorMessage(
+            error,
+            'Nao foi possivel salvar as configuracoes.',
+          );
+
+      if (isMediaSave) {
+        setMediaErrorMessage(message);
+      }
+
+      setSaveErrorMessage(message);
       return null;
     } finally {
       setIsSaving(false);
+      setIsUploadingMedia(false);
+      setUploadingMediaTarget(null);
     }
   }
 
   function clearSaveFeedback() {
+    setMediaErrorMessage(null);
     setSaveErrorMessage(null);
     setSaveSuccessMessage(null);
   }
@@ -268,6 +474,10 @@ export function useClubSettings({
     visibility,
     selectedIcon,
     selectedTags,
+    avatarUrl,
+    coverUrl,
+    avatarDraft,
+    coverDraft,
     nameError,
     descriptionError,
     rulesError,
@@ -277,6 +487,13 @@ export function useClubSettings({
     rulesMaxLength: CREATE_GROUP_RULES_MAX_LENGTH,
     tagMaxCount: CREATE_GROUP_TAG_MAX_COUNT,
     isSaving,
+    isUploadingMedia,
+    uploadingMediaTarget,
+    isUploadingAvatar:
+      isUploadingMedia && uploadingMediaTarget === 'avatar',
+    isUploadingCover:
+      isUploadingMedia && uploadingMediaTarget === 'cover',
+    mediaErrorMessage,
     saveErrorMessage,
     saveSuccessMessage,
     canSave,
@@ -286,6 +503,12 @@ export function useClubSettings({
     setVisibility,
     selectIcon,
     toggleTag,
+    pickAvatarFromCamera: () => pickClubMedia('avatar', 'camera'),
+    pickAvatarFromGallery: () => pickClubMedia('avatar', 'gallery'),
+    pickCoverFromCamera: () => pickClubMedia('cover', 'camera'),
+    pickCoverFromGallery: () => pickClubMedia('cover', 'gallery'),
+    removeAvatar,
+    removeCover,
     buildPayload,
     handleSave,
     clearSaveFeedback,

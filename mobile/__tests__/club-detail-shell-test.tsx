@@ -204,6 +204,8 @@ function makeFeedState(
     responseSubmittingPromptId: null,
     errorMessage: null,
     responseErrorMessage: null,
+    isFromCache: false,
+    syncErrorMessage: null,
     canRetry: true,
     hasRealPromptPagination: false,
     handleRetry: jest.fn().mockResolvedValue(undefined),

@@ -50,6 +50,7 @@ describe('clubs mappers', () => {
       membersLabel: '2 membros',
       statusLabel: 'Dono',
       iconName: 'sports-esports',
+      avatarUrl: null,
       isActive: true,
       viewerActivity: {
         unreadCount: 0,

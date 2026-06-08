@@ -25,9 +25,42 @@ type FeedCardDareProps = {
   primaryButtonTextColor: string;
   shareIconColor: string;
   onPressAccept?: (id: string) => void;
+  onPressOpenProof?: (item: FeedDareItem) => void;
   onPressShare?: (id: string) => void;
   onPressDelete?: (id: string) => void;
 };
+
+function getProofMediaIcon(mediaType: FeedDareItem['proofMediaType']) {
+  if (mediaType === 'image') {
+    return 'image';
+  }
+
+  if (mediaType === 'video') {
+    return 'videocam';
+  }
+
+  if (mediaType === 'audio') {
+    return 'mic';
+  }
+
+  return 'insert-drive-file';
+}
+
+function getProofMediaLabel(mediaType: FeedDareItem['proofMediaType']) {
+  if (mediaType === 'image') {
+    return 'Prova com imagem';
+  }
+
+  if (mediaType === 'video') {
+    return 'Prova com video';
+  }
+
+  if (mediaType === 'audio') {
+    return 'Prova com audio';
+  }
+
+  return 'Prova com arquivo';
+}
 
 export default function FeedCardDare({
   item,
@@ -51,6 +84,7 @@ export default function FeedCardDare({
   primaryButtonTextColor,
   shareIconColor,
   onPressAccept,
+  onPressOpenProof,
   onPressShare,
   onPressDelete,
 }: FeedCardDareProps) {
@@ -59,7 +93,11 @@ export default function FeedCardDare({
   const hasAttemptsLabel = item.attemptsLabel.trim().length > 0;
   const hasExpiresIn = item.expiresIn.trim().length > 0;
   const hasProgress = item.progress > 0;
-  const isDisabled = item.interactionDisabled;
+  const canOpenProof = item.status === 'concluded' && Boolean(item.proofId);
+  const hasProofMedia =
+    canOpenProof &&
+    Boolean(item.proofMediaType || item.proofFileUrl || item.proofThumbnailUrl);
+  const isDisabled = item.interactionDisabled && !canOpenProof;
 
   const challengerInitials = hasChallenger
     ? item.challenger
@@ -69,9 +107,10 @@ export default function FeedCardDare({
         .join('')
     : '';
 
-  const actionButtonLabel =
-    item.status === 'concluded'
-      ? 'DESAFIO CONCLUÍDO'
+  const actionButtonLabel = canOpenProof
+    ? 'VER PROVA'
+    : item.status === 'concluded'
+      ? 'DESAFIO CONCLUIDO'
       : item.status === 'failed'
         ? 'DESAFIO FALHOU'
         : item.status === 'expired'
@@ -234,10 +273,38 @@ export default function FeedCardDare({
         </View>
       </View>
 
+      {hasProofMedia ? (
+        <View
+          style={[
+            styles.proofBadge,
+            {
+              backgroundColor: badgeBackgroundColor,
+              borderColor: progressCardBorderColor,
+            },
+          ]}
+        >
+          <MaterialIcons
+            name={getProofMediaIcon(item.proofMediaType)}
+            size={16}
+            color={badgeTextColor}
+          />
+          <Text style={[styles.proofBadgeText, { color: badgeTextColor }]}>
+            {getProofMediaLabel(item.proofMediaType)}
+          </Text>
+        </View>
+      ) : null}
+
       <View style={styles.dareFooter}>
         <Pressable
           disabled={isDisabled}
-          onPress={() => onPressAccept?.(item.id)}
+          onPress={() => {
+            if (canOpenProof && onPressOpenProof) {
+              onPressOpenProof(item);
+              return;
+            }
+
+            onPressAccept?.(item.id);
+          }}
           style={({ pressed }) => [
             styles.primaryActionButton,
             { backgroundColor: primaryButtonBackgroundColor },
@@ -410,6 +477,23 @@ const styles = StyleSheet.create({
     width: '38%',
     height: '100%',
     borderRadius: 999,
+  },
+  proofBadge: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    minHeight: 34,
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 11,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  proofBadgeText: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '900',
+    textTransform: 'uppercase',
   },
   dareFooter: {
     marginTop: 18,

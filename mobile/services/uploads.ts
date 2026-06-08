@@ -3,7 +3,8 @@ import { getToken } from './api';
 export type UploadUsage =
   | 'dare-proof'
   | 'profile-avatar'
-  | 'group-avatar'
+  | 'club-avatar'
+  | 'club-cover'
   | 'comment-attachment';
 
 export type UploadAppFileInput = {
