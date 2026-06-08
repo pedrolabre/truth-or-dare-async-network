@@ -12,6 +12,7 @@ export type UploadAppFileInput = {
   mimeType: string;
   usage: UploadUsage;
   entityId?: string | null;
+  sizeBytes?: number | null;
 };
 
 export type UploadAppFileResult = {
@@ -84,6 +85,7 @@ async function requestSignedUploadUrl(input: UploadAppFileInput) {
       entityId: input.entityId ?? null,
       fileName: input.fileName,
       contentType: input.mimeType,
+      sizeBytes: input.sizeBytes ?? null,
     }),
   });
 

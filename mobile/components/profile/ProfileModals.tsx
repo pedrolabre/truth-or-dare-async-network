@@ -17,6 +17,9 @@ type Props = {
   onOpenCamera: () => void;
   onOpenGallery: () => void;
   onRemovePhoto: () => void;
+  isUploadingPhoto?: boolean;
+  photoErrorMessage?: string | null;
+  photoSuccessMessage?: string | null;
 };
 
 export default function ProfileModals({
@@ -34,6 +37,9 @@ export default function ProfileModals({
   onOpenCamera,
   onOpenGallery,
   onRemovePhoto,
+  isUploadingPhoto = false,
+  photoErrorMessage = null,
+  photoSuccessMessage = null,
 }: Props) {
   return (
     <>
@@ -55,6 +61,9 @@ export default function ProfileModals({
         onCamera={onOpenCamera}
         onGallery={onOpenGallery}
         onRemove={onRemovePhoto}
+        isUploading={isUploadingPhoto}
+        errorMessage={photoErrorMessage}
+        successMessage={photoSuccessMessage}
       />
     </>
   );

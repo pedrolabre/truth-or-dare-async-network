@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   Pressable,
   ScrollView,
   StatusBar,
@@ -235,9 +236,18 @@ export default function PublicProfileScreen() {
           ]}
         >
           <View style={[styles.avatar, { backgroundColor: colors.green }]}>
-            <Text style={[styles.avatarText, { color: colors.white }]}>
-              {initials}
-            </Text>
+            {profile.avatarUrl?.trim() ? (
+              <Image
+                accessibilityLabel={`Foto de perfil de ${profile.name}`}
+                source={{ uri: profile.avatarUrl.trim() }}
+                style={styles.avatarImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Text style={[styles.avatarText, { color: colors.white }]}>
+                {initials}
+              </Text>
+            )}
           </View>
 
           <Text style={[styles.name, { color: colors.text }]}>
@@ -418,6 +428,11 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: '#ffffff',
     marginBottom: 14,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   avatarText: {
     fontSize: 30,

@@ -120,6 +120,7 @@ export default function ProfileScreen() {
             username={username}
             initials={displayName.charAt(0).toUpperCase() || '?'}
             bio={bio}
+            avatarUrl={profile.profile?.avatarUrl ?? null}
             backgroundColor={c.bg}
             textColor={c.text}
             subTextColor={c.sub}
@@ -177,6 +178,9 @@ export default function ProfileScreen() {
         onOpenCamera={profile.openCamera}
         onOpenGallery={profile.openGallery}
         onRemovePhoto={profile.removePhoto}
+        isUploadingPhoto={profile.isUploadingPhoto}
+        photoErrorMessage={profile.photoErrorMessage}
+        photoSuccessMessage={profile.photoSuccessMessage}
       />
     </View>
   );

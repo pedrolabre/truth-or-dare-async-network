@@ -1,12 +1,13 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 type Props = {
   name: string;
   username: string;
   bio?: string;
   initials: string;
+  avatarUrl?: string | null;
   backgroundColor: string;
   textColor: string;
   subTextColor: string;
@@ -19,6 +20,7 @@ export default function ProfileIdentityCard({
   username,
   bio,
   initials,
+  avatarUrl,
   backgroundColor,
   textColor,
   subTextColor,
@@ -28,15 +30,27 @@ export default function ProfileIdentityCard({
   const safeInitials = initials?.trim() || '?';
   const safeName = name?.trim() || 'Seu nome';
   const safeUsername = username?.trim() || 'seu_usuario';
+  const avatarUri = avatarUrl?.trim();
 
   return (
     <View style={[styles.card, { backgroundColor }]}>
       <View style={styles.avatarWrap}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{safeInitials}</Text>
+          {avatarUri ? (
+            <Image
+              accessibilityLabel={`Foto de perfil de ${safeName}`}
+              source={{ uri: avatarUri }}
+              style={styles.avatarImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <Text style={styles.avatarText}>{safeInitials}</Text>
+          )}
         </View>
 
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Alterar foto de perfil"
           onPress={onPressPhoto}
           style={({ pressed }) => [
             styles.cameraButton,
@@ -92,17 +106,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#5A8363',
     borderWidth: 4,
     borderColor: '#ffffff',
+    overflow: 'hidden',
     shadowColor: '#000000',
     shadowOpacity: 0.18,
     shadowRadius: 18,
     shadowOffset: { width: 0, height: 8 },
     elevation: 7,
   },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
   avatarText: {
     color: '#ffffff',
     fontWeight: '900',
     fontSize: 30,
-    letterSpacing: -0.8,
+    letterSpacing: 0,
   },
   cameraButton: {
     position: 'absolute',
@@ -124,7 +143,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     lineHeight: 30,
     fontWeight: '900',
-    letterSpacing: -0.8,
+    letterSpacing: 0,
     textAlign: 'center',
   },
   username: {
