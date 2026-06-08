@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { getDareProof } from '../services/api';
+import { loadCachedResource } from '../services/cachedApi';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS } from '../services/cache';
 import type {
   DareProofDetailsResponse,
   ProofDetailItem,
@@ -291,6 +293,8 @@ export function useProofDetailScreen(
     shouldLoadBackendProof(proofId, source) ? 'loading' : 'local-draft',
   );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
 
   const loadProof = useCallback(async () => {
     const shouldLoadBackend = shouldLoadBackendProof(proofId, source);
@@ -299,29 +303,50 @@ export function useProofDetailScreen(
       setProof(createLocalProof(localParams));
       setContentState('local-draft');
       setErrorMessage(null);
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
       return;
     }
 
     if (!proofId) {
       setContentState('error');
       setErrorMessage('Prova nao identificada.');
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
       return;
     }
 
     setContentState('loading');
     setErrorMessage(null);
+    setSyncErrorMessage(null);
 
     try {
-      const response = await loadDareProof(proofId);
+      const result = await loadCachedResource<DareProofDetailsResponse>({
+        key: LOCAL_CACHE_KEYS.proofDetails(proofId),
+        ttlMs: LOCAL_CACHE_TTLS.proofDetails,
+        fetcher: () => loadDareProof(proofId),
+        fallbackSyncErrorMessage:
+          'Nao foi possivel sincronizar esta prova agora.',
+        onCacheHit: ({ record }) => {
+          setProof(mapBackendProofToDetail(record.value));
+          setContentState('ready');
+          setErrorMessage(null);
+          setIsFromCache(true);
+        },
+      });
 
-      setProof(mapBackendProofToDetail(response));
+      setProof(mapBackendProofToDetail(result.value));
       setContentState('ready');
       setErrorMessage(null);
+      setIsFromCache(result.isFromCache);
+      setSyncErrorMessage(result.syncErrorMessage);
     } catch (error) {
       const nextState = getErrorContentState(error);
 
       setContentState(nextState);
       setErrorMessage(getErrorMessage(error, nextState));
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
     }
   }, [loadDareProof, localParams, proofId, source]);
 
@@ -347,10 +372,10 @@ export function useProofDetailScreen(
       primaryActionLabel,
       contentState,
       errorMessage,
-      isFromCache: false,
-      syncErrorMessage: null,
+      isFromCache,
+      syncErrorMessage,
     };
-  }, [contentState, errorMessage, proof]);
+  }, [contentState, errorMessage, isFromCache, proof, syncErrorMessage]);
 
   function handleToggleLike() {
     setProof((current) => {

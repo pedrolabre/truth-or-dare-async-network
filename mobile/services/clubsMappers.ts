@@ -251,7 +251,7 @@ export function mapClubSummaryToListItem(
     membersLabel: formatClubMembersLabel(club.memberCount),
     statusLabel: getClubListStatusLabel(club),
     iconName: getClubIconName(club.iconName),
-    avatarUrl: club.avatarUrl,
+    ...(club.avatarUrl ? { avatarUrl: club.avatarUrl } : {}),
     isActive: getClubListIsActive(club),
     viewerActivity,
     unreadCount: viewerActivity.unreadCount,
@@ -271,7 +271,7 @@ export function mapClubSummaryToDiscoverItem(
     membersLabel: formatClubMembersLabel(club.memberCount),
     badgeLabel: DISCOVERY_BADGE_LABELS[source],
     iconName: getClubIconName(club.iconName),
-    avatarUrl: club.avatarUrl,
+    ...(club.avatarUrl ? { avatarUrl: club.avatarUrl } : {}),
     // The "popular" discovery source is the one that should receive trending treatment in the card.
     isTrending: source === 'popular',
     isMember: club.viewerMembership.isMember,

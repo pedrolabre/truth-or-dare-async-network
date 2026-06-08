@@ -9,6 +9,8 @@ import {
   requestClubJoin,
   unmuteClub,
 } from '../services/clubsApi';
+import { loadCachedResource } from '../services/cachedApi';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS } from '../services/cache';
 import { mapClubDetailsToDetail } from '../services/clubsMappers';
 import type {
   ClubDetailActionKey,
@@ -217,6 +219,8 @@ export function useClubDetailsScreen({
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
   const [pendingAction, setPendingAction] =
     useState<ClubDetailActionKey | null>(null);
   const [actionErrorMessage, setActionErrorMessage] = useState<string | null>(
@@ -254,6 +258,8 @@ export function useClubDetailsScreen({
     setIsMuted(getViewerActivityIsMuted(mappedClub.viewerActivity));
     setContentState(getClubDetailContentState(mappedClub));
     setErrorMessage(null);
+    setIsFromCache(false);
+    setSyncErrorMessage(null);
   }, []);
 
   const handleClubActivityUpdated = useCallback(
@@ -313,23 +319,49 @@ export function useClubDetailsScreen({
         }
 
         setErrorMessage(null);
+        setSyncErrorMessage(null);
 
-        const clubDetails = await loadClubDetails(normalizedClubId);
+        const result = await loadCachedResource<ClubDetailsApi>({
+          key: LOCAL_CACHE_KEYS.clubDetails(normalizedClubId),
+          ttlMs: LOCAL_CACHE_TTLS.clubDetails,
+          fetcher: () => loadClubDetails(normalizedClubId),
+          fallbackSyncErrorMessage:
+            'Nao foi possivel sincronizar este clube agora.',
+          onCacheHit: ({ record }) => {
+            if (!isMountedRef.current || requestIdRef.current !== requestId) {
+              return;
+            }
+
+            const cachedClub = mapClubDetailsToDetail(record.value);
+
+            setClub(cachedClub);
+            setIsMuted(getViewerActivityIsMuted(cachedClub.viewerActivity));
+            setContentState(getClubDetailContentState(cachedClub));
+            setErrorMessage(null);
+            setIsFromCache(true);
+
+            if (showLoading) {
+              setIsInitialLoading(false);
+            }
+          },
+        });
 
         if (
           !isMountedRef.current ||
           requestIdRef.current !== requestId
         ) {
-          return;
+          return null;
         }
 
-        const mappedClub = mapClubDetailsToDetail(clubDetails);
+        const mappedClub = mapClubDetailsToDetail(result.value);
 
         setClub(mappedClub);
         setIsMuted(getViewerActivityIsMuted(mappedClub.viewerActivity));
         setContentState(getClubDetailContentState(mappedClub));
         setErrorMessage(null);
-        return clubDetails;
+        setIsFromCache(result.isFromCache);
+        setSyncErrorMessage(result.syncErrorMessage);
+        return result.value;
       } catch (error) {
         if (
           !isMountedRef.current ||
@@ -346,6 +378,8 @@ export function useClubDetailsScreen({
         }
 
         setErrorMessage(getClubDetailErrorMessage(error, nextState));
+        setIsFromCache(false);
+        setSyncErrorMessage(null);
         return null;
       } finally {
         if (
@@ -627,6 +661,8 @@ export function useClubDetailsScreen({
     isInitialLoading,
     isRefreshing,
     errorMessage,
+    isFromCache,
+    syncErrorMessage,
     canRetry: normalizedClubId !== null && !isInitialLoading,
     pendingAction,
     actionErrorMessage,

@@ -15,6 +15,8 @@ import {
 import AccountScreenHeader from '../../components/account/AccountScreenHeader';
 import { useTheme } from '../../context/ThemeContext';
 import { getPublicUserProfile } from '../../services/api';
+import { loadCachedResource } from '../../services/cachedApi';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS } from '../../services/cache';
 import type { PublicUserProfile } from '../../types/user';
 
 const LIGHT = {
@@ -74,21 +76,41 @@ export default function PublicProfileScreen() {
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
     if (!userId?.trim()) {
       setProfile(null);
       setErrorMessage('Perfil nao encontrado.');
       setIsLoading(false);
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
       return;
     }
 
     setIsLoading(true);
     setErrorMessage(null);
+    setSyncErrorMessage(null);
 
     try {
-      const nextProfile = await getPublicUserProfile(userId);
-      setProfile(nextProfile);
+      const result = await loadCachedResource<PublicUserProfile>({
+        key: LOCAL_CACHE_KEYS.profilePublic(userId),
+        ttlMs: LOCAL_CACHE_TTLS.profilePublic,
+        namespace: 'anonymous',
+        fetcher: () => getPublicUserProfile(userId),
+        fallbackSyncErrorMessage:
+          'Nao foi possivel sincronizar este perfil agora.',
+        onCacheHit: ({ record }) => {
+          setProfile(record.value);
+          setIsFromCache(true);
+          setIsLoading(false);
+        },
+      });
+
+      setProfile(result.value);
+      setIsFromCache(result.isFromCache);
+      setSyncErrorMessage(result.syncErrorMessage);
     } catch (error) {
       const message =
         error instanceof Error && error.message.trim()
@@ -97,6 +119,8 @@ export default function PublicProfileScreen() {
 
       setProfile(null);
       setErrorMessage(message);
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
     } finally {
       setIsLoading(false);
     }
@@ -226,6 +250,12 @@ export default function PublicProfileScreen() {
 
     return (
       <View style={styles.stack}>
+        {isFromCache || syncErrorMessage ? (
+          <Text style={[styles.cacheNotice, { color: colors.sub }]}>
+            {syncErrorMessage ?? 'Dados salvos neste dispositivo.'}
+          </Text>
+        ) : null}
+
         <View
           style={[
             styles.identityCard,
@@ -577,6 +607,12 @@ const styles = StyleSheet.create({
   stateText: {
     fontSize: 14,
     lineHeight: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  cacheNotice: {
+    fontSize: 12,
+    lineHeight: 16,
     fontWeight: '600',
     textAlign: 'center',
   },

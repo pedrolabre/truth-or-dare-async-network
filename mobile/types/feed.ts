@@ -1,4 +1,11 @@
-export type FilterKey = 'popular' | 'friends' | 'party' | 'spicy';
+export type FilterKey =
+  | 'popular'
+  | 'friends'
+  | 'party'
+  | 'spicy'
+  | 'dares'
+  | 'truths'
+  | 'clubs';
 
 export type BottomNavKey = 'play' | 'search' | 'clubs' | 'profile';
 

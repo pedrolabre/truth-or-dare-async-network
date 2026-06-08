@@ -3,6 +3,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -128,6 +129,12 @@ export default function ProfileScreen() {
             onPressPhoto={profile.openPhotoModal}
           />
 
+          {profile.isFromCache || profile.syncErrorMessage ? (
+            <Text style={[styles.cacheNotice, { color: c.sub }]}>
+              {profile.syncErrorMessage ?? 'Dados salvos neste dispositivo.'}
+            </Text>
+          ) : null}
+
           <ProfileStatsGrid
             followers="—"
             following="—"
@@ -200,5 +207,11 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 18,
     paddingBottom: 28,
+  },
+  cacheNotice: {
+    marginTop: -10,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
   },
 });

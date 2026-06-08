@@ -5,6 +5,8 @@ import {
   joinClub,
   searchClubs as fetchSearchClubs,
 } from '../services/clubsApi';
+import { loadCachedResource } from '../services/cachedApi';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS } from '../services/cache';
 import {
   formatClubMembersLabel,
   mapClubSummaryToDiscoverItem,
@@ -109,6 +111,14 @@ export function useClubsScreen() {
   const [clubActionErrorMessage, setClubActionErrorMessage] = useState<
     string | null
   >(null);
+  const [myClubsFromCache, setMyClubsFromCache] = useState(false);
+  const [discoverFromCache, setDiscoverFromCache] = useState(false);
+  const [myClubsSyncErrorMessage, setMyClubsSyncErrorMessage] = useState<
+    string | null
+  >(null);
+  const [discoverSyncErrorMessage, setDiscoverSyncErrorMessage] = useState<
+    string | null
+  >(null);
   const hasRequestedDiscoverRef = useRef(false);
   const isMountedRef = useRef(true);
   const joiningClubIdsRef = useRef<Set<string>>(new Set());
@@ -200,16 +210,40 @@ export function useClubsScreen() {
       try {
         setIsInitialLoading(true);
         setMyClubsErrorMessage(null);
+        setMyClubsSyncErrorMessage(null);
 
-        const clubs = await getMyClubs();
+        const result = await loadCachedResource<ClubSummaryApi[]>({
+          key: LOCAL_CACHE_KEYS.clubsMy,
+          ttlMs: LOCAL_CACHE_TTLS.clubsMy,
+          fetcher: getMyClubs,
+          fallbackSyncErrorMessage:
+            'Nao foi possivel sincronizar seus clubes agora.',
+          onCacheHit: ({ record }) => {
+            if (!isMounted) {
+              return;
+            }
+
+            setMyClubs(
+              mergeWithPendingMyClubUpserts(
+                record.value.map(mapClubSummaryToListItem),
+              ),
+            );
+            setMyClubsFromCache(true);
+            setIsInitialLoading(false);
+          },
+        });
 
         if (!isMounted) {
           return;
         }
 
         setMyClubs(
-          mergeWithPendingMyClubUpserts(clubs.map(mapClubSummaryToListItem)),
+          mergeWithPendingMyClubUpserts(
+            result.value.map(mapClubSummaryToListItem),
+          ),
         );
+        setMyClubsFromCache(result.isFromCache);
+        setMyClubsSyncErrorMessage(result.syncErrorMessage);
       } catch (error) {
         if (!isMounted) {
           return;
@@ -218,6 +252,8 @@ export function useClubsScreen() {
         const pendingClubs = mergeWithPendingMyClubUpserts([]);
 
         setMyClubs(pendingClubs);
+        setMyClubsFromCache(false);
+        setMyClubsSyncErrorMessage(null);
         setMyClubsErrorMessage(
           pendingClubs.length > 0
             ? null
@@ -251,20 +287,40 @@ export function useClubsScreen() {
       try {
         setIsDiscoverLoading(true);
         setDiscoverErrorMessage(null);
+        setDiscoverSyncErrorMessage(null);
 
-        const clubsResponse = await fetchDiscoverClubs();
+        const result = await loadCachedResource<DiscoverClubsApi>({
+          key: LOCAL_CACHE_KEYS.clubsDiscover,
+          ttlMs: LOCAL_CACHE_TTLS.clubsDiscover,
+          fetcher: fetchDiscoverClubs,
+          fallbackSyncErrorMessage:
+            'Nao foi possivel sincronizar clubes para descobrir agora.',
+          onCacheHit: ({ record }) => {
+            if (!isMountedRef.current) {
+              return;
+            }
+
+            setDiscoverClubs(mapDiscoverClubsResponse(record.value));
+            setDiscoverFromCache(true);
+            setIsDiscoverLoading(false);
+          },
+        });
 
         if (!isMountedRef.current) {
           return;
         }
 
-        setDiscoverClubs(mapDiscoverClubsResponse(clubsResponse));
+        setDiscoverClubs(mapDiscoverClubsResponse(result.value));
+        setDiscoverFromCache(result.isFromCache);
+        setDiscoverSyncErrorMessage(result.syncErrorMessage);
       } catch (error) {
         if (!isMountedRef.current) {
           return;
         }
 
         setDiscoverClubs([]);
+        setDiscoverFromCache(false);
+        setDiscoverSyncErrorMessage(null);
         setDiscoverErrorMessage(
           getErrorMessage(
             error,
@@ -409,6 +465,18 @@ export function useClubsScreen() {
       : hasSearchQuery
         ? searchErrorMessage
         : discoverErrorMessage;
+  const isFromCache =
+    activeTab === 'my-clubs'
+      ? myClubsFromCache
+      : hasSearchQuery
+        ? false
+        : discoverFromCache;
+  const syncErrorMessage =
+    activeTab === 'my-clubs'
+      ? myClubsSyncErrorMessage
+      : hasSearchQuery
+        ? null
+        : discoverSyncErrorMessage;
 
   function handleChangeTab(tab: ClubsTabKey) {
     setActiveTab(tab);
@@ -429,16 +497,42 @@ export function useClubsScreen() {
       }
 
       setMyClubsErrorMessage(null);
+      setMyClubsSyncErrorMessage(null);
 
-      const clubs = await getMyClubs();
+      const result = await loadCachedResource<ClubSummaryApi[]>({
+        key: LOCAL_CACHE_KEYS.clubsMy,
+        ttlMs: LOCAL_CACHE_TTLS.clubsMy,
+        fetcher: getMyClubs,
+        fallbackSyncErrorMessage:
+          'Nao foi possivel sincronizar seus clubes agora.',
+        onCacheHit: ({ record }) => {
+          if (!isMountedRef.current) {
+            return;
+          }
+
+          setMyClubs(
+            mergeWithPendingMyClubUpserts(
+              record.value.map(mapClubSummaryToListItem),
+            ),
+          );
+          setMyClubsFromCache(true);
+          if (showLoading) {
+            setIsInitialLoading(false);
+          }
+        },
+      });
 
       if (!isMountedRef.current) {
         return;
       }
 
       setMyClubs(
-        mergeWithPendingMyClubUpserts(clubs.map(mapClubSummaryToListItem)),
+        mergeWithPendingMyClubUpserts(
+          result.value.map(mapClubSummaryToListItem),
+        ),
       );
+      setMyClubsFromCache(result.isFromCache);
+      setMyClubsSyncErrorMessage(result.syncErrorMessage);
     } catch (error) {
       if (!isMountedRef.current) {
         return;
@@ -448,6 +542,8 @@ export function useClubsScreen() {
         const pendingClubs = mergeWithPendingMyClubUpserts([]);
 
         setMyClubs(pendingClubs);
+        setMyClubsFromCache(false);
+        setMyClubsSyncErrorMessage(null);
 
         if (pendingClubs.length > 0) {
           setMyClubsErrorMessage(null);
@@ -488,14 +584,34 @@ export function useClubsScreen() {
       }
 
       setDiscoverErrorMessage(null);
+      setDiscoverSyncErrorMessage(null);
 
-      const clubsResponse = await fetchDiscoverClubs();
+      const result = await loadCachedResource<DiscoverClubsApi>({
+        key: LOCAL_CACHE_KEYS.clubsDiscover,
+        ttlMs: LOCAL_CACHE_TTLS.clubsDiscover,
+        fetcher: fetchDiscoverClubs,
+        fallbackSyncErrorMessage:
+          'Nao foi possivel sincronizar clubes para descobrir agora.',
+        onCacheHit: ({ record }) => {
+          if (!isMountedRef.current) {
+            return;
+          }
+
+          setDiscoverClubs(mapDiscoverClubsResponse(record.value));
+          setDiscoverFromCache(true);
+          if (showLoading) {
+            setIsDiscoverLoading(false);
+          }
+        },
+      });
 
       if (!isMountedRef.current) {
         return;
       }
 
-      setDiscoverClubs(mapDiscoverClubsResponse(clubsResponse));
+      setDiscoverClubs(mapDiscoverClubsResponse(result.value));
+      setDiscoverFromCache(result.isFromCache);
+      setDiscoverSyncErrorMessage(result.syncErrorMessage);
     } catch (error) {
       if (!isMountedRef.current) {
         return;
@@ -503,6 +619,8 @@ export function useClubsScreen() {
 
       if (clearOnError) {
         setDiscoverClubs([]);
+        setDiscoverFromCache(false);
+        setDiscoverSyncErrorMessage(null);
       }
 
       setDiscoverErrorMessage(
@@ -794,6 +912,8 @@ export function useClubsScreen() {
     isInitialLoading,
     isRefreshing,
     isSearchLoading,
+    isFromCache,
+    syncErrorMessage,
     joiningClubIds,
     errorMessage,
     searchErrorMessage,

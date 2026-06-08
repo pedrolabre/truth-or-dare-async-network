@@ -4,6 +4,8 @@ import {
   updateMyProfile,
   type MyProfileResponse,
 } from '../services/api';
+import { loadCachedResource } from '../services/cachedApi';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS } from '../services/cache';
 import {
   MediaPickerError,
   pickImageFromCamera,
@@ -92,22 +94,45 @@ export function useProfileScreen() {
   const [photoSuccessMessage, setPhotoSuccessMessage] = useState<string | null>(
     null,
   );
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
 
   const loadProfile = useCallback(async () => {
     try {
       setIsLoading(true);
+      setSyncErrorMessage(null);
 
-      const data = await getMyProfile();
+      const result = await loadCachedResource<MyProfileResponse>({
+        key: LOCAL_CACHE_KEYS.profileMe,
+        ttlMs: LOCAL_CACHE_TTLS.profileMe,
+        fetcher: getMyProfile,
+        fallbackSyncErrorMessage:
+          'Nao foi possivel sincronizar seu perfil agora.',
+        onCacheHit: ({ record }) => {
+          applyProfileFormState(record.value, {
+            setProfile,
+            setDisplayName,
+            setUsername,
+            setBio,
+          });
+          setIsFromCache(true);
+          setIsLoading(false);
+        },
+      });
 
-      applyProfileFormState(data, {
+      applyProfileFormState(result.value, {
         setProfile,
         setDisplayName,
         setUsername,
         setBio,
       });
+      setIsFromCache(result.isFromCache);
+      setSyncErrorMessage(result.syncErrorMessage);
     } catch (error) {
       console.error('Erro ao carregar perfil:', error);
       setProfile(null);
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
     } finally {
       setIsLoading(false);
     }
@@ -158,6 +183,8 @@ export function useProfileScreen() {
         setUsername,
         setBio,
       });
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
 
       setEditVisible(false);
     } catch (error) {
@@ -192,6 +219,8 @@ export function useProfileScreen() {
         setUsername,
         setBio,
       });
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
       setPhotoSuccessMessage('Foto de perfil atualizada.');
     } catch (error) {
       setPhotoErrorMessage(getPhotoErrorMessage(error));
@@ -254,6 +283,8 @@ export function useProfileScreen() {
         setUsername,
         setBio,
       });
+      setIsFromCache(false);
+      setSyncErrorMessage(null);
       setPhotoSuccessMessage('Foto de perfil removida.');
     } catch (error) {
       setPhotoErrorMessage(getPhotoErrorMessage(error));
@@ -265,6 +296,8 @@ export function useProfileScreen() {
   return {
     profile,
     isLoading,
+    isFromCache,
+    syncErrorMessage,
     isUploadingPhoto,
     photoErrorMessage,
     photoSuccessMessage,

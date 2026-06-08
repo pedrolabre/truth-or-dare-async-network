@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -16,8 +16,8 @@ import FeedFab from '../components/feed/FeedFab';
 import FeedFilters from '../components/feed/FeedFilters';
 import FeedHeader from '../components/feed/FeedHeader';
 import DeleteChallengeConfirmModal from '../components/feed/DeleteChallengeConfirmModal';
-import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS, FEED_ITEMS } from '../data/feedMock';
-import { getFeed, toggleLike } from '../services/api';
+import { FEED_BOTTOM_NAV_ITEMS, FEED_FILTERS } from '../data/feedMock';
+import { toggleLike } from '../services/api';
 import type { FeedItem } from '../types/feed';
 import { useFeedState } from '../hooks/useFeedState';
 import { useDeleteChallenge } from '../hooks/useDeleteChallenge';
@@ -96,61 +96,21 @@ export default function FeedScreen() {
     setActiveFilter,
     activeTab,
     setActiveTab,
+    filteredItems,
+    items,
+    setItems,
+    isLoading,
+    isRefreshing,
+    errorMessage,
+    isFromCache,
+    syncErrorMessage,
+    loadFeed,
   } = useFeedState();
 
-  const [apiItems, setApiItems] = useState<FeedItem[]>(FEED_ITEMS);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
   const [itemToDelete, setItemToDelete] = useState<FeedItem | null>(null);
 
-  const { handleDelete } = useDeleteChallenge(setApiItems);
+  const { handleDelete } = useDeleteChallenge(setItems);
 
-  const loadFeed = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      setErrorMessage('');
-
-      const data = await getFeed();
-
-      setApiItems(data);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Não foi possível carregar o feed.';
-      console.log('Não foi possível carregar o feed da API:', error);
-      setErrorMessage(message);
-      setApiItems(FEED_ITEMS);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadFeed();
-  }, [loadFeed]);
-
-  const filteredItems = useMemo(() => {
-    switch (String(activeFilter)) {
-      case 'dares':
-        return apiItems.filter((item) => item.type === 'dare');
-
-      case 'truths':
-        return apiItems.filter((item) => item.type === 'truth');
-
-      case 'clubs':
-        return apiItems.filter((item) => item.type === 'club');
-
-      case 'popular':
-      default:
-        return apiItems;
-    }
-  }, [activeFilter, apiItems]);
 
   return (
     <View style={[styles.root, { backgroundColor: COLORS.headerGreen }]}>
@@ -213,7 +173,7 @@ export default function FeedScreen() {
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
-                refreshing={refreshing}
+                refreshing={isRefreshing}
                 onRefresh={() => loadFeed(true)}
                 colors={[COLORS.tertiary]}
                 tintColor={COLORS.tertiary}
@@ -240,7 +200,7 @@ export default function FeedScreen() {
               unselectedBorderColor={COLORS.outlineVariant}
             />
 
-            {loading ? (
+            {isLoading ? (
               <View style={styles.statusWrapper}>
                 <ActivityIndicator size="small" color={COLORS.tertiary} />
                 <Text style={[styles.statusText, { color: COLORS.onSurfaceVariant }]}>
@@ -249,7 +209,7 @@ export default function FeedScreen() {
               </View>
             ) : null}
 
-            {!loading && errorMessage ? (
+            {!isLoading && (errorMessage || syncErrorMessage) ? (
               <View
                 style={[
                   styles.errorBox,
@@ -260,7 +220,7 @@ export default function FeedScreen() {
                 ]}
               >
                 <Text style={[styles.errorText, { color: COLORS.onSurfaceVariant }]}>
-                  {errorMessage}
+                  {syncErrorMessage ?? errorMessage}
                 </Text>
                 <Text
                   style={[styles.retryText, { color: COLORS.tertiary }]}
@@ -271,6 +231,12 @@ export default function FeedScreen() {
                   Tentar novamente
                 </Text>
               </View>
+            ) : null}
+
+            {!isLoading && isFromCache && !syncErrorMessage ? (
+              <Text style={[styles.cacheNotice, { color: COLORS.onSurfaceVariant }]}>
+                Dados salvos neste dispositivo.
+              </Text>
             ) : null}
 
             <View style={styles.feedList}>
@@ -298,7 +264,7 @@ export default function FeedScreen() {
                         try {
                           const result = await toggleLike(id, 'truth');
 
-                          setApiItems((prev) =>
+                          setItems((prev) =>
                             prev.map((item) => {
                               if (item.id !== id || item.type !== 'truth') return item;
 
@@ -320,7 +286,7 @@ export default function FeedScreen() {
                       }}
                       liked={item.likedByMe}
                       onPressComments={(id) => {
-                        const selectedItem = apiItems.find(
+                        const selectedItem = items.find(
                           (feedItem) => feedItem.id === id && feedItem.type === 'truth',
                         );
 
@@ -620,6 +586,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '500',
+  },
+  cacheNotice: {
+    marginBottom: 14,
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
   },
   retryText: {
     fontSize: 13,

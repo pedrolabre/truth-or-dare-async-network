@@ -59,6 +59,15 @@ import {
   mapApiContentToItem,
   mapApiUserToItem,
 } from './searchMappers';
+import {
+  clearCacheForUserId,
+  clearCurrentUserCache,
+  getCacheUserIdFromToken,
+  LOCAL_CACHE_KEYS,
+  LOCAL_CACHE_TTLS,
+  removeCache,
+  writeCache,
+} from './cache';
 
 type SignupInput = {
   name: string;
@@ -112,6 +121,14 @@ const AUTH_RECOVERY_GENERIC_ERROR_MESSAGE =
 
 type AuthRecoveryKnownErrorCode =
   (typeof AUTH_RECOVERY_KNOWN_ERROR_CODES)[number];
+
+async function safelyRunCacheOperation(operation: () => Promise<unknown>) {
+  try {
+    await operation();
+  } catch {
+    // Cache local e apenas uma otimizacao; falhas nele nao devem quebrar a API.
+  }
+}
 
 type AuthRecoveryErrorInput = {
   code: AuthRecoveryNormalizedErrorCode;
@@ -215,6 +232,14 @@ export async function parseResponse(response: Response) {
 }
 
 export async function saveToken(token: string) {
+  const currentToken = await AsyncStorage.getItem(TOKEN_KEY);
+  const currentUserId = getCacheUserIdFromToken(currentToken);
+  const nextUserId = getCacheUserIdFromToken(token);
+
+  if (currentUserId && currentUserId !== nextUserId) {
+    await safelyRunCacheOperation(() => clearCacheForUserId(currentUserId));
+  }
+
   await AsyncStorage.setItem(TOKEN_KEY, token);
 }
 
@@ -223,6 +248,7 @@ export async function getToken() {
 }
 
 export async function removeToken() {
+  await safelyRunCacheOperation(clearCurrentUserCache);
   await AsyncStorage.removeItem(TOKEN_KEY);
 }
 
@@ -593,7 +619,11 @@ export async function createTruth(data: CreateChallengeInput) {
     body: JSON.stringify(data),
   });
 
-  return parseResponse(response);
+  const result = await parseResponse(response);
+
+  await safelyRunCacheOperation(() => removeCache(LOCAL_CACHE_KEYS.feedMain));
+
+  return result;
 }
 
 export async function createDare(data: CreateChallengeInput) {
@@ -613,7 +643,11 @@ export async function createDare(data: CreateChallengeInput) {
     body: JSON.stringify(data),
   });
 
-  return parseResponse(response);
+  const result = await parseResponse(response);
+
+  await safelyRunCacheOperation(() => removeCache(LOCAL_CACHE_KEYS.feedMain));
+
+  return result;
 }
 
 export async function deleteTruth(id: string) {
@@ -631,7 +665,11 @@ export async function deleteTruth(id: string) {
     },
   });
 
-  return parseResponse(response);
+  const result = await parseResponse(response);
+
+  await safelyRunCacheOperation(() => removeCache(LOCAL_CACHE_KEYS.feedMain));
+
+  return result;
 }
 
 export async function deleteDare(id: string) {
@@ -649,7 +687,11 @@ export async function deleteDare(id: string) {
     },
   });
 
-  return parseResponse(response);
+  const result = await parseResponse(response);
+
+  await safelyRunCacheOperation(() => removeCache(LOCAL_CACHE_KEYS.feedMain));
+
+  return result;
 }
 
 export async function toggleLike(
@@ -770,7 +812,15 @@ export async function updateMyProfile(
     body: JSON.stringify(data),
   });
 
-  return parseResponse(response);
+  const updatedProfile = await parseResponse(response);
+
+  await safelyRunCacheOperation(() =>
+    writeCache(LOCAL_CACHE_KEYS.profileMe, updatedProfile, {
+      ttlMs: LOCAL_CACHE_TTLS.profileMe,
+    }),
+  );
+
+  return updatedProfile;
 }
 
 export async function getMe(): Promise<UserAccountData> {
@@ -954,7 +1004,11 @@ export async function submitDareProof(
     body: JSON.stringify(payload),
   });
 
-  return parseResponse(response);
+  const result = await parseResponse(response);
+
+  await safelyRunCacheOperation(() => removeCache(LOCAL_CACHE_KEYS.feedMain));
+
+  return result;
 }
 
 export async function getDareProof(

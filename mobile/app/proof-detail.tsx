@@ -275,7 +275,7 @@ export default function ProofDetailScreen() {
                 </View>
               </View>
 
-              {state.isFromCache ? (
+              {state.isFromCache || state.syncErrorMessage ? (
                 <View
                   style={[
                     styles.cacheNotice,
@@ -291,7 +291,7 @@ export default function ProofDetailScreen() {
                     color={colors.textMuted}
                   />
                   <Text style={[styles.cacheNoticeText, { color: colors.textMuted }]}>
-                    Dados salvos neste dispositivo
+                    {state.syncErrorMessage ?? 'Dados salvos neste dispositivo'}
                   </Text>
                 </View>
               ) : null}

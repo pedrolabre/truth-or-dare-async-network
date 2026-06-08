@@ -74,6 +74,8 @@ export default function ClubDetailScreen() {
     permissions,
     contentState,
     errorMessage,
+    isFromCache,
+    syncErrorMessage,
     isRefreshing,
     pendingAction,
     actionErrorMessage,
@@ -326,6 +328,16 @@ export default function ClubDetailScreen() {
             <FeedbackBanner
               colors={colors}
               message={getAccessNotice(club) ?? ''}
+              tone="warning"
+            />
+          ) : null}
+
+          {syncErrorMessage || isFromCache ? (
+            <FeedbackBanner
+              colors={colors}
+              message={
+                syncErrorMessage ?? 'Dados salvos neste dispositivo.'
+              }
               tone="warning"
             />
           ) : null}

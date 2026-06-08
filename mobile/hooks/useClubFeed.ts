@@ -5,6 +5,8 @@ import {
   getClubFeed,
   markClubFeedSeen,
 } from '../services/clubsApi';
+import { loadCachedResource } from '../services/cachedApi';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS } from '../services/cache';
 import { publishMyClubActivityUpdate } from '../services/clubsLocalUpdates';
 import type {
   ClubFeedContentState,
@@ -113,6 +115,8 @@ export function useClubFeed({
     string | null
   >(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
   const [responseErrorMessage, setResponseErrorMessage] = useState<
     string | null
   >(null);
@@ -129,6 +133,8 @@ export function useClubFeed({
   useEffect(() => {
     setItems([]);
     setErrorMessage(null);
+    setIsFromCache(false);
+    setSyncErrorMessage(null);
     setResponseErrorMessage(null);
     setResponseSubmittingPromptId(null);
     setIsInitialLoading(false);
@@ -165,18 +171,41 @@ export function useClubFeed({
         }
 
         setErrorMessage(null);
+        setSyncErrorMessage(null);
 
-        const feed = await loadClubFeed(clubId, order);
+        const result = await loadCachedResource<ClubFeedApi>({
+          key: LOCAL_CACHE_KEYS.clubFeed(clubId),
+          ttlMs: LOCAL_CACHE_TTLS.clubFeed,
+          fetcher: () => loadClubFeed(clubId, order),
+          fallbackSyncErrorMessage:
+            'Nao foi possivel sincronizar o feed do clube agora.',
+          onCacheHit: ({ record }) => {
+            if (!isMountedRef.current || requestIdRef.current !== requestId) {
+              return;
+            }
+
+            setItems(record.value.items);
+            setContentState(getClubFeedContentState(record.value.items));
+            setErrorMessage(null);
+            setIsFromCache(true);
+
+            if (showLoading) {
+              setIsInitialLoading(false);
+            }
+          },
+        });
 
         if (!isMountedRef.current || requestIdRef.current !== requestId) {
           return null;
         }
 
-        setItems(feed.items);
-        setContentState(getClubFeedContentState(feed.items));
+        setItems(result.value.items);
+        setContentState(getClubFeedContentState(result.value.items));
         setErrorMessage(null);
+        setIsFromCache(result.isFromCache);
+        setSyncErrorMessage(result.syncErrorMessage);
 
-        if (seenMarkedClubIdRef.current !== clubId) {
+        if (!result.isFromCache && seenMarkedClubIdRef.current !== clubId) {
           seenMarkedClubIdRef.current = clubId;
 
           void markClubFeedSeenAction(clubId)
@@ -196,13 +225,15 @@ export function useClubFeed({
             });
         }
 
-        return feed;
+        return result.value;
       } catch (error) {
         if (!isMountedRef.current || requestIdRef.current !== requestId) {
           return null;
         }
 
         setErrorMessage(getErrorMessage(error));
+        setIsFromCache(false);
+        setSyncErrorMessage(null);
 
         if (items.length === 0) {
           setContentState('error');
@@ -294,6 +325,8 @@ export function useClubFeed({
         setContentState((currentState) =>
           currentState === 'empty' ? 'ready' : currentState,
         );
+        setIsFromCache(false);
+        setSyncErrorMessage(null);
 
         return response;
       } catch (error) {
@@ -322,8 +355,8 @@ export function useClubFeed({
     responseSubmittingPromptId,
     errorMessage,
     responseErrorMessage,
-    isFromCache: false,
-    syncErrorMessage: null,
+    isFromCache,
+    syncErrorMessage,
     canRetry: Boolean(clubId) && canViewFeed && !isInitialLoading,
     hasRealPromptPagination: CLUB_FEED_HAS_REAL_PROMPT_PAGINATION,
     handleRetry,

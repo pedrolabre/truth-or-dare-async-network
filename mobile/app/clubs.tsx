@@ -44,10 +44,12 @@ export default function ClubsScreen() {
     clubActionErrorMessage,
     errorMessage,
     hasSearchQuery,
+    isFromCache,
     isRefreshing,
     joiningClubIds,
     myClubs,
     query,
+    syncErrorMessage,
     visibleDiscoverClubs,
     setQuery,
     handleChangeTab,
@@ -287,6 +289,12 @@ export default function ClubsScreen() {
               </View>
             ) : null}
 
+            {syncErrorMessage || isFromCache ? (
+              <Text style={[styles.cacheNotice, { color: colors.subText }]}>
+                {syncErrorMessage ?? 'Dados salvos neste dispositivo.'}
+              </Text>
+            ) : null}
+
             {renderContent()}
           </ScrollView>
         </View>
@@ -396,6 +404,12 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     fontWeight: '700',
+  },
+  cacheNotice: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   pressed: {
     opacity: 0.82,

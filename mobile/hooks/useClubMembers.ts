@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { ClubsApiError, getClubMembers } from '../services/clubsApi';
+import { loadCachedResource } from '../services/cachedApi';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS } from '../services/cache';
 import type {
   ClubMemberApi,
   ClubMemberRoleApi,
@@ -67,6 +69,8 @@ export function useClubMembers({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isFromCache, setIsFromCache] = useState(false);
+  const [syncErrorMessage, setSyncErrorMessage] = useState<string | null>(null);
   const isMountedRef = useRef(true);
   const requestIdRef = useRef(0);
 
@@ -80,6 +84,8 @@ export function useClubMembers({
     setItems([]);
     setPagination(null);
     setErrorMessage(null);
+    setIsFromCache(false);
+    setSyncErrorMessage(null);
     setContentState('idle');
     setIsInitialLoading(false);
     setIsRefreshing(false);
@@ -120,14 +126,52 @@ export function useClubMembers({
         }
 
         setErrorMessage(null);
+        setSyncErrorMessage(null);
 
-        const response = await loadClubMembers(clubId, {
+        const query = {
           page,
           limit: pageSize,
           role: roleFilter,
           status: statusFilter,
           search: searchQuery,
-        });
+        };
+        const canUseCache =
+          page === 1 &&
+          !append &&
+          !roleFilter &&
+          !statusFilter &&
+          searchQuery.trim().length === 0;
+        const result = canUseCache
+          ? await loadCachedResource<ClubMembersApi>({
+              key: LOCAL_CACHE_KEYS.clubMembers(clubId),
+              ttlMs: LOCAL_CACHE_TTLS.clubMembers,
+              fetcher: () => loadClubMembers(clubId, query),
+              fallbackSyncErrorMessage:
+                'Nao foi possivel sincronizar os membros agora.',
+              onCacheHit: ({ record }) => {
+                if (
+                  !isMountedRef.current ||
+                  requestIdRef.current !== requestId
+                ) {
+                  return;
+                }
+
+                setItems(record.value.items);
+                setPagination(record.value.pagination);
+                setContentState(getContentState(record.value));
+                setIsFromCache(true);
+
+                if (showLoading) {
+                  setIsInitialLoading(false);
+                }
+              },
+            })
+          : {
+              value: await loadClubMembers(clubId, query),
+              isFromCache: false,
+              syncErrorMessage: null,
+            };
+        const response = result.value;
 
         if (!isMountedRef.current || requestIdRef.current !== requestId) {
           return null;
@@ -143,6 +187,8 @@ export function useClubMembers({
             : getContentState(response),
         );
         setErrorMessage(null);
+        setIsFromCache(result.isFromCache);
+        setSyncErrorMessage(result.syncErrorMessage);
 
         return response;
       } catch (error) {
@@ -152,6 +198,8 @@ export function useClubMembers({
 
         const message = getErrorMessage(error);
         setErrorMessage(message);
+        setIsFromCache(false);
+        setSyncErrorMessage(null);
 
         if (error instanceof ClubsApiError && error.status === 403) {
           setItems([]);
@@ -254,6 +302,8 @@ export function useClubMembers({
     isRefreshing,
     isLoadingMore,
     errorMessage,
+    isFromCache,
+    syncErrorMessage,
     canRetry: Boolean(clubId) && !isInitialLoading,
     canLoadMore,
     setSearchQuery,

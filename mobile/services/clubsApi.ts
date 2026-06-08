@@ -1,4 +1,5 @@
 import { getApiUrl, getToken, parseResponse } from './api';
+import { LOCAL_CACHE_KEYS, removeCache } from './cache';
 import type {
   ClubAuditLogsApi,
   ClubAuditLogsQueryApi,
@@ -39,6 +40,30 @@ function getErrorMessage(error: unknown, fallbackMessage: string): string {
   return error instanceof Error && error.message
     ? error.message
     : fallbackMessage;
+}
+
+async function safelyRunCacheOperation(operation: () => Promise<unknown>) {
+  try {
+    await operation();
+  } catch {
+    // Cache local e apenas uma otimizacao; falhas nele nao devem quebrar a API.
+  }
+}
+
+async function invalidateClubOverviewCache(clubId?: string | null) {
+  await safelyRunCacheOperation(async () => {
+    await Promise.all([
+      removeCache(LOCAL_CACHE_KEYS.clubsMy),
+      removeCache(LOCAL_CACHE_KEYS.clubsDiscover),
+      clubId ? removeCache(LOCAL_CACHE_KEYS.clubDetails(clubId)) : Promise.resolve(),
+    ]);
+  });
+}
+
+async function invalidateClubFeedCache(clubId: string) {
+  await safelyRunCacheOperation(() =>
+    removeCache(LOCAL_CACHE_KEYS.clubFeed(clubId)),
+  );
 }
 
 function appendOptionalSearchParam(
@@ -97,7 +122,11 @@ export async function createClub(
     body: JSON.stringify(payload),
   });
 
-  return parseResponse(response);
+  const createdClub = await parseResponse(response);
+
+  await invalidateClubOverviewCache(createdClub.id);
+
+  return createdClub;
 }
 
 export async function getMyClubs(): Promise<ClubSummaryApi[]> {
@@ -447,7 +476,11 @@ export async function updateClub(
     body: JSON.stringify(payload),
   });
 
-  return parseResponse(response);
+  const updatedClub = await parseResponse(response);
+
+  await invalidateClubOverviewCache(clubId);
+
+  return updatedClub;
 }
 
 export async function createClubPrompt(
@@ -470,7 +503,11 @@ export async function createClubPrompt(
     body: JSON.stringify(payload),
   });
 
-  return parseResponse(response);
+  const prompt = await parseResponse(response);
+
+  await invalidateClubFeedCache(clubId);
+
+  return prompt;
 }
 
 export async function getClubFeed(
@@ -550,7 +587,11 @@ export async function createClubPromptResponse(
     },
   );
 
-  return parseResponse(response);
+  const promptResponse = await parseResponse(response);
+
+  await invalidateClubFeedCache(clubId);
+
+  return promptResponse;
 }
 
 export async function reportClub(

@@ -85,6 +85,8 @@ export type ClubsScreenState = {
   isInitialLoading: boolean;
   isRefreshing: boolean;
   isSearchLoading: boolean;
+  isFromCache?: boolean;
+  syncErrorMessage?: string | null;
   joiningClubIds: string[];
   errorMessage: string | null;
   searchErrorMessage: string | null;
@@ -144,6 +146,8 @@ export type ClubDetailsScreenState = {
   isInitialLoading: boolean;
   isRefreshing: boolean;
   errorMessage: string | null;
+  isFromCache?: boolean;
+  syncErrorMessage?: string | null;
   canRetry: boolean;
 };
 
@@ -220,8 +224,8 @@ export type ClubFeedScreenState = {
   responseSubmittingPromptId: string | null;
   errorMessage: string | null;
   responseErrorMessage: string | null;
-  isFromCache: boolean;
-  syncErrorMessage: string | null;
+  isFromCache?: boolean;
+  syncErrorMessage?: string | null;
   canRetry: boolean;
   hasRealPromptPagination: false;
   handleRetry: () => Promise<void>;
@@ -252,6 +256,8 @@ export type ClubMembersScreenState = {
   isRefreshing: boolean;
   isLoadingMore: boolean;
   errorMessage: string | null;
+  isFromCache?: boolean;
+  syncErrorMessage?: string | null;
   canRetry: boolean;
   canLoadMore: boolean;
   setSearchQuery: (value: string) => void;
