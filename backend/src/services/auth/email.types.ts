@@ -8,12 +8,12 @@ export type SendEmailInput = {
 export type SendEmailResult =
   | {
       ok: true;
-      provider: 'smtp' | 'mock';
+      provider: 'smtp' | 'mock' | 'brevo';
       messageId?: string;
     }
   | {
       ok: false;
-      provider: 'smtp' | 'mock';
+      provider: 'smtp' | 'mock' | 'brevo';
       reason: 'missing_config' | 'invalid_input' | 'send_failed';
       error: string;
     };
