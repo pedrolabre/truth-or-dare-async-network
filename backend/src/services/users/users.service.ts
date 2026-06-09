@@ -24,11 +24,39 @@ import {
   validateMyAccountUpdate,
 } from './settings.validators';
 import { normalizeOptionalMediaUrl } from '../uploads/media-url';
+import { sendAccountSecurityEmail } from '../auth/email.service';
 
 type ListUsersInput = {
   currentUserId: string;
   query?: string;
 };
+
+async function sendAccountSecurityEmailSafely(input: {
+  to: string;
+  subject: string;
+  title: string;
+  body: string;
+  userId: string;
+  event: string;
+}): Promise<void> {
+  try {
+    const emailResult = await sendAccountSecurityEmail(input);
+
+    if (!emailResult.ok) {
+      console.warn('Account security email failed', {
+        userId: input.userId,
+        event: input.event,
+        reason: emailResult.reason,
+      });
+    }
+  } catch (error) {
+    console.warn('Account security email failed', {
+      userId: input.userId,
+      event: input.event,
+      reason: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
 
 export type UserPickerItem = {
   id: string;
@@ -463,6 +491,7 @@ export async function deleteMyAccount(
     },
     select: {
       id: true,
+      email: true,
       passwordHash: true,
       deletedAt: true,
     },
@@ -497,6 +526,15 @@ export async function deleteMyAccount(
 
     throw error;
   }
+
+  await sendAccountSecurityEmailSafely({
+    to: user.email,
+    subject: 'Conta excluida',
+    title: 'Conta excluida',
+    body: 'Sua conta foi marcada como excluida com sucesso.',
+    userId: user.id,
+    event: 'account_deleted',
+  });
 
   return {
     ok: true,

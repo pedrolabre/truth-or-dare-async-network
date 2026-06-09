@@ -10,6 +10,7 @@ import {
   invalidSupportReferenceTypeError,
   supportUserNotFoundError,
 } from './support.errors';
+import { sendSupportTicketCreatedEmail } from '../auth/email.service';
 
 export type ReportAbuseInput = {
   userId: string;
@@ -87,6 +88,8 @@ export async function reportAbuse(input: ReportAbuseInput) {
     },
     select: {
       id: true,
+      name: true,
+      email: true,
     },
   });
 
@@ -115,6 +118,25 @@ export async function reportAbuse(input: ReportAbuseInput) {
       updatedAt: true,
     },
   });
+
+  const emailResult = await sendSupportTicketCreatedEmail({
+    ticketId: ticket.id,
+    userId: user.id,
+    userName: user.name,
+    userEmail: user.email,
+    category: ticket.category,
+    description: ticket.description,
+    referenceId: ticket.referenceId,
+    referenceType: ticket.referenceType,
+    createdAt: ticket.createdAt,
+  });
+
+  if (!emailResult.ok) {
+    console.warn('Support ticket notification email failed', {
+      ticketId: ticket.id,
+      reason: emailResult.reason,
+    });
+  }
 
   return {
     ticket,

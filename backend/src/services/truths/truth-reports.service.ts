@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import { sendModerationReportCreatedEmail } from '../auth/email.service';
 
 const REPORT_REASONS = [
   'spam',
@@ -33,6 +34,26 @@ type ReportResponse = {
   details: string | null;
   createdAt: Date;
 };
+
+async function getReporter(userId: string) {
+  return prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+}
+
+function logModerationEmailFailure(reportId: string, reason: string): void {
+  console.warn('Moderation report notification email failed', {
+    reportId,
+    reason,
+  });
+}
 
 function validateReportReason(reason: unknown): ReportReason {
   if (typeof reason !== 'string') {
@@ -120,6 +141,8 @@ export async function createTruthReportService({
     throw new Error('Denúncia já registrada');
   }
 
+  const reporter = await getReporter(userId);
+
   const report = await prisma.truthReport.create({
     data: {
       truthId,
@@ -128,6 +151,23 @@ export async function createTruthReportService({
       details: normalizedDetails,
     },
   });
+
+  const emailResult = await sendModerationReportCreatedEmail({
+    reportId: report.id,
+    reportType: 'truth',
+    reporterId: userId,
+    reporterName: reporter?.name,
+    reporterEmail: reporter?.email,
+    targetType: 'truth',
+    targetId: report.truthId,
+    reason: report.reason,
+    details: report.details,
+    createdAt: report.createdAt,
+  });
+
+  if (!emailResult.ok) {
+    logModerationEmailFailure(report.id, emailResult.reason);
+  }
 
   return {
     id: report.id,
@@ -188,6 +228,8 @@ export async function createTruthCommentReportService({
     throw new Error('Denúncia já registrada');
   }
 
+  const reporter = await getReporter(userId);
+
   const report = await prisma.truthCommentReport.create({
     data: {
       commentId,
@@ -196,6 +238,23 @@ export async function createTruthCommentReportService({
       details: normalizedDetails,
     },
   });
+
+  const emailResult = await sendModerationReportCreatedEmail({
+    reportId: report.id,
+    reportType: 'truth_comment',
+    reporterId: userId,
+    reporterName: reporter?.name,
+    reporterEmail: reporter?.email,
+    targetType: 'truth_comment',
+    targetId: report.commentId,
+    reason: report.reason,
+    details: report.details,
+    createdAt: report.createdAt,
+  });
+
+  if (!emailResult.ok) {
+    logModerationEmailFailure(report.id, emailResult.reason);
+  }
 
   return {
     id: report.id,

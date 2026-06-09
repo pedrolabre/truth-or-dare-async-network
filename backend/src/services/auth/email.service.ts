@@ -1,4 +1,6 @@
 import nodemailer from 'nodemailer';
+import { buildAccountSecurityEmail } from './email-templates/account-security.template';
+import { buildAdminNotificationEmail } from './email-templates/admin-notification.template';
 import { buildPasswordResetCodeEmail } from './email-templates/password-reset-code.template';
 import { buildPasswordResetConfirmationEmail } from './email-templates/password-reset-confirmation.template';
 import type {
@@ -27,6 +29,51 @@ type BrevoSender = {
 type BrevoConfig = {
   apiKey: string;
   from: BrevoSender;
+};
+
+type NormalizedSendEmailInput = {
+  to: string[];
+  subject: string;
+  html?: string;
+  text?: string;
+};
+
+type AdminNotificationField = {
+  label: string;
+  value: string | null | undefined;
+};
+
+type SupportTicketCreatedEmailInput = {
+  ticketId: string;
+  userId: string;
+  userName?: string | null;
+  userEmail?: string | null;
+  category: string;
+  description: string;
+  referenceId?: string | null;
+  referenceType?: string | null;
+  createdAt: Date;
+};
+
+type ModerationReportCreatedEmailInput = {
+  reportId: string;
+  reportType: string;
+  reporterId: string;
+  reporterName?: string | null;
+  reporterEmail?: string | null;
+  targetType: string;
+  targetId: string;
+  reason: string;
+  details?: string | null;
+  clubId?: string | null;
+  createdAt: Date;
+};
+
+type AccountSecurityEmailInput = {
+  to: string;
+  subject: string;
+  title: string;
+  body: string;
 };
 
 function resolveSmtpConfig(): SmtpConfig | null {
@@ -115,18 +162,36 @@ function resolveBrevoConfig(): BrevoConfig | null {
   };
 }
 
-function normalizeSendInput(input: SendEmailInput): {
-  to: string;
-  subject: string;
-  html?: string;
-  text?: string;
-} | null {
-  const to = input.to?.trim();
+function normalizeEmailRecipients(value: string): string[] {
+  return value
+    .split(/[;,]/)
+    .map((item) => item.trim())
+    .filter((item) => item.includes('@'));
+}
+
+function resolveNotificationRecipients(...envNames: string[]): string[] {
+  for (const envName of envNames) {
+    const recipients = normalizeEmailRecipients(process.env[envName] ?? '');
+
+    if (recipients.length > 0) {
+      return recipients;
+    }
+  }
+
+  return [];
+}
+
+function getResultProvider(): SendEmailResult['provider'] {
+  return resolveEmailProvider() ?? 'smtp';
+}
+
+function normalizeSendInput(input: SendEmailInput): NormalizedSendEmailInput | null {
+  const to = normalizeEmailRecipients(input.to ?? '');
   const subject = input.subject?.trim();
   const html = input.html?.trim();
   const text = input.text?.trim();
 
-  if (!to || !subject || (!html && !text)) {
+  if (to.length === 0 || !subject || (!html && !text)) {
     return null;
   }
 
@@ -139,7 +204,7 @@ function normalizeSendInput(input: SendEmailInput): {
 }
 
 async function sendSmtpEmail(
-  normalized: NonNullable<ReturnType<typeof normalizeSendInput>>,
+  normalized: NormalizedSendEmailInput,
 ): Promise<SendEmailResult> {
   const smtpConfig = resolveSmtpConfig();
 
@@ -167,7 +232,7 @@ async function sendSmtpEmail(
 
     const info = await transporter.sendMail({
       from: smtpConfig.from,
-      to: normalized.to,
+      to: normalized.to.join(', '),
       subject: normalized.subject,
       html: normalized.html,
       text: normalized.text,
@@ -191,7 +256,7 @@ async function sendSmtpEmail(
 }
 
 async function sendBrevoEmail(
-  normalized: NonNullable<ReturnType<typeof normalizeSendInput>>,
+  normalized: NormalizedSendEmailInput,
 ): Promise<SendEmailResult> {
   const brevoConfig = resolveBrevoConfig();
 
@@ -216,11 +281,9 @@ async function sendBrevoEmail(
       },
       body: JSON.stringify({
         sender: brevoConfig.from,
-        to: [
-          {
-            email: normalized.to,
-          },
-        ],
+        to: normalized.to.map((email) => ({
+          email,
+        })),
         subject: normalized.subject,
         ...(normalized.html
           ? { htmlContent: normalized.html }
@@ -262,6 +325,15 @@ async function sendBrevoEmail(
   }
 }
 
+function sendMissingRecipientResult(): SendEmailResult {
+  return {
+    ok: false,
+    provider: getResultProvider(),
+    reason: 'missing_config',
+    error: 'Email notification recipient not configured',
+  };
+}
+
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   const normalized = normalizeSendInput(input);
   const provider = resolveEmailProvider();
@@ -291,6 +363,120 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   }
 
   return sendSmtpEmail(normalized);
+}
+
+export async function sendSupportTicketCreatedEmail({
+  ticketId,
+  userId,
+  userName,
+  userEmail,
+  category,
+  description,
+  referenceId,
+  referenceType,
+  createdAt,
+}: SupportTicketCreatedEmailInput): Promise<SendEmailResult> {
+  const recipients = resolveNotificationRecipients('SUPPORT_EMAIL_TO');
+
+  if (recipients.length === 0) {
+    return sendMissingRecipientResult();
+  }
+
+  const template = buildAdminNotificationEmail({
+    subject: '[Truth or Dare] Novo chamado de suporte',
+    title: 'Novo chamado de suporte',
+    fields: [
+      { label: 'Ticket ID', value: ticketId },
+      { label: 'Usuario ID', value: userId },
+      { label: 'Usuario', value: userName },
+      { label: 'Email do usuario', value: userEmail },
+      { label: 'Categoria', value: category },
+      { label: 'Descricao', value: description },
+      { label: 'Referencia tipo', value: referenceType },
+      { label: 'Referencia ID', value: referenceId },
+      { label: 'Criado em UTC', value: createdAt.toISOString() },
+    ],
+  });
+
+  return sendEmail({
+    to: recipients.join(', '),
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+  });
+}
+
+export async function sendModerationReportCreatedEmail({
+  reportId,
+  reportType,
+  reporterId,
+  reporterName,
+  reporterEmail,
+  targetType,
+  targetId,
+  reason,
+  details,
+  clubId,
+  createdAt,
+}: ModerationReportCreatedEmailInput): Promise<SendEmailResult> {
+  const recipients = resolveNotificationRecipients(
+    'MODERATION_EMAIL_TO',
+    'SUPPORT_EMAIL_TO',
+  );
+
+  if (recipients.length === 0) {
+    return sendMissingRecipientResult();
+  }
+
+  const fields: AdminNotificationField[] = [
+    { label: 'Denuncia ID', value: reportId },
+    { label: 'Tipo de denuncia', value: reportType },
+    { label: 'Reporter ID', value: reporterId },
+    { label: 'Reporter', value: reporterName },
+    { label: 'Email do reporter', value: reporterEmail },
+    { label: 'Alvo tipo', value: targetType },
+    { label: 'Alvo ID', value: targetId },
+    { label: 'Motivo', value: reason },
+    { label: 'Detalhes', value: details },
+    { label: 'Criado em UTC', value: createdAt.toISOString() },
+  ];
+
+  if (clubId) {
+    fields.splice(5, 0, { label: 'Clube ID', value: clubId });
+  }
+
+  const template = buildAdminNotificationEmail({
+    subject: `[Truth or Dare] Nova denuncia: ${reportType}`,
+    title: `Nova denuncia: ${reportType}`,
+    fields,
+  });
+
+  return sendEmail({
+    to: recipients.join(', '),
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+  });
+}
+
+export async function sendAccountSecurityEmail({
+  to,
+  subject,
+  title,
+  body,
+}: AccountSecurityEmailInput): Promise<SendEmailResult> {
+  const template = buildAccountSecurityEmail({
+    subject,
+    title,
+    body,
+  });
+
+  return sendEmail({
+    to,
+    subject: template.subject,
+    html: template.html,
+    text: template.text,
+  });
 }
 
 export async function sendPasswordResetCodeEmail({

@@ -15,6 +15,7 @@ import {
 } from './settings.validators';
 import { logSettingsCredentialChange } from './settings.observability';
 import { registerUserSession } from '../users/sessions.service';
+import { sendAccountSecurityEmail } from './email.service';
 
 type SignupInput = {
   name: string;
@@ -41,6 +42,33 @@ type ChangePasswordInput = {
   currentPassword: unknown;
   newPassword: unknown;
 };
+
+async function sendAccountSecurityEmailSafely(input: {
+  to: string;
+  subject: string;
+  title: string;
+  body: string;
+  userId: string;
+  event: string;
+}): Promise<void> {
+  try {
+    const emailResult = await sendAccountSecurityEmail(input);
+
+    if (!emailResult.ok) {
+      console.warn('Account security email failed', {
+        userId: input.userId,
+        event: input.event,
+        reason: emailResult.reason,
+      });
+    }
+  } catch (error) {
+    console.warn('Account security email failed', {
+      userId: input.userId,
+      event: input.event,
+      reason: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+}
 
 export async function signup({ name, email, password }: SignupInput) {
   const normalizedEmail = email.trim().toLowerCase();
@@ -216,6 +244,29 @@ export async function changeEmail({
       changeType: 'email',
     });
 
+    await Promise.all([
+      sendAccountSecurityEmailSafely({
+        to: user.email,
+        subject: 'Email da conta alterado',
+        title: 'Email da conta alterado',
+        body: `O email da sua conta foi alterado para ${updatedUser.email}.`,
+        userId: user.id,
+        event: 'email_changed_old_address',
+      }),
+      ...(user.email !== updatedUser.email
+        ? [
+            sendAccountSecurityEmailSafely({
+              to: updatedUser.email,
+              subject: 'Email da conta atualizado',
+              title: 'Email da conta atualizado',
+              body: 'Este email foi definido como o novo email da sua conta.',
+              userId: user.id,
+              event: 'email_changed_new_address',
+            }),
+          ]
+        : []),
+    ]);
+
     return {
       user: updatedUser,
     };
@@ -247,6 +298,7 @@ export async function changePassword({
     },
     select: {
       id: true,
+      email: true,
       passwordHash: true,
       deletedAt: true,
     },
@@ -290,6 +342,15 @@ export async function changePassword({
   logSettingsCredentialChange({
     userId: user.id,
     changeType: 'password',
+  });
+
+  await sendAccountSecurityEmailSafely({
+    to: user.email,
+    subject: 'Senha alterada com sucesso',
+    title: 'Senha alterada com sucesso',
+    body: 'A senha da sua conta foi alterada com sucesso.',
+    userId: user.id,
+    event: 'password_changed',
   });
 
   return {

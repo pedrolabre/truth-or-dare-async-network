@@ -21,6 +21,7 @@ import {
   canViewPromptClub,
   getActivePromptMembership,
 } from './prompts/permissions';
+import { sendModerationReportCreatedEmail } from '../auth/email.service';
 
 const REPORT_REASONS = [
   'spam',
@@ -146,6 +147,26 @@ function auditActionForTarget(targetType: ClubReportTargetType) {
   }
 }
 
+async function getReporter(reporterId: string) {
+  return prisma.user.findUnique({
+    where: {
+      id: reporterId,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  });
+}
+
+function logModerationEmailFailure(reportId: string, reason: string): void {
+  console.warn('Moderation report notification email failed', {
+    reportId,
+    reason,
+  });
+}
+
 async function createReport({
   clubId,
   reporterId,
@@ -173,6 +194,8 @@ async function createReport({
   if (existingReport) {
     duplicateReportError();
   }
+
+  const reporter = await getReporter(reporterId);
 
   const report = await prisma.$transaction(async (tx) => {
     const createdReport = await tx.clubReport.create({
@@ -205,6 +228,24 @@ async function createReport({
 
     return createdReport;
   });
+
+  const emailResult = await sendModerationReportCreatedEmail({
+    reportId: report.id,
+    reportType: target.targetType,
+    reporterId,
+    reporterName: reporter?.name,
+    reporterEmail: reporter?.email,
+    clubId,
+    targetType: target.targetType,
+    targetId: target.targetId,
+    reason: report.reason,
+    details: report.details,
+    createdAt: report.createdAt,
+  });
+
+  if (!emailResult.ok) {
+    logModerationEmailFailure(report.id, emailResult.reason);
+  }
 
   return mapReport(report);
 }

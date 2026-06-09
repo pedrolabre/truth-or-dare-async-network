@@ -102,3 +102,31 @@ export async function sendPasswordResetConfirmationEmail({
     text: template.text,
   });
 }
+
+export async function sendSupportTicketCreatedEmail(): Promise<SendEmailResult> {
+  return sendEmail({
+    to: 'support@test.com',
+    subject: 'Novo chamado de suporte',
+    text: 'Novo chamado de suporte',
+  });
+}
+
+export async function sendModerationReportCreatedEmail(): Promise<SendEmailResult> {
+  return sendEmail({
+    to: 'moderation@test.com',
+    subject: 'Nova denuncia',
+    text: 'Nova denuncia',
+  });
+}
+
+export async function sendAccountSecurityEmail({
+  to,
+}: {
+  to: string;
+}): Promise<SendEmailResult> {
+  return sendEmail({
+    to,
+    subject: 'Alerta de seguranca da conta',
+    text: 'Alerta de seguranca da conta',
+  });
+}
