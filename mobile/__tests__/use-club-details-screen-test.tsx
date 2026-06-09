@@ -1,6 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useClubDetailsScreen } from '../hooks/useClubDetailsScreen';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS, writeCache } from '../services/cache';
 import type { ClubDetailsApi } from '../types/clubsApi';
 
 jest.mock('../services/clubsApi', () => ({
@@ -11,6 +13,15 @@ function makeApiError(status: number, message: string) {
   return Object.assign(new Error(message), {
     status,
   });
+}
+
+function makeToken(userId: string) {
+  const payload = btoa(JSON.stringify({ sub: userId }))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  return `header.${payload}.signature`;
 }
 
 function makeClubDetails(
@@ -70,8 +81,9 @@ function createDeferred<T>() {
 }
 
 describe('useClubDetailsScreen', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    await AsyncStorage.clear();
   });
 
   it('carrega detalhe real pelo id da rota e expoe membership e permissoes', async () => {
@@ -348,5 +360,73 @@ describe('useClubDetailsScreen', () => {
     expect(result.current.contentState).toBe('ready');
     expect(result.current.club?.id).toBe('club-refresh');
     expect(result.current.errorMessage).toBe('Offline');
+  });
+
+  it('renderiza detalhe cacheado antes da sincronizacao do backend', async () => {
+    await AsyncStorage.setItem('auth_token', makeToken('user-1'));
+    await writeCache(
+      LOCAL_CACHE_KEYS.clubDetails('club-cache'),
+      makeClubDetails({
+        id: 'club-cache',
+        name: 'Detalhe Cacheado',
+      }),
+      { ttlMs: LOCAL_CACHE_TTLS.clubDetails },
+    );
+    const deferred = createDeferred<ClubDetailsApi>();
+    const loadClubDetails = jest.fn().mockReturnValue(deferred.promise);
+
+    const { result } = renderHook(() =>
+      useClubDetailsScreen({
+        clubId: 'club-cache',
+        loadClubDetails,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.club?.name).toBe('Detalhe Cacheado');
+      expect(result.current.isFromCache).toBe(true);
+    });
+
+    await act(async () => {
+      deferred.resolve(
+        makeClubDetails({
+          id: 'club-cache',
+          name: 'Detalhe Fresco',
+        }),
+      );
+      await deferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.club?.name).toBe('Detalhe Fresco');
+      expect(result.current.isFromCache).toBe(false);
+      expect(result.current.syncErrorMessage).toBeNull();
+    });
+  });
+
+  it('mantem detalhe cacheado quando a sincronizacao falha', async () => {
+    await AsyncStorage.setItem('auth_token', makeToken('user-1'));
+    await writeCache(
+      LOCAL_CACHE_KEYS.clubDetails('club-offline'),
+      makeClubDetails({
+        id: 'club-offline',
+        name: 'Detalhe Offline',
+      }),
+      { ttlMs: LOCAL_CACHE_TTLS.clubDetails },
+    );
+    const loadClubDetails = jest.fn().mockRejectedValue(new Error('Offline'));
+
+    const { result } = renderHook(() =>
+      useClubDetailsScreen({
+        clubId: 'club-offline',
+        loadClubDetails,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.club?.name).toBe('Detalhe Offline');
+      expect(result.current.isFromCache).toBe(true);
+      expect(result.current.syncErrorMessage).toBe('Offline');
+    });
   });
 });

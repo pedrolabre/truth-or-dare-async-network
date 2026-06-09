@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import {
@@ -10,6 +11,7 @@ import {
   joinClub,
   searchClubs,
 } from '../services/clubsApi';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS, writeCache } from '../services/cache';
 import type {
   ClubMemberApi,
   ClubSummaryApi,
@@ -38,6 +40,15 @@ const DEFAULT_VIEWER_ACTIVITY = {
   mutedUntil: null,
   isMuted: false,
 };
+
+function makeToken(userId: string) {
+  const payload = btoa(JSON.stringify({ sub: userId }))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  return `header.${payload}.signature`;
+}
 
 type ClubSummaryOverrides = Partial<Omit<ClubSummaryApi, 'viewerMembership'>> & {
   viewerMembership?: Partial<ClubSummaryApi['viewerMembership']>;
@@ -128,9 +139,10 @@ async function advanceSearchDebounce() {
 }
 
 describe('useClubsScreen', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     jest.useRealTimers();
+    await AsyncStorage.clear();
     mockedGetMyClubs.mockResolvedValue([]);
     mockedDiscoverClubs.mockResolvedValue(makeDiscoverResponse());
     mockedJoinClub.mockResolvedValue(makeClubMember());
@@ -1482,5 +1494,68 @@ describe('useClubsScreen', () => {
     expect(mockedSearchClubs).not.toHaveBeenCalled();
     expect(mockedDiscoverClubs).not.toHaveBeenCalled();
     expect(mockedGetMyClubs).toHaveBeenCalledTimes(3);
+  });
+
+  it('renderiza Meus Clubes cacheados antes da sincronizacao do backend', async () => {
+    await AsyncStorage.setItem('auth_token', makeToken('user-1'));
+    await writeCache(
+      LOCAL_CACHE_KEYS.clubsMy,
+      [
+        makeClubSummary({
+          id: 'club-cache',
+          name: 'Clube Cacheado',
+        }),
+      ],
+      { ttlMs: LOCAL_CACHE_TTLS.clubsMy },
+    );
+
+    const deferred = createDeferred<ClubSummaryApi[]>();
+    mockedGetMyClubs.mockReturnValue(deferred.promise);
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubs[0]?.name).toBe('Clube Cacheado');
+      expect(result.current.isFromCache).toBe(true);
+    });
+
+    await act(async () => {
+      deferred.resolve([
+        makeClubSummary({
+          id: 'club-fresh',
+          name: 'Clube Fresco',
+        }),
+      ]);
+      await deferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.myClubs[0]?.name).toBe('Clube Fresco');
+      expect(result.current.isFromCache).toBe(false);
+      expect(result.current.syncErrorMessage).toBeNull();
+    });
+  });
+
+  it('mantem Meus Clubes cacheados quando a sincronizacao falha', async () => {
+    await AsyncStorage.setItem('auth_token', makeToken('user-1'));
+    await writeCache(
+      LOCAL_CACHE_KEYS.clubsMy,
+      [
+        makeClubSummary({
+          id: 'club-offline',
+          name: 'Clube Offline',
+        }),
+      ],
+      { ttlMs: LOCAL_CACHE_TTLS.clubsMy },
+    );
+    mockedGetMyClubs.mockRejectedValue(new Error('Offline'));
+
+    const { result } = renderHook(() => useClubsScreen());
+
+    await waitFor(() => {
+      expect(result.current.myClubs[0]?.name).toBe('Clube Offline');
+      expect(result.current.isFromCache).toBe(true);
+      expect(result.current.syncErrorMessage).toBe('Offline');
+    });
   });
 });

@@ -1,9 +1,11 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import {
   CLUB_FEED_HAS_REAL_PROMPT_PAGINATION,
   useClubFeed,
 } from '../hooks/useClubFeed';
+import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS, writeCache } from '../services/cache';
 import type { ClubFeedApi, ClubFeedItemApi } from '../types/clubsApi';
 
 jest.mock('../services/clubsApi', () => ({
@@ -15,6 +17,15 @@ jest.mock('../services/clubsApi', () => ({
     readCount: 1,
   }),
 }));
+
+function makeToken(userId: string) {
+  const payload = btoa(JSON.stringify({ sub: userId }))
+    .replace(/=/g, '')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_');
+
+  return `header.${payload}.signature`;
+}
 
 function makeFeedItem(
   overrides: Partial<ClubFeedItemApi> = {},
@@ -89,8 +100,9 @@ function createDeferred<T>() {
 }
 
 describe('useClubFeed', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
+    await AsyncStorage.clear();
   });
 
   it('nao carrega feed enquanto a aba nao esta ativa', () => {
@@ -428,5 +440,77 @@ describe('useClubFeed', () => {
     expect(result.current.items[0]?.viewerState.answeredByMe).toBe(false);
     expect(result.current.items[0]?.recentResponses).toEqual([]);
     expect(result.current.responseErrorMessage).toBe('Falha ao responder');
+  });
+
+  it('renderiza feed cacheado antes da sincronizacao do backend', async () => {
+    await AsyncStorage.setItem('auth_token', makeToken('user-1'));
+    await writeCache(
+      LOCAL_CACHE_KEYS.clubFeed('club-1'),
+      makeFeed([makeFeedItem({ id: 'prompt-cache', content: 'Cache' })]),
+      { ttlMs: LOCAL_CACHE_TTLS.clubFeed },
+    );
+    const deferred = createDeferred<ClubFeedApi>();
+    const loadClubFeed = jest.fn().mockReturnValue(deferred.promise);
+    const markClubFeedSeenAction = jest.fn();
+
+    const { result } = renderHook(() =>
+      useClubFeed({
+        clubId: 'club-1',
+        isActive: true,
+        canViewFeed: true,
+        loadClubFeed,
+        markClubFeedSeenAction,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.items[0]?.id).toBe('prompt-cache');
+      expect(result.current.isFromCache).toBe(true);
+    });
+    expect(markClubFeedSeenAction).not.toHaveBeenCalled();
+
+    await act(async () => {
+      deferred.resolve(
+        makeFeed([makeFeedItem({ id: 'prompt-fresh', content: 'Backend' })]),
+      );
+      await deferred.promise;
+    });
+
+    await waitFor(() => {
+      expect(result.current.items[0]?.id).toBe('prompt-fresh');
+      expect(result.current.isFromCache).toBe(false);
+      expect(result.current.syncErrorMessage).toBeNull();
+    });
+    await waitFor(() => {
+      expect(markClubFeedSeenAction).toHaveBeenCalledWith('club-1');
+    });
+  });
+
+  it('mantem feed cacheado quando a sincronizacao falha', async () => {
+    await AsyncStorage.setItem('auth_token', makeToken('user-1'));
+    await writeCache(
+      LOCAL_CACHE_KEYS.clubFeed('club-1'),
+      makeFeed([makeFeedItem({ id: 'prompt-offline', content: 'Offline' })]),
+      { ttlMs: LOCAL_CACHE_TTLS.clubFeed },
+    );
+    const loadClubFeed = jest.fn().mockRejectedValue(new Error('Offline'));
+    const markClubFeedSeenAction = jest.fn();
+
+    const { result } = renderHook(() =>
+      useClubFeed({
+        clubId: 'club-1',
+        isActive: true,
+        canViewFeed: true,
+        loadClubFeed,
+        markClubFeedSeenAction,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.items[0]?.id).toBe('prompt-offline');
+      expect(result.current.isFromCache).toBe(true);
+      expect(result.current.syncErrorMessage).toBe('Offline');
+    });
+    expect(markClubFeedSeenAction).not.toHaveBeenCalled();
   });
 });
