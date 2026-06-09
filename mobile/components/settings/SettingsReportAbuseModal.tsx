@@ -79,9 +79,9 @@ export default function SettingsReportAbuseModal({
                 style={[
                   styles.categoryButton,
                   {
-                    backgroundColor: selected ? '#426A4B' : inputBackground,
+                    backgroundColor: selected ? '#527B5D' : inputBackground,
                     borderColor: selected
-                      ? '#426A4B'
+                      ? '#527B5D'
                       : isDark
                         ? '#333735'
                         : '#d7ddd9',
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#426A4B',
+    backgroundColor: '#527B5D',
     alignItems: 'center',
     justifyContent: 'center',
   },

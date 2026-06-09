@@ -1,6 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { ClubsApiError, getClubAuditLogs } from '../services/clubsApi';
+import {
+  ClubsApiError,
+  getClubAuditLogs,
+  getClubFeed,
+} from '../services/clubsApi';
 
 function makeJsonResponse(
   ok: boolean,
@@ -74,6 +78,54 @@ describe('clubs audit API client', () => {
 
     expect(fetchMock).toHaveBeenCalledWith(
       'https://api.test/clubs/club-1/audit-logs?limit=10&cursor=cursor-1&action=club_member_role_updated&targetUserId=member-1&entityType=club_member&from=2026-06-01T00%3A00%3A00.000Z&to=2026-06-06T23%3A59%3A59.000Z',
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token-123',
+        },
+      },
+    );
+  });
+
+  it('busca feed do clube com order, cursor e limit preservando nextCursor', async () => {
+    fetchMock.mockResolvedValue(
+      makeJsonResponse(true, 200, {
+        club: {
+          id: 'club-1',
+          slug: 'clube-um',
+          name: 'Clube Um',
+          description: null,
+          iconName: 'groups',
+          avatarUrl: null,
+          visibility: 'public',
+          status: 'active',
+          memberCount: 2,
+          promptCount: 3,
+          lastActivityAt: null,
+          viewerMembership: {
+            isMember: true,
+            role: 'member',
+            status: 'active',
+          },
+        },
+        items: [],
+        nextCursor: 'prompt-2',
+      }),
+    );
+
+    await expect(
+      getClubFeed('club-1', 'activity', {
+        limit: 20,
+        cursor: 'prompt-1',
+      }),
+    ).resolves.toMatchObject({
+      items: [],
+      nextCursor: 'prompt-2',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.test/clubs/club-1/feed?order=activity&limit=20&cursor=prompt-1',
       {
         method: 'GET',
         headers: {

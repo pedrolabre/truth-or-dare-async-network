@@ -171,29 +171,6 @@ export default function ClubMembersPanel({
         </Pressable>
       </View>
 
-      {canManageMembers ? (
-        <View
-          testID="club-moderation-panel"
-          style={[
-            styles.moderationPanel,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.cardBorder,
-            },
-          ]}
-        >
-          <MaterialIcons name="admin-panel-settings" size={20} color={colors.green} />
-          <View style={styles.moderationTextStack}>
-            <Text style={[styles.moderationTitle, { color: colors.text }]}>
-              Moderacao simples
-            </Text>
-            <Text style={[styles.moderationDescription, { color: colors.subText }]}>
-              Acoes aparecem apenas para membros que seu papel pode restringir.
-            </Text>
-          </View>
-        </View>
-      ) : null}
-
       <View
         style={[
           styles.searchBox,
@@ -504,29 +481,6 @@ const styles = StyleSheet.create({
   },
   filterGroup: {
     gap: 8,
-  },
-  moderationPanel: {
-    borderWidth: 1,
-    borderRadius: 18,
-    padding: 13,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-  },
-  moderationTextStack: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  moderationTitle: {
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '900',
-  },
-  moderationDescription: {
-    fontSize: 12,
-    lineHeight: 17,
-    fontWeight: '700',
   },
   filterLabel: {
     fontSize: 12,

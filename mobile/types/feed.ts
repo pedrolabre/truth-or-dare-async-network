@@ -44,6 +44,7 @@ export type FeedDareItem = {
   proofFileUrl: string | null;
   proofThumbnailUrl: string | null;
   interactionDisabled: boolean;
+  canRespond?: boolean;
   likesCount: number;
   likedByMe: boolean;
 };

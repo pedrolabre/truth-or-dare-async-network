@@ -115,6 +115,8 @@ export default function FeedCardDare({
         ? 'DESAFIO FALHOU'
         : item.status === 'expired'
           ? 'DESAFIO EXPIRADO'
+          : item.canRespond === false
+            ? 'AGUARDANDO JOGADOR'
           : 'ACEITAR DESAFIO';
 
   return (

@@ -127,4 +127,23 @@ describe('getFeed', () => {
     expect(dareItem.progress).toBeGreaterThanOrEqual(0);
     expect(dareItem.progress).toBeLessThanOrEqual(1);
   });
+
+  it('desativa interacao de dare no feed quando o viewer nao e o alvo', async () => {
+    const scenario = await buildFeedScenario();
+
+    const feed = await getFeed(scenario.users.owner.id);
+    const receivedDare = feed.find((item) => item.id === scenario.dares[0].id);
+    const authoredDare = feed.find((item) => item.id === scenario.dares[1].id);
+
+    expect(receivedDare).toMatchObject({
+      type: 'dare',
+      canRespond: true,
+      interactionDisabled: false,
+    });
+    expect(authoredDare).toMatchObject({
+      type: 'dare',
+      canRespond: false,
+      interactionDisabled: true,
+    });
+  });
 });

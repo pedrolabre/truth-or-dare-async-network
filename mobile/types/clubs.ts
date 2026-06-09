@@ -24,8 +24,7 @@ export type ClubDetailTabKey =
   | 'feed'
   | 'members'
   | 'media'
-  | 'about'
-  | 'audit';
+  | 'about';
 
 export type ClubsContentState =
   | 'loading'
@@ -218,8 +217,10 @@ export type ClubFeedContentState =
 export type ClubFeedScreenState = {
   items: ClubFeedItemApi[];
   contentState: ClubFeedContentState;
+  nextCursor: string | null;
   isInitialLoading: boolean;
   isRefreshing: boolean;
+  isLoadingMore: boolean;
   isSubmittingResponse: boolean;
   responseSubmittingPromptId: string | null;
   errorMessage: string | null;
@@ -227,9 +228,11 @@ export type ClubFeedScreenState = {
   isFromCache?: boolean;
   syncErrorMessage?: string | null;
   canRetry: boolean;
-  hasRealPromptPagination: false;
+  canLoadMore: boolean;
+  hasRealPromptPagination: true;
   handleRetry: () => Promise<void>;
   handleRefresh: () => Promise<void>;
+  handleLoadMore: () => Promise<void>;
   clearResponseError: () => void;
   submitPromptResponse: (
     promptId: string,

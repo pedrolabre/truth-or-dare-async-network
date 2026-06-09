@@ -2,6 +2,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Alert,
+  Modal,
+  PanResponder,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -41,7 +43,11 @@ import { useClubAuditLog } from '../../hooks/useClubAuditLog';
 import { useClubFeed } from '../../hooks/useClubFeed';
 import { useClubMembers } from '../../hooks/useClubMembers';
 import { useClubModeration } from '../../hooks/useClubModeration';
-import type { ClubDetail, ClubDetailTabKey } from '../../types/clubs';
+import type {
+  ClubAuditLogScreenState,
+  ClubDetail,
+  ClubDetailTabKey,
+} from '../../types/clubs';
 import type { ClubFeedItemApi, ClubMemberApi } from '../../types/clubsApi';
 
 type ClubDetailRouteParams = {
@@ -56,6 +62,7 @@ export default function ClubDetailScreen() {
   const colors = isDark ? DARK_CLUBS_COLORS : LIGHT_CLUBS_COLORS;
   const [invitesVisible, setInvitesVisible] = React.useState(false);
   const [settingsVisible, setSettingsVisible] = React.useState(false);
+  const [auditVisible, setAuditVisible] = React.useState(false);
   const [actionMenuVisible, setActionMenuVisible] = React.useState(false);
   const [promptComposerVisible, setPromptComposerVisible] =
     React.useState(false);
@@ -116,18 +123,18 @@ export default function ClubDetailScreen() {
   });
   const clubAuditLog = useClubAuditLog({
     clubId,
-    isActive:
-      contentState === 'ready' && activeTab === 'audit' && canViewAuditLog,
+    isActive: contentState === 'ready' && auditVisible && canViewAuditLog,
     canViewAudit: canViewAuditLog,
   });
   React.useEffect(() => {
     setActiveTab('feed');
+    setAuditVisible(false);
   }, [clubId]);
   React.useEffect(() => {
-    if (activeTab === 'audit' && !canViewAuditLog) {
-      setActiveTab('feed');
+    if (auditVisible && !canViewAuditLog) {
+      setAuditVisible(false);
     }
-  }, [activeTab, canViewAuditLog]);
+  }, [auditVisible, canViewAuditLog]);
 
   async function handleBlockMember(member: ClubMemberApi) {
     if (!clubId) {
@@ -195,13 +202,6 @@ export default function ClubDetailScreen() {
     switch (activeTab) {
       case 'about':
         return <ClubAboutPanel club={readyClub} colors={colors} />;
-      case 'audit':
-        return (
-          <ClubAuditLogPanel
-            colors={colors}
-            auditLog={clubAuditLog}
-          />
-        );
       case 'media':
         return <ClubMediaPanel colors={colors} />;
       case 'members':
@@ -414,7 +414,6 @@ export default function ClubDetailScreen() {
           <ClubDetailTabs
             activeTab={activeTab}
             colors={colors}
-            showAudit={canViewAuditLog}
             onChangeTab={setActiveTab}
           />
 
@@ -460,6 +459,11 @@ export default function ClubDetailScreen() {
     setActionMenuVisible(false);
     clearActionFeedback();
     setSettingsVisible(true);
+  }
+
+  function handleMenuAudit() {
+    setActionMenuVisible(false);
+    setAuditVisible(true);
   }
 
   function handleMenuReport() {
@@ -566,6 +570,7 @@ export default function ClubDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel="Abrir ações do clube"
             hitSlop={10}
+            testID="club-actions-menu-button"
             onPress={() => {
               setActionMenuVisible((visible) => !visible);
             }}
@@ -585,11 +590,13 @@ export default function ClubDetailScreen() {
             isMuted={isMuted}
             canToggleNotifications={club.viewerMembership.isMember}
             canEdit={Boolean(club.permissions.canEditClub)}
+            canViewAudit={canViewAuditLog}
             canReport={club.status === 'active'}
             canLeave={club.viewerMembership.isMember}
             onAbout={handleMenuAbout}
             onNotifications={handleMenuNotifications}
             onSettings={handleMenuSettings}
+            onAudit={handleMenuAudit}
             onReport={handleMenuReport}
             onLeave={handleMenuLeave}
           />
@@ -681,6 +688,14 @@ export default function ClubDetailScreen() {
           onUpdated={handleClubUpdated}
         />
 
+        <ClubAuditBottomSheet
+          visible={auditVisible}
+          colors={colors}
+          auditLog={clubAuditLog}
+          bottomInset={insets.bottom}
+          onClose={() => setAuditVisible(false)}
+        />
+
         <ClubReportModal
           visible={Boolean(moderation.activeReportTarget)}
           target={moderation.activeReportTarget}
@@ -744,16 +759,120 @@ function FeedbackBanner({ colors, message, tone }: FeedbackBannerProps) {
   );
 }
 
+type ClubAuditBottomSheetProps = {
+  visible: boolean;
+  colors: ClubsThemeColors;
+  auditLog: ClubAuditLogScreenState;
+  bottomInset: number;
+  onClose: () => void;
+};
+
+function ClubAuditBottomSheet({
+  visible,
+  colors,
+  auditLog,
+  bottomInset,
+  onClose,
+}: ClubAuditBottomSheetProps) {
+  const panResponder = React.useMemo(
+    () =>
+      PanResponder.create({
+        onMoveShouldSetPanResponder: (_event, gestureState) =>
+          gestureState.dy > 8 &&
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx),
+        onPanResponderRelease: (_event, gestureState) => {
+          if (gestureState.dy > 56 || gestureState.vy > 0.75) {
+            onClose();
+          }
+        },
+      }),
+    [onClose],
+  );
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Fechar auditoria"
+        style={styles.auditModalBackdrop}
+        onPress={onClose}
+      >
+        <Pressable
+          onPress={() => {}}
+          style={[
+            styles.auditBottomSheet,
+            {
+              backgroundColor: colors.background,
+              borderColor: colors.cardBorder,
+              paddingBottom: Math.max(bottomInset, 12),
+            },
+          ]}
+        >
+          <View
+            {...panResponder.panHandlers}
+            style={styles.auditSheetHandleArea}
+          >
+            <View
+              style={[
+                styles.auditSheetHandle,
+                { backgroundColor: colors.cardBorder },
+              ]}
+            />
+          </View>
+
+          <View style={styles.auditSheetHeader}>
+            <View style={styles.auditSheetTitleRow}>
+              <MaterialIcons name="history" size={22} color={colors.green} />
+              <Text style={[styles.auditSheetTitle, { color: colors.text }]}>
+                Auditoria
+              </Text>
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Fechar auditoria"
+              hitSlop={10}
+              onPress={onClose}
+              style={({ pressed }) => [
+                styles.auditSheetCloseButton,
+                pressed && styles.pressed,
+              ]}
+            >
+              <MaterialIcons name="close" size={22} color={colors.muted} />
+            </Pressable>
+          </View>
+
+          <ScrollView
+            style={styles.auditSheetScroll}
+            contentContainerStyle={styles.auditSheetContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
+            <ClubAuditLogPanel colors={colors} auditLog={auditLog} />
+          </ScrollView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 type ClubOverflowMenuProps = {
   colors: ClubsThemeColors;
   isMuted: boolean;
   canToggleNotifications: boolean;
   canEdit: boolean;
+  canViewAudit: boolean;
   canReport: boolean;
   canLeave: boolean;
   onAbout: () => void;
   onNotifications: () => void;
   onSettings: () => void;
+  onAudit: () => void;
   onReport: () => void;
   onLeave: () => void;
 };
@@ -763,11 +882,13 @@ function ClubOverflowMenu({
   isMuted,
   canToggleNotifications,
   canEdit,
+  canViewAudit,
   canReport,
   canLeave,
   onAbout,
   onNotifications,
   onSettings,
+  onAudit,
   onReport,
   onLeave,
 }: ClubOverflowMenuProps) {
@@ -803,6 +924,14 @@ function ClubOverflowMenu({
           iconName="settings"
           label="Configurações"
           onPress={onSettings}
+        />
+      ) : null}
+      {canViewAudit ? (
+        <MenuAction
+          colors={colors}
+          iconName="history"
+          label="Auditoria"
+          onPress={onAudit}
         />
       ) : null}
       {canReport ? (
@@ -851,6 +980,7 @@ function MenuAction({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       style={({ pressed }) => [styles.menuAction, pressed && styles.pressed]}
     >
@@ -916,6 +1046,64 @@ const styles = StyleSheet.create({
   bodyStack: {
     paddingHorizontal: 16,
     gap: 16,
+  },
+  auditModalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.42)',
+  },
+  auditBottomSheet: {
+    maxHeight: '88%',
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    paddingHorizontal: 16,
+    paddingTop: 6,
+  },
+  auditSheetHandleArea: {
+    minHeight: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  auditSheetHandle: {
+    width: 42,
+    height: 5,
+    borderRadius: 999,
+  },
+  auditSheetHeader: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingBottom: 8,
+  },
+  auditSheetTitleRow: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  auditSheetTitle: {
+    fontSize: 18,
+    lineHeight: 23,
+    fontWeight: '900',
+  },
+  auditSheetCloseButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  auditSheetScroll: {
+    minHeight: 0,
+  },
+  auditSheetContent: {
+    paddingTop: 4,
+    paddingBottom: 18,
   },
   feedbackBanner: {
     borderWidth: 1,

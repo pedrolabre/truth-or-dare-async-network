@@ -30,7 +30,7 @@ export default function SettingsAboutModal({
   const appVersion =
     Constants.expoConfig?.version ?? manifestVersion ?? 'indisponivel';
   const infoTextColor = isDark ? '#bccac2' : '#171d1a';
-  const accentColor = isDark ? '#8ABF96' : '#426A4B';
+  const accentColor = isDark ? '#68dbb4' : '#5A8363';
 
   function openUrl(url: string) {
     void Linking.openURL(url);
@@ -39,7 +39,7 @@ export default function SettingsAboutModal({
   return (
     <SettingsModalShell visible={visible} onClose={onClose} title="Sobre o App">
       <View style={styles.center}>
-        <View style={[styles.iconBox, { backgroundColor: '#426A4B' }]}>
+        <View style={[styles.iconBox, { backgroundColor: '#5A8363' }]}>
           <MaterialIcons name="style" size={34} color="#ffffff" />
         </View>
 

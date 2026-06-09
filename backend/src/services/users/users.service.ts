@@ -31,6 +31,18 @@ type ListUsersInput = {
   query?: string;
 };
 
+const PROFILE_PUBLIC_CLUBS_LIMIT = 6;
+
+export type ProfileClubSummary = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  iconName: string;
+  avatarUrl: string | null;
+  memberCount: number;
+};
+
 async function sendAccountSecurityEmailSafely(input: {
   to: string;
   subject: string;
@@ -81,6 +93,7 @@ export type MyProfile = {
     activePublicClubsCount: number;
     publishedClubPromptsCount: number;
   };
+  publicClubs: ProfileClubSummary[];
 };
 
 export type PublicUserProfile = {
@@ -97,7 +110,56 @@ export type PublicUserProfile = {
     activePublicClubsCount: number;
     publishedClubPromptsCount: number;
   };
+  publicClubs: ProfileClubSummary[];
 };
+
+function getPublicProfileClubsWhere(userId: string) {
+  return {
+    visibility: ClubVisibility.public,
+    status: ClubStatus.active,
+    deletedAt: null,
+    OR: [
+      {
+        createdById: userId,
+      },
+      {
+        members: {
+          some: {
+            userId,
+            status: ClubMemberStatus.active,
+          },
+        },
+      },
+    ],
+  };
+}
+
+function countPublicProfileClubs(userId: string) {
+  return prisma.club.count({
+    where: getPublicProfileClubsWhere(userId),
+  });
+}
+
+function listPublicProfileClubs(
+  userId: string,
+): Promise<ProfileClubSummary[]> {
+  return prisma.club.findMany({
+    where: getPublicProfileClubsWhere(userId),
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      iconName: true,
+      avatarUrl: true,
+      memberCount: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: PROFILE_PUBLIC_CLUBS_LIMIT,
+  });
+}
 
 export async function listUsersForChallenge({
   currentUserId,
@@ -177,6 +239,7 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
     createdDaresCount,
     activePublicClubsCount,
     publishedClubPromptsCount,
+    publicClubs,
   ] = await Promise.all([
     prisma.truth.count({
       where: {
@@ -188,17 +251,7 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
         authorId: userId,
       },
     }),
-    prisma.clubMember.count({
-      where: {
-        userId,
-        status: ClubMemberStatus.active,
-        club: {
-          visibility: ClubVisibility.public,
-          status: ClubStatus.active,
-          deletedAt: null,
-        },
-      },
-    }),
+    countPublicProfileClubs(userId),
     prisma.clubPrompt.count({
       where: {
         authorId: userId,
@@ -212,6 +265,7 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
         },
       },
     }),
+    listPublicProfileClubs(userId),
   ]);
 
   return {
@@ -231,6 +285,7 @@ export async function getMyProfile(userId: string): Promise<MyProfile> {
       activePublicClubsCount,
       publishedClubPromptsCount,
     },
+    publicClubs,
   };
 }
 
@@ -249,6 +304,7 @@ function getRestrictedPublicProfile(userId: string): PublicUserProfile {
       activePublicClubsCount: 0,
       publishedClubPromptsCount: 0,
     },
+    publicClubs: [],
   };
 }
 
@@ -294,6 +350,7 @@ export async function getPublicUserProfile(
     createdDaresCount,
     activePublicClubsCount,
     publishedClubPromptsCount,
+    publicClubs,
   ] = await Promise.all([
     prisma.truth.count({
       where: {
@@ -305,17 +362,7 @@ export async function getPublicUserProfile(
         authorId: userId,
       },
     }),
-    prisma.clubMember.count({
-      where: {
-        userId,
-        status: ClubMemberStatus.active,
-        club: {
-          visibility: ClubVisibility.public,
-          status: ClubStatus.active,
-          deletedAt: null,
-        },
-      },
-    }),
+    countPublicProfileClubs(userId),
     prisma.clubPrompt.count({
       where: {
         authorId: userId,
@@ -329,6 +376,7 @@ export async function getPublicUserProfile(
         },
       },
     }),
+    listPublicProfileClubs(userId),
   ]);
 
   return {
@@ -345,6 +393,7 @@ export async function getPublicUserProfile(
       activePublicClubsCount,
       publishedClubPromptsCount,
     },
+    publicClubs,
   };
 }
 

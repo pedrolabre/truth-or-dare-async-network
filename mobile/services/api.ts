@@ -26,7 +26,7 @@ import type {
   SearchTrendingResponse,
   SearchUserItem,
 } from '../types/search';
-import type { PublicUserProfile } from '../types/user';
+import type { PublicProfileClub, PublicUserProfile } from '../types/user';
 import type { DareProofDetailsResponse } from '../types/proof';
 import type {
   SubmitDareProofPayload,
@@ -750,6 +750,7 @@ export type MyProfileResponse = {
     activePublicClubsCount: number;
     publishedClubPromptsCount: number;
   };
+  publicClubs: PublicProfileClub[];
 };
 
 export async function getMyProfile(): Promise<MyProfileResponse> {

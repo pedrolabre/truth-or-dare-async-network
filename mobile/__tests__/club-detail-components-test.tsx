@@ -135,8 +135,10 @@ function makeFeedState(
   return {
     items: [makeFeedItem()],
     contentState: 'ready',
+    nextCursor: null,
     isInitialLoading: false,
     isRefreshing: false,
+    isLoadingMore: false,
     isSubmittingResponse: false,
     responseSubmittingPromptId: null,
     errorMessage: null,
@@ -144,9 +146,11 @@ function makeFeedState(
     isFromCache: false,
     syncErrorMessage: null,
     canRetry: true,
-    hasRealPromptPagination: false,
+    canLoadMore: false,
+    hasRealPromptPagination: true,
     handleRetry: jest.fn().mockResolvedValue(undefined),
     handleRefresh: jest.fn().mockResolvedValue(undefined),
+    handleLoadMore: jest.fn().mockResolvedValue(undefined),
     clearResponseError: jest.fn(),
     submitPromptResponse: jest.fn().mockResolvedValue(null),
     ...overrides,
@@ -226,9 +230,9 @@ describe('club detail components', () => {
     expect(onChangeTab).toHaveBeenCalledWith('about');
   });
 
-  it('renderiza aba de auditoria somente quando liberada', () => {
+  it('nao renderiza auditoria nas abas do detalhe', () => {
     const onChangeTab = jest.fn();
-    const { getByTestId, queryByTestId, rerender } = render(
+    const { queryByTestId } = render(
       <ClubDetailTabs
         activeTab="feed"
         colors={LIGHT_CLUBS_COLORS}
@@ -237,19 +241,7 @@ describe('club detail components', () => {
     );
 
     expect(queryByTestId('club-detail-tab-audit')).toBeNull();
-
-    rerender(
-      <ClubDetailTabs
-        activeTab="feed"
-        colors={LIGHT_CLUBS_COLORS}
-        showAudit
-        onChangeTab={onChangeTab}
-      />,
-    );
-
-    fireEvent.press(getByTestId('club-detail-tab-audit'));
-
-    expect(onChangeTab).toHaveBeenCalledWith('audit');
+    expect(onChangeTab).not.toHaveBeenCalled();
   });
 
   it('renderiza header com identidade, badges, tags e contadores', () => {
@@ -580,19 +572,35 @@ describe('club detail components', () => {
     );
   });
 
-  it('renderiza feed com prompts reais e aviso de ausencia de paginacao', () => {
-    const { getByTestId, getByText, queryByText } = render(
+  it('renderiza feed com prompts reais sem aviso tecnico de paginacao', () => {
+    const { getByTestId, getByText, queryByTestId, queryByText } = render(
       <ClubFeedPanel colors={LIGHT_CLUBS_COLORS} feed={makeFeedState()} />,
     );
 
     expect(getByTestId('club-feed-panel')).toBeTruthy();
     expect(getByText('Prompts do clube')).toBeTruthy();
     expect(getByTestId('club-prompt-card-prompt-truth-1')).toBeTruthy();
-    expect(getByTestId('club-feed-pagination-notice')).toBeTruthy();
-    expect(
-      getByText(/sem paginacao real/i),
-    ).toBeTruthy();
+    expect(queryByTestId('club-feed-pagination-notice')).toBeNull();
     expect(queryByText('Carregar mais')).toBeNull();
+  });
+
+  it('renderiza acao para carregar mais prompts quando ha cursor', () => {
+    const handleLoadMore = jest.fn().mockResolvedValue(undefined);
+    const { getByTestId, getByText } = render(
+      <ClubFeedPanel
+        colors={LIGHT_CLUBS_COLORS}
+        feed={makeFeedState({
+          nextCursor: 'prompt-truth-1',
+          canLoadMore: true,
+          handleLoadMore,
+        })}
+      />,
+    );
+
+    fireEvent.press(getByTestId('club-feed-load-more'));
+
+    expect(getByText('Carregar mais')).toBeTruthy();
+    expect(handleLoadMore).toHaveBeenCalledTimes(1);
   });
 
   it('renderiza painel de membros com busca, filtros reais e paginacao', () => {
@@ -671,7 +679,7 @@ describe('club detail components', () => {
       />,
     );
 
-    expect(getByTestId('club-moderation-panel')).toBeTruthy();
+    expect(queryByTestId('club-moderation-panel')).toBeNull();
     expect(queryByTestId('club-member-block-owner-1')).toBeNull();
 
     fireEvent.press(getByTestId('club-member-suspend-member-1'));

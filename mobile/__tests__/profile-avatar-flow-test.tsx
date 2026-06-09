@@ -115,6 +115,7 @@ function makeProfile(
       activePublicClubsCount: 1,
       publishedClubPromptsCount: 4,
     },
+    publicClubs: [],
     ...overrides,
   };
 }
@@ -136,6 +137,7 @@ function makePublicProfile(
       activePublicClubsCount: 3,
       publishedClubPromptsCount: 4,
     },
+    publicClubs: [],
     ...overrides,
   };
 }
@@ -305,5 +307,31 @@ describe('profile avatar flow', () => {
     await waitFor(() => {
       expect(getByLabelText('Foto de perfil de Ana Publica')).toBeTruthy();
     });
+  });
+
+  it('renderiza clubes publicos reais no perfil publico', async () => {
+    mockedGetPublicUserProfile.mockResolvedValue(
+      makePublicProfile({
+        publicClubs: [
+          {
+            id: 'club-public-1',
+            name: 'Clube Coragem',
+            slug: 'clube-coragem',
+            description: 'Desafios criativos',
+            iconName: 'groups',
+            avatarUrl: null,
+            memberCount: 12,
+          },
+        ],
+      }),
+    );
+
+    const { getByText } = render(<PublicProfileScreen />);
+
+    await waitFor(() => {
+      expect(getByText('Clube Coragem')).toBeTruthy();
+    });
+
+    expect(getByText('12 membros - Desafios criativos')).toBeTruthy();
   });
 });

@@ -24,6 +24,7 @@ type ProfileData = Pick<
   | 'avatarUrl'
   | 'createdTruthsCount'
   | 'createdDaresCount'
+  | 'publicClubs'
 >;
 
 function getPhotoErrorMessage(error: unknown) {

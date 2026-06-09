@@ -6,6 +6,7 @@ import type {
   ClubDetailsApi,
   ClubFeedApi,
   ClubFeedOrderApi,
+  ClubFeedQueryApi,
   ClubFeedSeenApi,
   ClubInviteApi,
   ClubJoinRequestApi,
@@ -513,6 +514,7 @@ export async function createClubPrompt(
 export async function getClubFeed(
   clubId: string,
   order?: ClubFeedOrderApi,
+  query: ClubFeedQueryApi = {},
 ): Promise<ClubFeedApi> {
   const baseUrl = getApiUrl();
   const token = await getToken();
@@ -526,6 +528,12 @@ export async function getClubFeed(
   if (order) {
     searchParams.set('order', order);
   }
+
+  if (typeof query.limit === 'number' && Number.isFinite(query.limit)) {
+    searchParams.set('limit', String(query.limit));
+  }
+
+  appendOptionalSearchParam(searchParams, 'cursor', query.cursor);
 
   const queryString = searchParams.toString();
   const url = queryString

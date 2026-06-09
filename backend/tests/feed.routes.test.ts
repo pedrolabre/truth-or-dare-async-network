@@ -150,6 +150,8 @@ describe('GET /feed', () => {
       attemptsLabel: expect.any(String),
       expiresIn: expect.any(String),
       progress: expect.any(Number),
+      canRespond: expect.any(Boolean),
+      interactionDisabled: expect.any(Boolean),
     });
 
     expect(dareItem.progress).toBeGreaterThanOrEqual(0);
@@ -211,6 +213,40 @@ describe('GET /feed', () => {
       proofMediaType: 'video',
       proofFileUrl: 'https://cdn.example.com/proofs/feed-video.mp4',
       proofThumbnailUrl: null,
+    });
+  });
+
+  it('desativa aceitar desafio quando o usuario autenticado e o autor, nao o alvo', async () => {
+    const scenario = await buildFeedScenario();
+
+    const token = generateToken({
+      sub: scenario.users.owner.id,
+      email: scenario.users.owner.email,
+      name: scenario.users.owner.name,
+    });
+
+    const response = await request(app)
+      .get('/feed')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(response.status).toBe(200);
+
+    const receivedDare = response.body.find(
+      (item: any) => item.id === scenario.dares[0].id,
+    );
+    const authoredDare = response.body.find(
+      (item: any) => item.id === scenario.dares[1].id,
+    );
+
+    expect(receivedDare).toMatchObject({
+      type: 'dare',
+      canRespond: true,
+      interactionDisabled: false,
+    });
+    expect(authoredDare).toMatchObject({
+      type: 'dare',
+      canRespond: false,
+      interactionDisabled: true,
     });
   });
 

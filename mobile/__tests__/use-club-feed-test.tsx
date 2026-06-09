@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import {
   CLUB_FEED_HAS_REAL_PROMPT_PAGINATION,
+  CLUB_FEED_PAGE_SIZE,
   useClubFeed,
 } from '../hooks/useClubFeed';
 import { LOCAL_CACHE_KEYS, LOCAL_CACHE_TTLS, writeCache } from '../services/cache';
@@ -60,7 +61,10 @@ function makeFeedItem(
   };
 }
 
-function makeFeed(items: ClubFeedItemApi[] = [makeFeedItem()]): ClubFeedApi {
+function makeFeed(
+  items: ClubFeedItemApi[] = [makeFeedItem()],
+  nextCursor: string | null = null,
+): ClubFeedApi {
   return {
     club: {
       id: 'club-1',
@@ -81,6 +85,7 @@ function makeFeed(items: ClubFeedItemApi[] = [makeFeedItem()]): ClubFeedApi {
       },
     },
     items,
+    nextCursor,
   };
 }
 
@@ -149,10 +154,13 @@ describe('useClubFeed', () => {
     });
 
     expect(loadClubFeed).toHaveBeenCalledTimes(1);
-    expect(loadClubFeed).toHaveBeenCalledWith('club-1', 'activity');
+    expect(loadClubFeed).toHaveBeenCalledWith('club-1', 'activity', {
+      limit: CLUB_FEED_PAGE_SIZE,
+      cursor: null,
+    });
     expect(result.current.items).toHaveLength(1);
-    expect(result.current.hasRealPromptPagination).toBe(false);
-    expect(CLUB_FEED_HAS_REAL_PROMPT_PAGINATION).toBe(false);
+    expect(result.current.hasRealPromptPagination).toBe(true);
+    expect(CLUB_FEED_HAS_REAL_PROMPT_PAGINATION).toBe(true);
 
     await waitFor(() => {
       expect(markClubFeedSeenAction).toHaveBeenCalledWith('club-1');
@@ -246,7 +254,7 @@ describe('useClubFeed', () => {
     expect(result.current.items).toEqual([]);
   });
 
-  it('mostra erro e retry recupera o feed sem paginacao falsa', async () => {
+  it('mostra erro e retry recupera o feed com paginacao real', async () => {
     const loadClubFeed = jest
       .fn()
       .mockRejectedValueOnce(new Error('Falha de rede'))
@@ -276,9 +284,57 @@ describe('useClubFeed', () => {
     });
 
     expect(loadClubFeed).toHaveBeenCalledTimes(2);
-    expect(loadClubFeed).toHaveBeenLastCalledWith('club-1', 'activity');
+    expect(loadClubFeed).toHaveBeenLastCalledWith('club-1', 'activity', {
+      limit: CLUB_FEED_PAGE_SIZE,
+      cursor: null,
+    });
     expect(result.current.items[0]?.id).toBe('prompt-retry');
-    expect(result.current.hasRealPromptPagination).toBe(false);
+    expect(result.current.hasRealPromptPagination).toBe(true);
+  });
+
+  it('carrega mais prompts usando nextCursor e anexa sem duplicar', async () => {
+    const loadClubFeed = jest
+      .fn()
+      .mockResolvedValueOnce(
+        makeFeed([makeFeedItem({ id: 'prompt-1' })], 'prompt-1'),
+      )
+      .mockResolvedValueOnce(
+        makeFeed(
+          [
+            makeFeedItem({ id: 'prompt-1' }),
+            makeFeedItem({ id: 'prompt-2', content: 'Segunda pagina' }),
+          ],
+          null,
+        ),
+      );
+
+    const { result } = renderHook(() =>
+      useClubFeed({
+        clubId: 'club-1',
+        isActive: true,
+        canViewFeed: true,
+        loadClubFeed,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.canLoadMore).toBe(true);
+    });
+
+    await act(async () => {
+      await result.current.handleLoadMore();
+    });
+
+    expect(loadClubFeed).toHaveBeenLastCalledWith('club-1', 'activity', {
+      limit: CLUB_FEED_PAGE_SIZE,
+      cursor: 'prompt-1',
+    });
+    expect(result.current.items.map((item) => item.id)).toEqual([
+      'prompt-1',
+      'prompt-2',
+    ]);
+    expect(result.current.nextCursor).toBeNull();
+    expect(result.current.canLoadMore).toBe(false);
   });
 
   it('refresh preserva prompts ja carregados quando ocorre erro', async () => {

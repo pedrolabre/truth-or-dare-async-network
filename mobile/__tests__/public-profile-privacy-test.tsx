@@ -70,6 +70,7 @@ describe('PublicProfileScreen privacy', () => {
         activePublicClubsCount: 0,
         publishedClubPromptsCount: 0,
       },
+      publicClubs: [],
     });
 
     const { getByText, queryByText } = render(<PublicProfileScreen />);

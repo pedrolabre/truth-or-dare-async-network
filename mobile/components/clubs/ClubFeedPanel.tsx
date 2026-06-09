@@ -96,7 +96,6 @@ export default function ClubFeedPanel({
             void feed.handleRefresh();
           }}
         />
-        <PaginationNotice colors={colors} />
       </View>
     );
   }
@@ -226,7 +225,32 @@ export default function ClubFeedPanel({
         />
       ))}
 
-      <PaginationNotice colors={colors} />
+      {feed.canLoadMore ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Carregar mais prompts do clube"
+          accessibilityState={{ disabled: feed.isLoadingMore }}
+          disabled={feed.isLoadingMore}
+          testID="club-feed-load-more"
+          onPress={() => {
+            void feed.handleLoadMore();
+          }}
+          style={({ pressed }) => [
+            styles.loadMoreButton,
+            { backgroundColor: colors.green },
+            pressed && !feed.isLoadingMore && styles.pressed,
+          ]}
+        >
+          {feed.isLoadingMore ? (
+            <ActivityIndicator size="small" color={colors.white} />
+          ) : (
+            <MaterialIcons name="expand-more" size={18} color={colors.white} />
+          )}
+          <Text style={[styles.loadMoreText, { color: colors.white }]}>
+            Carregar mais
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -311,27 +335,6 @@ function StatePanel({
   );
 }
 
-function PaginationNotice({ colors }: { colors: ClubsThemeColors }) {
-  return (
-    <View
-      testID="club-feed-pagination-notice"
-      style={[
-        styles.notice,
-        {
-          backgroundColor: colors.surfaceSoft,
-          borderColor: colors.cardBorder,
-        },
-      ]}
-    >
-      <MaterialIcons name="info-outline" size={17} color={colors.muted} />
-      <Text style={[styles.noticeText, { color: colors.subText }]}>
-        O endpoint atual retorna a lista disponivel de prompts do clube sem
-        paginacao real.
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   stack: {
     gap: 12,
@@ -371,6 +374,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     fontWeight: '900',
+  },
+  loadMoreButton: {
+    minHeight: 46,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  loadMoreText: {
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0,
   },
   stateCard: {
     borderWidth: 1,

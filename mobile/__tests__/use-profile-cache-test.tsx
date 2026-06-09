@@ -38,6 +38,7 @@ function makeProfile(overrides: Partial<MyProfileResponse> = {}): MyProfileRespo
       activePublicClubsCount: 0,
       publishedClubPromptsCount: 0,
     },
+    publicClubs: [],
     ...overrides,
   };
 }

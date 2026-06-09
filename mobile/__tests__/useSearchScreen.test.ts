@@ -215,6 +215,7 @@ describe('useSearchScreen', () => {
         activePublicClubsCount: 0,
         publishedClubPromptsCount: 0,
       },
+      publicClubs: [],
     });
     mockedGetRecommendedUsers.mockResolvedValue([makeUser()]);
     mockedGetTrendingClubs.mockResolvedValue([makeClub()]);

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 
 import AccountScreenHeader from '../../components/account/AccountScreenHeader';
+import ProfileClubCard from '../../components/profile/ProfileClubCard';
 import { useTheme } from '../../context/ThemeContext';
 import { getPublicUserProfile } from '../../services/api';
 import { loadCachedResource } from '../../services/cachedApi';
@@ -366,6 +367,23 @@ export default function PublicProfileScreen() {
             colors={colors}
           />
         </View>
+
+        <ProfileClubCard
+          backgroundColor={colors.surface}
+          borderColor={colors.outline}
+          textColor={colors.text}
+          subTextColor={colors.sub}
+          iconColor={colors.green}
+          title="Clubes publicos"
+          emptyDescription="Este usuario ainda nao tem clubes publicos no perfil."
+          clubs={profile.publicClubs ?? []}
+          onPressClub={(club) =>
+            router.push({
+              pathname: '/clubs/[id]',
+              params: { id: club.id },
+            })
+          }
+        />
       </View>
     );
   }

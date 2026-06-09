@@ -153,6 +153,13 @@ export default function ProfileScreen() {
             textColor={c.text}
             subTextColor={c.sub}
             iconColor={c.green}
+            clubs={profile.profile?.publicClubs ?? []}
+            onPressClub={(club) =>
+              router.push({
+                pathname: '/clubs/[id]',
+                params: { id: club.id },
+              })
+            }
           />
         </ScrollView>
 

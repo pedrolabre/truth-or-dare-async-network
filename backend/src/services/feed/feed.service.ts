@@ -39,6 +39,7 @@ export type FeedItem =
     proofFileUrl: string | null;
     proofThumbnailUrl: string | null;
     interactionDisabled: boolean;
+    canRespond: boolean;
     likesCount: number;
     likedByMe: boolean;
   }
@@ -153,7 +154,8 @@ export async function getFeed(userId?: string): Promise<FeedItem[]> {
           ? Math.min(attemptsUsed / maxAttempts, 1)
           : 0;
 
-      const interactionDisabled = status !== 'active';
+      const canRespond = Boolean(userId && dare.targetUserId === userId);
+      const interactionDisabled = status !== 'active' || !canRespond;
       const likesCount = await getLikesCount(dare.id, 'dare');
       const likedByMe = userId
         ? await isLikedByUser(userId, dare.id, 'dare')
@@ -186,6 +188,7 @@ export async function getFeed(userId?: string): Promise<FeedItem[]> {
         proofFileUrl: proof?.fileUrl ?? null,
         proofThumbnailUrl: null,
         interactionDisabled,
+        canRespond,
         likesCount,
         likedByMe,
       };

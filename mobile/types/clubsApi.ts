@@ -260,6 +260,12 @@ export type ClubFeedOrderApi =
 export type ClubFeedApi = {
   club: ClubSummaryApi;
   items: ClubFeedItemApi[];
+  nextCursor: string | null;
+};
+
+export type ClubFeedQueryApi = {
+  limit?: number;
+  cursor?: string | null;
 };
 
 export type ClubFeedSeenApi = {

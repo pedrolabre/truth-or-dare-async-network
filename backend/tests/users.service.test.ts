@@ -5,7 +5,11 @@ import {
   updateMyProfile,
 } from '../src/services/users/users.service';
 import { applyTestDatabaseHooks } from './test-db';
-import { createTestUser, resetFeedData } from '../src/test-utils/factories';
+import {
+  createTestClub,
+  createTestUser,
+  resetFeedData,
+} from '../src/test-utils/factories';
 
 describe('users.service', () => {
   applyTestDatabaseHooks();
@@ -124,6 +128,35 @@ describe('users.service', () => {
     expect(removed.avatarUrl).toBeNull();
   });
 
+  it('deve listar clubes publicos criados no perfil proprio', async () => {
+    const user = await createTestUser({
+      name: 'Perfil Clube Service',
+      email: 'perfil-clube-service@test.com',
+    });
+    const club = await createTestClub({
+      createdById: user.id,
+      name: 'Clube Criado no Perfil',
+      description: 'Clube visivel no perfil',
+      iconName: 'sports-esports',
+      memberCount: 7,
+    });
+
+    const profile = await getMyProfile(user.id);
+
+    expect(profile.stats.activePublicClubsCount).toBe(1);
+    expect(profile.publicClubs).toEqual([
+      {
+        id: club.id,
+        name: 'Clube Criado no Perfil',
+        slug: club.slug,
+        description: 'Clube visivel no perfil',
+        iconName: 'sports-esports',
+        avatarUrl: null,
+        memberCount: 7,
+      },
+    ]);
+  });
+
   it('deve retornar avatarUrl em perfil publico permitido', async () => {
     const user = await createTestUser({
       name: 'Avatar Publico Service',
@@ -136,5 +169,30 @@ describe('users.service', () => {
     expect(profile.avatarUrl).toBe(
       'https://cdn.example.com/users/avatar-publico.png',
     );
+  });
+
+  it('deve listar clubes publicos criados no perfil publico permitido', async () => {
+    const user = await createTestUser({
+      name: 'Perfil Clube Publico Service',
+      email: 'perfil-clube-publico-service@test.com',
+    });
+    const club = await createTestClub({
+      createdById: user.id,
+      name: 'Clube Publico no Perfil',
+      avatarUrl: 'https://cdn.example.com/clubs/perfil.png',
+      memberCount: 3,
+    });
+
+    const profile = await getPublicUserProfile(user.id);
+
+    expect(profile.stats.activePublicClubsCount).toBe(1);
+    expect(profile.publicClubs).toEqual([
+      expect.objectContaining({
+        id: club.id,
+        name: 'Clube Publico no Perfil',
+        avatarUrl: 'https://cdn.example.com/clubs/perfil.png',
+        memberCount: 3,
+      }),
+    ]);
   });
 });

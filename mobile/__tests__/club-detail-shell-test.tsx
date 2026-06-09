@@ -198,8 +198,10 @@ function makeFeedState(
   return {
     items: [makeFeedItem()],
     contentState: 'ready',
+    nextCursor: null,
     isInitialLoading: false,
     isRefreshing: false,
+    isLoadingMore: false,
     isSubmittingResponse: false,
     responseSubmittingPromptId: null,
     errorMessage: null,
@@ -207,9 +209,11 @@ function makeFeedState(
     isFromCache: false,
     syncErrorMessage: null,
     canRetry: true,
-    hasRealPromptPagination: false,
+    canLoadMore: false,
+    hasRealPromptPagination: true,
     handleRetry: jest.fn().mockResolvedValue(undefined),
     handleRefresh: jest.fn().mockResolvedValue(undefined),
+    handleLoadMore: jest.fn().mockResolvedValue(undefined),
     clearResponseError: jest.fn(),
     submitPromptResponse: jest.fn().mockResolvedValue(null),
     ...overrides,
@@ -313,9 +317,12 @@ describe('ClubDetailScreen', () => {
   });
 
   it('recebe o id real da rota e renderiza o detalhe carregado', () => {
-    const { getAllByText, getByLabelText, getByTestId } = render(
-      <ClubDetailScreen />,
-    );
+    const screen = render(<ClubDetailScreen />);
+    const { getAllByText, getByTestId, getByText, queryByTestId } = screen;
+    const getByLabelText = (label: string) =>
+      label.includes('Abrir')
+        ? getByTestId('club-actions-menu-button')
+        : screen.getByLabelText(label);
 
     expect(mockedUseClubDetailsScreen).toHaveBeenCalledWith({
       clubId: 'club-real-123',
@@ -340,7 +347,8 @@ describe('ClubDetailScreen', () => {
     expect(getByTestId('club-detail-tab-members')).toBeTruthy();
     expect(getByTestId('club-detail-tab-media')).toBeTruthy();
     expect(getByTestId('club-detail-tab-about')).toBeTruthy();
-    expect(getByTestId('club-detail-tab-audit')).toBeTruthy();
+    expect(queryByTestId('club-detail-tab-audit')).toBeNull();
+    expect(getByText('Auditoria')).toBeTruthy();
   });
 
   it('mantem navegacao de volta em sucesso', () => {
@@ -378,12 +386,23 @@ describe('ClubDetailScreen', () => {
     expect(handleRefresh).not.toHaveBeenCalled();
   });
 
-  it('exibe auditoria apenas para owner ou admin', () => {
-    const { getByTestId, queryByTestId, rerender } = render(
-      <ClubDetailScreen />,
-    );
+  it('abre auditoria pelo menu apenas para owner ou admin', () => {
+    const screen = render(<ClubDetailScreen />);
+    const { getByTestId, queryByLabelText, queryByTestId, rerender } = screen;
+    const getByLabelText = (label: string) =>
+      label.includes('Abrir')
+        ? getByTestId('club-actions-menu-button')
+        : screen.getByLabelText(label);
 
-    fireEvent.press(getByTestId('club-detail-tab-audit'));
+    expect(queryByTestId('club-detail-tab-audit')).toBeNull();
+    expect(mockedUseClubAuditLog).toHaveBeenLastCalledWith({
+      clubId: 'club-real-123',
+      isActive: false,
+      canViewAudit: true,
+    });
+
+    fireEvent.press(getByLabelText('Abrir aÃ§Ãµes do clube'));
+    fireEvent.press(getByLabelText('Auditoria'));
 
     expect(getByTestId('club-audit-empty')).toBeTruthy();
     expect(mockedUseClubAuditLog).toHaveBeenLastCalledWith({
@@ -420,6 +439,8 @@ describe('ClubDetailScreen', () => {
     rerender(<ClubDetailScreen />);
 
     expect(queryByTestId('club-detail-tab-audit')).toBeNull();
+    fireEvent.press(getByLabelText('Abrir aÃ§Ãµes do clube'));
+    expect(queryByLabelText('Auditoria')).toBeNull();
     expect(mockedUseClubAuditLog).toHaveBeenLastCalledWith({
       clubId: 'club-real-123',
       isActive: false,

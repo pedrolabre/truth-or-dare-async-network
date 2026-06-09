@@ -184,6 +184,19 @@ describe('ClubsScreen', () => {
     expect(mockRouterPush).toHaveBeenCalledWith('/clubs/my-real-club-id');
   });
 
+  it('usa o icone de notificacoes no topo em vez do avatar do perfil', () => {
+    mockedUseClubsScreen.mockReturnValue(baseHookState);
+
+    const { getByLabelText, getByText, queryByText } = render(<ClubsScreen />);
+
+    expect(getByText('notifications-none')).toBeTruthy();
+    expect(queryByText('RM')).toBeNull();
+
+    fireEvent.press(getByLabelText('Abrir notificacoes'));
+
+    expect(mockRouterPush).toHaveBeenCalledWith('/notifications');
+  });
+
   it('exibe badge discreto para clube com atividade nova', () => {
     const myClub = {
       id: 'club-with-unread',

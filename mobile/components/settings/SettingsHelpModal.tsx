@@ -20,7 +20,7 @@ export default function SettingsHelpModal({
   contactMessage = null,
 }: Props) {
   const { isDark } = useTheme();
-  const accentColor = isDark ? '#8ABF96' : '#426A4B';
+  const accentColor = isDark ? '#68dbb4' : '#5A8363';
 
   return (
     <SettingsModalShell visible={visible} onClose={onClose} title="Suporte">

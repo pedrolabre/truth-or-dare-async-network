@@ -17,6 +17,7 @@ import type {
   ClubFeedSeenApi,
   ClubFeedItemApi,
   ClubFeedOrderApi,
+  ClubFeedQueryApi,
   ClubPromptResponseApi,
   CreateClubPromptResponsePayloadApi,
 } from '../types/clubsApi';
@@ -24,6 +25,7 @@ import type {
 type LoadClubFeed = (
   clubId: string,
   order?: ClubFeedOrderApi,
+  query?: ClubFeedQueryApi,
 ) => Promise<ClubFeedApi>;
 
 type SubmitClubPromptResponse = (
@@ -48,6 +50,8 @@ type UseClubFeedOptions = {
 type LoadOptions = {
   showLoading?: boolean;
   showRefreshing?: boolean;
+  cursor?: string | null;
+  append?: boolean;
 };
 
 const GENERIC_FEED_ERROR_MESSAGE =
@@ -55,7 +59,8 @@ const GENERIC_FEED_ERROR_MESSAGE =
 const GENERIC_RESPONSE_ERROR_MESSAGE =
   'Nao foi possivel enviar a resposta do prompt. Tente novamente.';
 
-export const CLUB_FEED_HAS_REAL_PROMPT_PAGINATION = false;
+export const CLUB_FEED_PAGE_SIZE = 20;
+export const CLUB_FEED_HAS_REAL_PROMPT_PAGINATION = true;
 
 function getErrorMessage(
   error: unknown,
@@ -95,6 +100,16 @@ function mergePromptResponse(
   };
 }
 
+function mergeFeedItems(
+  currentItems: ClubFeedItemApi[],
+  nextItems: ClubFeedItemApi[],
+) {
+  const knownIds = new Set(currentItems.map((item) => item.id));
+  const uniqueNextItems = nextItems.filter((item) => !knownIds.has(item.id));
+
+  return [...currentItems, ...uniqueNextItems];
+}
+
 export function useClubFeed({
   clubId,
   isActive,
@@ -111,6 +126,8 @@ export function useClubFeed({
   );
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [responseSubmittingPromptId, setResponseSubmittingPromptId] = useState<
     string | null
   >(null);
@@ -120,6 +137,7 @@ export function useClubFeed({
   const [responseErrorMessage, setResponseErrorMessage] = useState<
     string | null
   >(null);
+  const itemsRef = useRef<ClubFeedItemApi[]>([]);
   const isMountedRef = useRef(true);
   const requestIdRef = useRef(0);
   const seenMarkedClubIdRef = useRef<string | null>(null);
@@ -131,6 +149,7 @@ export function useClubFeed({
   }, []);
 
   useEffect(() => {
+    itemsRef.current = [];
     setItems([]);
     setErrorMessage(null);
     setIsFromCache(false);
@@ -139,6 +158,8 @@ export function useClubFeed({
     setResponseSubmittingPromptId(null);
     setIsInitialLoading(false);
     setIsRefreshing(false);
+    setIsLoadingMore(false);
+    setNextCursor(null);
     setContentState(canViewFeed ? 'idle' : 'access-denied');
     seenMarkedClubIdRef.current = null;
   }, [canViewFeed, clubId]);
@@ -147,16 +168,22 @@ export function useClubFeed({
     async ({
       showLoading = true,
       showRefreshing = false,
+      cursor = null,
+      append = false,
     }: LoadOptions = {}) => {
       const requestId = requestIdRef.current + 1;
       requestIdRef.current = requestId;
+      const normalizedCursor = cursor?.trim() || null;
 
       if (!clubId || !canViewFeed) {
+        itemsRef.current = [];
         setItems([]);
         setErrorMessage(null);
+        setNextCursor(null);
         setContentState(canViewFeed ? 'idle' : 'access-denied');
         setIsInitialLoading(false);
         setIsRefreshing(false);
+        setIsLoadingMore(false);
         return null;
       }
 
@@ -170,42 +197,73 @@ export function useClubFeed({
           setIsRefreshing(true);
         }
 
+        if (append) {
+          setIsLoadingMore(true);
+        }
+
         setErrorMessage(null);
         setSyncErrorMessage(null);
 
-        const result = await loadCachedResource<ClubFeedApi>({
-          key: LOCAL_CACHE_KEYS.clubFeed(clubId),
-          ttlMs: LOCAL_CACHE_TTLS.clubFeed,
-          fetcher: () => loadClubFeed(clubId, order),
-          fallbackSyncErrorMessage:
-            'Nao foi possivel sincronizar o feed do clube agora.',
-          onCacheHit: ({ record }) => {
-            if (!isMountedRef.current || requestIdRef.current !== requestId) {
-              return;
-            }
+        const fetchFeed = () =>
+          loadClubFeed(clubId, order, {
+            limit: CLUB_FEED_PAGE_SIZE,
+            cursor: normalizedCursor,
+          });
 
-            setItems(record.value.items);
-            setContentState(getClubFeedContentState(record.value.items));
-            setErrorMessage(null);
-            setIsFromCache(true);
-
-            if (showLoading) {
-              setIsInitialLoading(false);
+        const result = append
+          ? {
+              value: await fetchFeed(),
+              isFromCache: false,
+              syncErrorMessage: null,
             }
-          },
-        });
+          : await loadCachedResource<ClubFeedApi>({
+              key: LOCAL_CACHE_KEYS.clubFeed(clubId),
+              ttlMs: LOCAL_CACHE_TTLS.clubFeed,
+              fetcher: fetchFeed,
+              fallbackSyncErrorMessage:
+                'Nao foi possivel sincronizar o feed do clube agora.',
+              onCacheHit: ({ record }) => {
+                if (
+                  !isMountedRef.current ||
+                  requestIdRef.current !== requestId
+                ) {
+                  return;
+                }
+
+                itemsRef.current = record.value.items;
+                setItems(record.value.items);
+                setNextCursor(record.value.nextCursor ?? null);
+                setContentState(getClubFeedContentState(record.value.items));
+                setErrorMessage(null);
+                setIsFromCache(true);
+
+                if (showLoading) {
+                  setIsInitialLoading(false);
+                }
+              },
+            });
 
         if (!isMountedRef.current || requestIdRef.current !== requestId) {
           return null;
         }
 
-        setItems(result.value.items);
-        setContentState(getClubFeedContentState(result.value.items));
+        const nextItems = append
+          ? mergeFeedItems(itemsRef.current, result.value.items)
+          : result.value.items;
+
+        itemsRef.current = nextItems;
+        setItems(nextItems);
+        setNextCursor(result.value.nextCursor ?? null);
+        setContentState(getClubFeedContentState(nextItems));
         setErrorMessage(null);
         setIsFromCache(result.isFromCache);
         setSyncErrorMessage(result.syncErrorMessage);
 
-        if (!result.isFromCache && seenMarkedClubIdRef.current !== clubId) {
+        if (
+          !append &&
+          !result.isFromCache &&
+          seenMarkedClubIdRef.current !== clubId
+        ) {
           seenMarkedClubIdRef.current = clubId;
 
           void markClubFeedSeenAction(clubId)
@@ -235,7 +293,7 @@ export function useClubFeed({
         setIsFromCache(false);
         setSyncErrorMessage(null);
 
-        if (items.length === 0) {
+        if (itemsRef.current.length === 0) {
           setContentState('error');
         }
 
@@ -249,13 +307,16 @@ export function useClubFeed({
           if (showRefreshing) {
             setIsRefreshing(false);
           }
+
+          if (append) {
+            setIsLoadingMore(false);
+          }
         }
       }
     },
     [
       canViewFeed,
       clubId,
-      items.length,
       loadClubFeed,
       markClubFeedSeenAction,
       onFeedSeen,
@@ -285,8 +346,25 @@ export function useClubFeed({
     await loadFeed({
       showLoading: false,
       showRefreshing: true,
+      cursor: null,
+      append: false,
     });
   }, [loadFeed]);
+
+  const handleLoadMore = useCallback(async () => {
+    const cursor = nextCursor?.trim();
+
+    if (!cursor || isLoadingMore) {
+      return;
+    }
+
+    await loadFeed({
+      showLoading: false,
+      showRefreshing: false,
+      cursor,
+      append: true,
+    });
+  }, [isLoadingMore, loadFeed, nextCursor]);
 
   const clearResponseError = useCallback(() => {
     setResponseErrorMessage(null);
@@ -317,11 +395,15 @@ export function useClubFeed({
           return null;
         }
 
-        setItems((currentItems) =>
-          currentItems.map((item) =>
+        setItems((currentItems) => {
+          const nextItems = currentItems.map((item) =>
             item.id === promptId ? mergePromptResponse(item, response) : item,
-          ),
-        );
+          );
+
+          itemsRef.current = nextItems;
+
+          return nextItems;
+        });
         setContentState((currentState) =>
           currentState === 'empty' ? 'ready' : currentState,
         );
@@ -351,16 +433,20 @@ export function useClubFeed({
     contentState,
     isInitialLoading,
     isRefreshing,
+    isLoadingMore,
     isSubmittingResponse: responseSubmittingPromptId !== null,
     responseSubmittingPromptId,
+    nextCursor,
     errorMessage,
     responseErrorMessage,
     isFromCache,
     syncErrorMessage,
     canRetry: Boolean(clubId) && canViewFeed && !isInitialLoading,
+    canLoadMore: Boolean(nextCursor) && !isInitialLoading,
     hasRealPromptPagination: CLUB_FEED_HAS_REAL_PROMPT_PAGINATION,
     handleRetry,
     handleRefresh,
+    handleLoadMore,
     clearResponseError,
     submitPromptResponse,
   };

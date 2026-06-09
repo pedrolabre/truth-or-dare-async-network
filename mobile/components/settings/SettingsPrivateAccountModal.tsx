@@ -16,7 +16,7 @@ export default function SettingsPrivateAccountModal({
   onCancel,
 }: Props) {
   const { isDark } = useTheme();
-  const accentColor = isDark ? '#8ABF96' : '#426A4B';
+  const accentColor = isDark ? '#68dbb4' : '#5A8363';
 
   return (
     <SettingsModalShell visible={visible} onClose={onCancel} title="Tornar conta privada">
@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   },
   primary: {
     width: '100%',
-    backgroundColor: '#426A4B',
+    backgroundColor: '#527B5D',
     padding: 16,
     borderRadius: 16,
     marginTop: 8,

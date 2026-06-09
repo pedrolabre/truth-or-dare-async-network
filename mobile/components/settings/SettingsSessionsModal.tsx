@@ -81,7 +81,7 @@ export default function SettingsSessionsModal({
   const subTextColor = isDark ? '#bccac2' : '#56645e';
   const surfaceColor = isDark ? '#232323' : '#eaefea';
   const borderColor = isDark ? '#333735' : '#d7ddd9';
-  const accentColor = isDark ? '#8ABF96' : '#426A4B';
+  const accentColor = isDark ? '#68dbb4' : '#5A8363';
   const hasOnlyCurrentSession =
     sessions.length > 0 && sessions.every((session) => session.isCurrent);
   const isBusy = isLoading || Boolean(revokingSessionId) || isRevokingOtherSessions;
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#426A4B',
+    backgroundColor: '#527B5D',
     alignItems: 'center',
     justifyContent: 'center',
   },

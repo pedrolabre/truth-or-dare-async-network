@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 11,
     fontWeight: '900',
-    color: '#426A4B',
+    color: '#5A8363',
     letterSpacing: 1,
   },
   email: {
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
     minHeight: 50,
     borderRadius: 14,
-    backgroundColor: '#426A4B',
+    backgroundColor: '#527B5D',
     alignItems: 'center',
     justifyContent: 'center',
   },

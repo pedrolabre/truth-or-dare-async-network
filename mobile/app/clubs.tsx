@@ -1,3 +1,4 @@
+import { MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Pressable,
@@ -12,6 +13,7 @@ import { Href, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import FeedBottomNav from '../components/feed/FeedBottomNav';
+import NotificationUnreadBadge from '../components/notifications/NotificationUnreadBadge';
 
 import ClubsSegmentedTabs from '../components/clubs/ClubsSegmentedTabs';
 import ClubsSearchInput from '../components/clubs/ClubsSearchInput';
@@ -36,7 +38,10 @@ export default function ClubsScreen() {
   const insets = useSafeAreaInsets();
   const { isDark } = useTheme();
   const colors = isDark ? DARK_CLUBS_COLORS : LIGHT_CLUBS_COLORS;
-  useNotificationsUnreadCount();
+  const notificationsUnreadCount = useNotificationsUnreadCount();
+  const visibleNotificationsUnreadCount = notificationsUnreadCount.errorMessage
+    ? null
+    : notificationsUnreadCount.unreadCount;
 
   const {
     activeTab,
@@ -212,25 +217,27 @@ export default function ClubsScreen() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Abrir perfil"
+            accessibilityLabel="Abrir notificacoes"
             hitSlop={8}
             onPress={() => {
-              router.push('/profile');
+              router.push('/notifications');
             }}
             style={({ pressed }) => [
-              styles.profileAvatar,
-              {
-                backgroundColor: isDark ? colors.surfaceSoft : colors.surface,
-                borderColor: isDark
-                  ? 'rgba(255,255,255,0.30)'
-                  : 'rgba(207,247,238,0.45)',
-              },
+              styles.notificationButton,
               pressed && styles.pressed,
             ]}
           >
-            <Text style={[styles.profileAvatarText, { color: colors.text }]}>
-              RM
-            </Text>
+            <MaterialIcons
+              name="notifications-none"
+              size={22}
+              color={isDark ? colors.white : '#cff7ee'}
+            />
+            <NotificationUnreadBadge
+              count={visibleNotificationsUnreadCount}
+              backgroundColor={colors.red}
+              textColor="#ffffff"
+              borderColor={colors.green}
+            />
           </Pressable>
         </View>
 
@@ -360,23 +367,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '900',
   },
-  profileAvatar: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    borderWidth: 1,
+  notificationButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
-  },
-  profileAvatarText: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '800',
+    position: 'relative',
   },
   headerSection: {
     gap: 6,

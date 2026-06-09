@@ -22,7 +22,7 @@ export default function SettingsPrivateAccountConfirmModal({
   errorMessage = null,
 }: Props) {
   const { isDark } = useTheme();
-  const accentColor = isDark ? '#8ABF96' : '#426A4B';
+  const accentColor = isDark ? '#68dbb4' : '#5A8363';
   const title = willBePrivate
     ? 'TORNAR CONTA PRIVADA?'
     : 'TORNAR CONTA PÚBLICA?';
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   primary: {
     width: '100%',
-    backgroundColor: '#426A4B',
+    backgroundColor: '#527B5D',
     padding: 16,
     borderRadius: 16,
     marginTop: 8,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   errorText: {
-    color: '#B00020',
+    color: '#D70015',
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '800',

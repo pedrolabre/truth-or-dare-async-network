@@ -303,6 +303,17 @@ describe('users.routes', () => {
         activePublicClubsCount: 1,
         publishedClubPromptsCount: 1,
       },
+      publicClubs: [
+        expect.objectContaining({
+          id: club.id,
+          name: 'Clube Perfil Publico',
+          slug: club.slug,
+          description: club.description,
+          iconName: club.iconName,
+          avatarUrl: club.avatarUrl,
+          memberCount: club.memberCount,
+        }),
+      ],
     });
     expect(response.body).not.toHaveProperty('email');
     expect(response.body).not.toHaveProperty('passwordHash');
@@ -343,6 +354,7 @@ describe('users.routes', () => {
         activePublicClubsCount: 0,
         publishedClubPromptsCount: 0,
       },
+      publicClubs: [],
     });
     expect(JSON.stringify(response.body)).not.toContain('Bio privada');
     expect(JSON.stringify(response.body)).not.toContain('perfil_privado_busca');

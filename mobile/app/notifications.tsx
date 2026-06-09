@@ -11,64 +11,19 @@ import { Href, useRouter } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 
 import AccountScreenHeader from '../components/account/AccountScreenHeader';
-import FeedBottomNav from '../components/feed/FeedBottomNav';
 import NotificationActivityCard from '../components/notifications/NotificationActivityCard';
 import NotificationsEmptyState from '../components/notifications/NotificationsEmptyState';
 import NotificationsErrorState from '../components/notifications/NotificationsErrorState';
 import NotificationsGroupHeader from '../components/notifications/NotificationsGroupHeader';
 import NotificationsIntro from '../components/notifications/NotificationsIntro';
 import NotificationsSkeleton from '../components/notifications/NotificationsSkeleton';
-import { FEED_BOTTOM_NAV_ITEMS } from '../data/feedMock';
+import {
+  DARK_CLUBS_COLORS,
+  LIGHT_CLUBS_COLORS,
+} from '../constants/clubsTheme';
 import { useNotificationsUnreadCount } from '../hooks/useNotificationsUnreadCount';
 import { useNotificationsScreen } from '../hooks/useNotificationsScreen';
-import type { BottomNavKey } from '../types/feed';
 import type { NotificationItem, NotificationType } from '../types/notifications';
-
-const LIGHT = {
-  bg: '#f5fbf6',
-  card: '#ffffff',
-  cardSoft: '#e6eee9',
-  text: '#171d1a',
-  sub: '#33423b',
-  muted: '#5f6f67',
-  outline: '#aebfb5',
-  header: '#3f6b4a',
-  green: '#3f6b4a',
-  greenSolid: '#3f6b4a',
-  greenSoft: '#e7f3ea',
-  blue: '#1d4ed8',
-  blueSolid: '#1d4ed8',
-  blueSoft: '#eaf1ff',
-  amber: '#7a4f01',
-  amberSolid: '#7a4f01',
-  amberSoft: '#fff3c4',
-  red: '#b42318',
-  redAccent: '#b42318',
-  white: '#ffffff',
-};
-
-const DARK = {
-  bg: '#121212',
-  card: '#232323',
-  cardSoft: '#2d332f',
-  text: '#f5fbf6',
-  sub: '#d1ddd5',
-  muted: '#b4c0b9',
-  outline: '#59615c',
-  header: '#2f5a3b',
-  green: '#8fd29e',
-  greenSolid: '#3f6b4a',
-  greenSoft: '#203328',
-  blue: '#93c5fd',
-  blueSolid: '#1d4ed8',
-  blueSoft: '#17263d',
-  amber: '#facc15',
-  amberSolid: '#7a4f01',
-  amberSoft: '#332a14',
-  red: '#b42318',
-  redAccent: '#ff6b6b',
-  white: '#f9f9f9',
-};
 
 type NotificationToneName = 'club' | 'feed' | 'account';
 
@@ -153,7 +108,29 @@ function getDefinedRouteParams(params: Record<string, string | undefined>) {
 
 export default function NotificationsScreen() {
   const { isDark } = useTheme();
-  const c = isDark ? DARK : LIGHT;
+  const appColors = isDark ? DARK_CLUBS_COLORS : LIGHT_CLUBS_COLORS;
+  const c = {
+    bg: appColors.background,
+    card: appColors.surface,
+    cardSoft: appColors.surfaceSoft,
+    text: appColors.text,
+    sub: appColors.subText,
+    muted: appColors.muted,
+    outline: appColors.cardBorder,
+    header: appColors.green,
+    green: appColors.green,
+    greenSolid: appColors.green,
+    greenSoft: appColors.greenSoft,
+    blue: appColors.red,
+    blueSolid: appColors.red,
+    blueSoft: appColors.redSoft,
+    amber: appColors.green,
+    amberSolid: appColors.green,
+    amberSoft: appColors.greenSoft,
+    red: appColors.red,
+    redAccent: appColors.red,
+    white: appColors.white,
+  };
   const router = useRouter();
   const notificationsUnreadCount = useNotificationsUnreadCount();
   const notifications = useNotificationsScreen({
@@ -163,28 +140,6 @@ export default function NotificationsScreen() {
   const visibleNotificationsUnreadCount = notificationsUnreadCount.errorMessage
     ? null
     : notificationsUnreadCount.unreadCount;
-
-  function handleBottomNavSelect(key: BottomNavKey) {
-    switch (key) {
-      case 'play':
-        router.replace('/feed');
-        return;
-      case 'search':
-        router.replace({
-          pathname: '/search',
-          params: { focus: '1' },
-        });
-        return;
-      case 'clubs':
-        router.replace('/clubs');
-        return;
-      case 'profile':
-        router.replace('/profile');
-        return;
-      default:
-        return;
-    }
-  }
 
   async function handlePressNotification(notification: NotificationItem) {
     const target = await notifications.handlePressNotification(notification);
@@ -420,18 +375,6 @@ export default function NotificationsScreen() {
           {renderContent()}
         </ScrollView>
 
-        <FeedBottomNav
-          items={FEED_BOTTOM_NAV_ITEMS}
-          activeKey="profile"
-          onSelect={handleBottomNavSelect}
-          backgroundColor={c.header}
-          borderTopColor="rgba(207,247,238,0.10)"
-          activeBackgroundColor={c.red}
-          activeIconColor="#ffffff"
-          activeTextColor="#ffffff"
-          inactiveIconColor="rgba(249,249,249,0.72)"
-          inactiveTextColor="rgba(249,249,249,0.72)"
-        />
       </View>
     </View>
   );
@@ -450,7 +393,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 16,
     gap: 18,
-    paddingBottom: 118,
+    paddingBottom: 32,
   },
   cardsList: {
     gap: 20,

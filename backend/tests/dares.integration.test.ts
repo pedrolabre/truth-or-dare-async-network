@@ -75,6 +75,8 @@ describe('Dare → Feed integration', () => {
     expect(dareItem).toMatchObject({
       id: createResponse.body.id,
       type: 'dare',
+      canRespond: false,
+      interactionDisabled: true,
     });
   });
 

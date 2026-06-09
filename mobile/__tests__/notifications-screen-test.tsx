@@ -192,7 +192,7 @@ describe('NotificationsScreen', () => {
       }),
     );
 
-    const { getByText } = render(<NotificationsScreen />);
+    const { getByText, queryByText } = render(<NotificationsScreen />);
 
     expect(getByText('Hoje')).toBeTruthy();
     expect(getByText('Esta semana')).toBeTruthy();
@@ -203,6 +203,7 @@ describe('NotificationsScreen', () => {
     expect(getByText('person-add')).toBeTruthy();
     expect(getByText('favorite')).toBeTruthy();
     expect(getByText('verified-user')).toBeTruthy();
+    expect(queryByText('Perfil')).toBeNull();
   });
 
   it.each([
