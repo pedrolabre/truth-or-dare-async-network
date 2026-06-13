@@ -3,170 +3,170 @@
 # 🎭 Truth or Dare Async Network
 *(Rede Social Assíncrona de Verdade e Desafio)*
 
+![Truth or Dare Banner](./docs/assets/banner-animated.svg)
+
 ---
 </div>
 
-Uma plataforma social baseada no jogo **“Verdade ou Desafio”**, desenvolvida para dispositivos móveis utilizando **React Native**. A proposta é permitir que usuários criem e participem de desafios de forma assíncrona, ou seja, sem a necessidade de todos estarem conectados ao mesmo tempo.
+Uma plataforma social baseada no clássico jogo **"Verdade ou Desafio"**, desenvolvida para dispositivos móveis utilizando **React Native**. A proposta é permitir que usuários criem e participem de desafios de forma assíncrona, ou seja, sem a necessidade de todos estarem conectados ao mesmo tempo.
 
-Os usuários poderão criar desafios do tipo *verdade* ou *desafio* para grupos de amigos ou para a comunidade do aplicativo, respondendo com texto ou imagens. O sistema também contará com funcionalidades típicas de redes sociais, como:
-* Perfis de usuário
-* Feed de desafios
-* Interação entre participantes
-* Criação de grupos
-
-Tudo isso promovendo uma experiência social e interativa dentro da plataforma.
-
-## 🎨 Protótipos de Interface
-
-As telas abaixo representam o fluxo principal da aplicação. Sub-telas de interações (como modais de erro, configurações específicas e denúncias) estão disponíveis dentro de seus respectivos diretórios na pasta `/prototype`.
+> [!IMPORTANT]
+> **Estado do Projeto: Fase Inicial e Referência de Protótipo**
+> Este repositório está em fase ativa de desenvolvimento inicial. A aplicação móvel está sendo construída com base nos **protótipos estáticos em HTML/CSS** contidos na pasta `/prototype`. As imagens a seguir representam o layout-alvo e servem como nossa especificação visual inicial do app.
 
 ---
 
-<details>
-<summary><strong>🔐 1. Autenticação</strong></summary>
+## 🔗 Atalhos Rápidos
 
-<br>
+Para navegar pelos guias de execução e apresentações do projeto, clique nos links abaixo:
 
-### Tela de Login
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/login-screen/tela-de-login-modo-claro.png" width="250"> | <img src="prototype/dark-mode/login-screen/tela-de-login-modo-escuro.png" width="250"> |
-
-### Tela de Cadastro
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/signup-screen/tela-de-cadastro-modo-claro.png" width="250"> | <img src="prototype/dark-mode/signup-screen/tela-de-cadastro-modo-escuro.png" width="250"> |
-
-</details>
+* [**💻 Documentação do Backend (API)**](./backend/README.md) — Guia de configuração da API Node.js/Express, banco de dados PostgreSQL com Prisma ORM, migrations e rotas.
+* [**📱 Documentação do Mobile (App)**](./mobile/README.md) — Guia de instalação do Expo, execução do app com Expo Go ou emuladores, hooks, câmera e mídias.
+* [**🎨 Apresentação do Protótipo**](./prototype/README.md) — Apresentação visual dos fluxos e telas do aplicativo nos modos claro e escuro.
 
 ---
 
-<details>
-<summary><strong>🔁 2. Recuperação de Senha</strong></summary>
+## 📌 Índice Geral
 
-<br>
-
-### Solicitação de Recuperação
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/forgot-password-screen/tela-de-recuperacao-de-senha.png" width="250"> | <img src="prototype/dark-mode/forgot-password-screen/tela-de-recuperacao-de-senha-modo-escuro.png" width="250"> |
-
-### Verificação de Código
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/verify-code-screen/tela-de-confirmacao-de-codigo.png" width="250"> | <img src="prototype/dark-mode/verify-code-screen/tela-de-confirmacao-de-codigo-modo-escuro.png" width="250"> |
-
-### Redefinição de Senha
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/reset-password-screen/tela-de-modificacao-de-senha.png" width="250"> | <img src="prototype/dark-mode/reset-password-screen/tela-de-modificacao-de-senha-modo-escuro.png" width="250"> |
-
-### Sucesso na Alteração
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/password-success-screen/tela-de-senha-alterada-sucesso.png" width="250"> | <img src="prototype/dark-mode/password-success-screen/tela-de-senha-alterada-sucesso-modo-escuro.png" width="250"> |
-
-</details>
+1. [🛠️ Arquitetura do Repositório](#-arquitetura-do-repositório)
+2. [⚡ Tecnologias Utilizadas](#-tecnologias-utilizadas)
+3. [🚀 Como Executar o Projeto Completo](#-como-executar-o-projeto-completo)
+   - [Passo 1: Rodar o Backend](#passo-1-rodar-o-backend)
+   - [Passo 2: Rodar o Mobile](#passo-2-rodar-o-mobile)
+4. [📁 Estrutura do Repositório](#-estrutura-do-repositório)
+5. [📄 Licença](#-licença)
 
 ---
 
-<details>
-<summary><strong>🏠 3. Área Logada: Feed e Ações</strong></summary>
 
-<br>
+## 🛠️ Arquitetura do Repositório
 
-### Feed Principal
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/feed-screen/tela-do-feed-modo-claro.png" width="250"> | <img src="prototype/dark-mode/feed-screen/tela-do-feed-modo-escuro.png" width="250"> |
+O projeto é organizado como um monorrepósito simples, dividido nas seguintes pastas principais:
 
-### Ação (Câmera)
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/action-screen/tela-da-camera-modo-claro.png" width="250"> | <img src="prototype/dark-mode/action-screen/tela-da-camera-modo-escuro.png" width="250"> |
-
-### Detalhes do Resultado (Proof Detail)
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/proof-detail-screen/tela-de-resultado-modo-claro.png" width="250"> | <img src="prototype/dark-mode/proof-detail-screen/tela-de-resultado-modo-escuro.png" width="250"> |
-
-### Criar Novo Desafio
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/create-challenge-screen/tela-de-criar-verdade-ou-desafio-modo-claro.png" width="250"> | <img src="prototype/dark-mode/create-challenge-screen/tela-de-criar-verdade-ou-desafio-modo-escuro.png" width="250"> |
-
-### Respostas e Comentários
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/answers-screen/tela-de-respostas-e-comentarios.png" width="250"> | <img src="prototype/dark-mode/answers-screen/tela-de-respostas-e-comentarios-modo-escuro.png" width="250"> |
-
-</details>
+* **`/backend`**: Servidor de API REST construído com Node.js e Express, utilizando Prisma ORM para mapear o banco relacional PostgreSQL (com suporte ao Supabase Storage para mídias).
+* **`/mobile`**: Aplicação mobile-first desenvolvida em React Native com Expo, utilizando navegação baseada em arquivos (Expo Router) e NativeWind (TailwindCSS) para estilização.
+* **`/prototype`**: Contém os protótipos de tela estáticos em HTML/CSS estruturados para ambos os modos (claro e escuro), servindo de especificação visual primária.
+* **`/docs`**: Documentações gerais de arquitetura, especificações de requisitos, fluxos de dados do aplicativo e logs do projeto.
 
 ---
 
-<details>
-<summary><strong>🔍 4. Busca e Perfis</strong></summary>
+## ⚡ Tecnologias Utilizadas
 
-<br>
+### Backend
+* **Node.js** (Ambiente de execução)
+* **TypeScript** (Tipagem estática e segurança)
+* **Express.js** (Roteamento de API e middlewares)
+* **Prisma ORM** (Modelagem de dados e migrations)
+* **PostgreSQL** (Banco de dados relacional local ou Supabase)
+* **Jest + Supertest** (Testes automatizados de integração)
 
-### Tela de Busca
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/search-screen/tela-de-busca-modo-claro.png" width="250"> | <img src="prototype/dark-mode/search-screen/tela-de-busca-modo-escuro.png" width="250"> |
-
-### Perfil Público (Outros Usuários)
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/public-profile-screen/tela-de-perfil-publico-modo-claro.png" width="250"> | <img src="prototype/dark-mode/public-profile-screen/tela-de-perfil-publico-modo-escuro.png" width="250"> |
-
-### Meu Perfil
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/profile-screen/tela-de-perfil-modo-claro.png" width="250"> | <img src="prototype/dark-mode/profile-screen/tela-de-perfil-modo-escuro.png" width="250"> |
-
-</details>
+### Mobile
+* **React Native + Expo SDK 54** (Desenvolvimento multiplataforma)
+* **Expo Router** (Roteamento baseado em arquivos)
+* **TypeScript** (Verificação e segurança de tipos)
+* **Zustand** (Gerenciamento de estados globais)
+* **React Query (TanStack)** (Sincronização de dados e requisições HTTP)
+* **TailwindCSS (NativeWind)** (Estilização utilitária e responsiva)
+* **Expo Camera & AV** (Captura de vídeo e reprodução de áudio/vídeo)
 
 ---
 
-<details>
-<summary><strong>👥 5. Clubes e Grupos</strong></summary>
+## 🚀 Como Executar o Projeto Completo
 
-<br>
+Para rodar a aplicação completa localmente na sua máquina, primeiro clone o repositório completo e depois siga o fluxo de inicialização de cada componente:
 
-### Feed de Clubes
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/clubs-feed-screen/tela-do-feed-de-clube-modo-claro.png" width="250"> | <img src="prototype/dark-mode/clubs-feed-screen/tela-do-feed-de-clube-modo-escuro.png" width="250"> |
+### Passo 1: Clonar o repositório
+```bash
+# Clone o projeto completo (monorrepósito)
+git clone https://github.com/pedrolabre/truth-or-dare-async-network.git
+cd truth-or-dare-async-network
+```
 
-### Perfil do Clube (Mural)
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/club-profile-screen/tela-do-perfil-de-clube-mural.png" width="250"> | <img src="prototype/dark-mode/club-profile-screen/tela-do-perfil-de-clube-mural-modo-escuro.png" width="250"> |
+### Passo 2: Rodar o Backend
+Abra um terminal na pasta raiz do projeto clonado, navegue até a pasta do backend, instale as dependências e configure o banco de dados local ou na nuvem:
 
-### Criar Novo Grupo
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/create-group-screen/tela-de-criação-de-grupos-modo-claro.png" width="250"> | <img src="prototype/dark-mode/create-group-screen/tela-de-criação-de-grupos-modo-escuro.png" width="250"> |
+```bash
+# 1. Entrar na pasta do backend
+cd backend
 
-</details>
+# 2. Instalar dependências
+npm install
+
+# 3. Configurar variáveis de ambiente
+# Crie um arquivo .env na raiz do backend seguindo o modelo do .env.example
+
+# 4. Rodar as migrations do Prisma
+npx prisma migrate dev
+
+# 5. Iniciar o servidor de desenvolvimento
+npm run dev
+```
+O servidor backend estará rodando por padrão em `http://localhost:3333`.
+
+### Etapa 2: Rodar o Aplicativo Mobile
+Abra outro terminal na pasta raiz do projeto clonado, navegue até a pasta do aplicativo mobile, configure o IP do backend local e inicie o Expo:
+
+```bash
+# 1. Entrar na pasta do mobile
+cd mobile
+
+# 2. Instalar dependências
+npm install
+
+# 3. Atualizar o IP local no arquivo .env.local de forma automática:
+# No Windows:
+python scripts/update_mobile_env_ip.py
+
+# No macOS/Linux:
+python3 scripts/update_mobile_env_ip.py
+
+# 4. Iniciar o servidor de desenvolvimento do Expo
+npx expo start
+```
+Use o aplicativo **Expo Go** no seu celular para escanear o QR code exibido no terminal e abrir o app.
 
 ---
 
-<details>
-<summary><strong>⚙️ 6. Sistema e Configurações</strong></summary>
+## 📁 Estrutura do Repositório
 
-<br>
+Aqui está o mapa estrutural detalhado do monorrepósito:
 
-### Notificações
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/notifications-screen/tela-de-notificações-modo-claro.png" width="250"> | <img src="prototype/dark-mode/notifications-screen/tela-de-notificações-modo-escuro.png" width="250"> |
-
-### Configurações
-| Light Mode | Dark Mode |
-| :---: | :---: |
-| <img src="prototype/light-mode/settings-screen/tela-de-configuração-modo-claro.png" width="250"> | <img src="prototype/dark-mode/settings-screen/tela-de-configuração-modo-escuro.png" width="250"> |
-
-</details>
+```text
+truth-or-dare-async-network/
+├── backend/                       # Servidor e API (Node.js + Express)
+│   ├── prisma/                    # Esquemas e migrations do banco de dados (Prisma)
+│   ├── src/                       # Código-fonte da aplicação
+│   │   ├── controllers/           # Controladores de requisição HTTP
+│   │   ├── services/              # Lógica de negócios e comunicação com banco
+│   │   ├── routes/                # Definição dos endpoints da API
+│   │   └── middlewares/           # Middlewares de segurança e validação
+│   ├── tests/                     # Testes de integração (Jest + Supertest)
+│   ├── scripts/                   # Scripts utilitários de banco e população
+│   ├── performance/               # Configurações de teste de carga (Artillery)
+│   └── package.json               # Dependências do backend
+├── mobile/                        # Aplicativo mobile (React Native + Expo)
+│   ├── app/                       # Telas e roteamento baseado em arquivos (Expo Router)
+│   ├── components/                # Componentes reutilizáveis organizados por feature
+│   ├── services/                  # Comunicação com a API e armazenamento local
+│   ├── hooks/                     # Custom hooks para estados visuais do app
+│   ├── assets/                    # Imagens, fontes e ícones locais do app
+│   ├── scripts/                   # Scripts utilitários de ambiente e IPs
+│   └── package.json               # Dependências do aplicativo mobile
+├── prototype/                     # Apresentação do protótipo de interface
+│   ├── light-mode/                # Layouts visuais no modo claro
+│   ├── dark-mode/                 # Layouts visuais no modo escuro
+│   └── README.md                  # Apresentação detalhada das telas do protótipo
+├── docs/                          # Documentação geral e de visão do produto
+│   ├── backend/                   # Documentações relativas ao backend
+│   │   └── tests/                 # Planos e especificações de testes do backend
+│   └── mobile/                    # Documentações relativas ao mobile
+│       └── tests/                 # Planos e especificações de testes do mobile
+└── README.md                      # Documentação geral do repositório (este arquivo)
+```
 
 ---
+
+## 📄 Licença
+
+Este projeto é propriedade privada.
+
