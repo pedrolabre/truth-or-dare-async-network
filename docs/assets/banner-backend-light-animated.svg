@@ -1,0 +1,290 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="100%" height="100%">
+  <defs>
+    <!-- Google Fonts Import -->
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;family=Share+Tech+Mono&amp;display=swap');
+      
+      /* --- CSS THEME VARIABLES (Fixed to Light Mode) --- */
+      :root {
+        --bg-color-1: #f8fafc;
+        --bg-color-2: #f1f5f9;
+        --bg-color-3: #e2e8f0;
+        
+        --grid-color: #cbd5e1;
+        --tech-color: #64748b;
+        --border-cota: #94a3b8;
+        --axis-color: #cbd5e1;
+        
+        --text-title-1: #0f172a;
+        --text-title-2: #1e3a8a;
+        --text-body: #475569;
+        
+        --logo-bg-1: #5A8363;
+        --logo-bg-2: #2c4232;
+        --logo-stroke: #ffffff;
+        
+        --mask-happy-color: #ffffff;
+        --mask-sad-color: #D70015;
+        
+        --card-api-bg: #f0f9ff;
+        --card-api-border: #0284c7;
+        --card-api-text: #0f172a;
+        --card-api-title: #0284c7;
+        
+        --card-db-bg: #f0fdf4;
+        --card-db-border: #059669;
+        --card-db-text: #0f172a;
+        --card-db-title: #059669;
+        
+        --shadow-opacity: 0.25;
+      }
+
+      /* Font Styling Classes */
+      .text-title {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 800;
+        fill: url(#metal-grad);
+      }
+      .text-subtitle {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 700;
+        fill: #0284c7;
+        letter-spacing: 5px;
+      }
+      .text-body {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 400;
+        fill: var(--text-body);
+      }
+      .text-tech {
+        font-family: 'Share Tech Mono', monospace;
+        fill: var(--tech-color);
+        font-size: 11px;
+      }
+      .card-title-api {
+        font-family: 'Share Tech Mono', monospace;
+        font-weight: 700;
+        fill: var(--card-api-title);
+        letter-spacing: 2px;
+      }
+      .card-title-db {
+        font-family: 'Share Tech Mono', monospace;
+        font-weight: 700;
+        fill: var(--card-db-title);
+        letter-spacing: 2px;
+      }
+      .code-line {
+        font-family: 'Share Tech Mono', monospace;
+        fill: var(--card-api-text);
+        font-size: 11.5px;
+      }
+      .code-comment {
+        font-family: 'Share Tech Mono', monospace;
+        fill: var(--tech-color);
+        font-size: 11px;
+      }
+      .text-badge {
+        font-family: 'Share Tech Mono', monospace;
+        font-weight: 700;
+        font-size: 11px;
+        fill: #059669;
+      }
+
+      /* --- CSS ANIMATIONS --- */
+      
+      /* 1. Floating API Card */
+      @keyframes float-api {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+      .card-api-group {
+        animation: float-api 6s ease-in-out infinite;
+      }
+
+      /* 2. Floating Database Schema Card */
+      @keyframes float-db {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(8px);
+        }
+      }
+      .card-db-group {
+        animation: float-db 5.5s ease-in-out infinite;
+      }
+
+      /* 3. Tech Radar Rotation */
+      @keyframes rotate-radar {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .tech-radar {
+        animation: rotate-radar 25s linear infinite;
+        transform-origin: 600px 240px;
+      }
+    </style>
+
+    <!-- Flat Orthogonal CAD Grid Pattern -->
+    <pattern id="grid-ortho" width="50" height="50" patternUnits="userSpaceOnUse">
+      <rect width="50" height="50" fill="none" stroke="var(--grid-color)" stroke-width="0.75" />
+      <circle cx="25" cy="25" r="1" fill="var(--grid-color)" opacity="0.3" />
+    </pattern>
+
+    <!-- Gradients -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--bg-color-1)" />
+      <stop offset="50%" stop-color="var(--bg-color-2)" />
+      <stop offset="100%" stop-color="var(--bg-color-3)" />
+    </linearGradient>
+
+    <linearGradient id="metal-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="var(--text-title-1)" />
+      <stop offset="100%" stop-color="var(--text-title-2)" />
+    </linearGradient>
+
+    <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--logo-bg-1)" />
+      <stop offset="100%" stop-color="var(--logo-bg-2)" />
+    </linearGradient>
+
+    <!-- Shadows -->
+    <filter id="shadow-deep" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="var(--shadow-opacity)"/>
+    </filter>
+    
+    <filter id="shadow-logo" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="var(--shadow-opacity)"/>
+    </filter>
+  </defs>
+
+  <!-- 1. Background Base -->
+  <rect width="1200" height="480" fill="url(#bg-grad)" />
+
+  <!-- 2. CAD Orthogonal Grid Layer -->
+  <rect width="1200" height="480" fill="url(#grid-ortho)" />
+
+  <!-- 3. Technical Circuitry & Blueprint Details (CAD Borders, Coordinates, Crosshairs) -->
+  <!-- Circuit tracks on the background -->
+  <g opacity="0.35" fill="none" stroke="var(--tech-color)" stroke-width="0.75">
+    <path d="M 50 100 L 120 100 L 160 140 L 160 200" />
+    <circle cx="50" cy="100" r="2.5" fill="var(--tech-color)" />
+    <path d="M 680 400 L 750 400 L 780 430 L 900 430" />
+    <circle cx="900" cy="430" r="2.5" fill="var(--tech-color)" />
+  </g>
+
+  <!-- Corner Scope Marks -->
+  <path d="M 30 50 L 30 30 L 50 30" fill="none" stroke="var(--border-cota)" stroke-width="1.5"/>
+  <path d="M 1170 50 L 1170 30 L 1150 30" fill="none" stroke="var(--border-cota)" stroke-width="1.5"/>
+  <path d="M 30 430 L 30 450 L 50 450" fill="none" stroke="var(--border-cota)" stroke-width="1.5"/>
+  <path d="M 1170 430 L 1170 450 L 1150 450" fill="none" stroke="var(--border-cota)" stroke-width="1.5"/>
+
+  <!-- Technical Labels -->
+  <text x="40" y="45" class="text-tech">REF: TOD_BACKEND_API_SPEC_V1.1_LIGHT_ANIMATED</text>
+  <text x="1065" y="45" class="text-tech">COORD: 1200 x 480 px</text>
+  <text x="40" y="445" class="text-tech">SYS_OP: EXPRESS_PRISMA_PG</text>
+  <text x="1090" y="445" class="text-tech">MODE: API_DEV_NODE_LIGHT</text>
+
+  <!-- Side Ruler Scales -->
+  <path d="M 30 180 L 40 180 M 30 200 L 35 200 M 30 220 L 35 220 M 30 240 L 40 240 M 30 260 L 35 260 M 30 280 L 35 280 M 30 300 L 40 300" fill="none" stroke="var(--border-cota)" stroke-width="1"/>
+  <path d="M 1170 180 L 1160 180 M 1170 200 L 1165 200 M 1170 220 L 1165 220 M 1170 240 L 1160 240 M 1170 260 L 1165 260 M 1170 280 L 1165 280 M 1170 300 L 1160 300" fill="none" stroke="var(--border-cota)" stroke-width="1"/>
+
+  <!-- Center Reticle / Crosshair (Animated rotation) -->
+  <g class="tech-radar">
+    <circle cx="600" cy="240" r="8" fill="none" stroke="var(--border-cota)" stroke-width="0.75" />
+    <line x1="585" y1="240" x2="615" y2="240" stroke="var(--border-cota)" stroke-width="0.75"/>
+    <line x1="600" y1="225" x2="600" y2="255" stroke="var(--border-cota)" stroke-width="0.75"/>
+  </g>
+
+  <!-- Outer Technical Axis Lines -->
+  <line x1="30" y1="30" x2="1170" y2="30" stroke="var(--axis-color)" stroke-width="1" />
+  <line x1="30" y1="450" x2="1170" y2="450" stroke="var(--axis-color)" stroke-width="1" />
+
+  <!-- 4. Left Side: Brand Logo & Title -->
+  
+  <!-- Rotated Green Card Base (Brand Symbol) -->
+  <g transform="rotate(3, 160, 220)" filter="url(#shadow-logo)">
+    <rect x="80" y="140" width="160" height="160" rx="24" fill="url(#logo-grad)" stroke="var(--logo-stroke)" stroke-width="2" />
+    <rect x="90" y="150" width="140" height="140" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1" />
+    
+    <!-- Tragedy/Comedy Masks -->
+    <g transform="translate(108, 168) scale(4.4)">
+      <path
+        fill="var(--mask-happy-color)"
+        d="M7 22q-2.5 0-4.25-1.75T1 16V9h12v7q0 2.5-1.75 4.25T7 22m-2-7.5q.425 0 .713-.288T6 13.5t-.288-.712T5 12.5t-.712.288T4 13.5t.288.713T5 14.5m2 3.4q.975 0 1.738-.513T9.5 16h-5q0 .875.763 1.388T7 17.9m2-3.4q.425 0 .713-.287T10 13.5t-.288-.712T9 12.5t-.712.288T8 13.5t.288.713T9 14.5"
+      />
+      <path
+        fill="var(--mask-sad-color)"
+        d="M17 15q-.65 0-1.287-.137T14.5 14.45V7.5H11V2h12v7q0 2.5-1.75 4.25T17 15m-2-7.5q.425 0 .713-.288T16 6.5t-.288-.712T15 5.5t-.712.288T14 6.5t.288.713T15 7.5m-.5 3.4h5q0-.875-.763-1.388T17 9q-.85 0-1.675.45T14.5 10.9M19 7.5q.425 0 .713-.288T20 6.5t-.288-.712T19 5.5t-.712.288T18 6.5t.288.713T19 7.5"
+      />
+    </g>
+  </g>
+
+  <!-- Typography Block -->
+  <g transform="translate(280, 0)">
+    <text x="0" y="215" class="text-title" font-size="52" letter-spacing="1">TRUTH OR DARE</text>
+    <text x="2" y="255" class="text-subtitle" font-size="16">API ENGINE &amp; DATABASE</text>
+    <text x="2" y="295" class="text-body" font-size="15">Motor lógico do monorrepósito, rotas seguras e persistência</text>
+    <text x="2" y="325" class="text-tech" font-size="10">SPECS // EXPRESS_REST // PRISMA_POSTGRESQL // JEST_SUPERTEST</text>
+  </g>
+
+  <!-- 5. Right Side: Floating Interactive Cards (Blueprint Style) -->
+  
+  <!-- CARD 01: API Endpoint (Blue Theme, Rotated -3deg + Animated float) -->
+  <g transform="rotate(-3, 910, 185)">
+    <g class="card-api-group" filter="url(#shadow-deep)">
+      <rect x="760" y="100" width="310" height="170" rx="20" fill="var(--card-api-bg)" fill-opacity="0.9" stroke="var(--card-api-border)" stroke-width="2.5" />
+      <line x1="760" y1="140" x2="1070" y2="140" stroke="var(--card-api-border)" stroke-opacity="0.3" stroke-width="1" />
+      <circle cx="775" cy="120" r="4" fill="var(--card-api-border)" />
+      <text x="790" y="125" class="card-title-api" font-size="11">API: POST /dares/12/proof</text>
+      <text x="1005" y="123" class="text-tech" fill="var(--card-api-border)" font-size="9">PORT: 3333</text>
+      
+      <!-- Code block inside card -->
+      <text x="785" y="165" class="code-line">Headers: { Authorization: "Bearer JWT" }</text>
+      <text x="785" y="185" class="code-line">Payload: { type: "video", url: "supabase/v..." }</text>
+      
+      <!-- Response indicators -->
+      <rect x="785" y="210" width="85" height="20" rx="4" fill="#059669" fill-opacity="0.15" stroke="#059669" stroke-width="0.75" />
+      <text x="792" y="224" class="text-badge">201 CREATED</text>
+      <text x="880" y="223" class="text-tech" font-size="10">Res: 142ms // Status: OK</text>
+    </g>
+  </g>
+
+  <!-- CARD 02: Database Prisma Schema (Green Theme, Rotated 3deg + Animated float) -->
+  <g transform="rotate(3, 970, 325)">
+    <g class="card-db-group" filter="url(#shadow-deep)">
+      <rect x="820" y="240" width="310" height="170" rx="20" fill="var(--card-db-bg)" fill-opacity="0.9" stroke="var(--card-db-border)" stroke-width="2.5" />
+      <line x1="820" y1="280" x2="1130" y2="280" stroke="var(--card-db-border)" stroke-opacity="0.3" stroke-width="1" />
+      <circle cx="835" cy="260" r="4" fill="var(--card-db-border)" />
+      <text x="850" y="265" class="card-title-db" font-size="11">PRISMA SCHEMA: Challenge</text>
+      
+      <!-- Schema details inside card -->
+      <text x="845" y="305" class="code-line">model Challenge {</text>
+      <text x="845" y="322" class="code-line">  id        Int      @id @default(autoincrement())</text>
+      <text x="845" y="339" class="code-line">  title     String</text>
+      <text x="845" y="356" class="code-line">  type      DareType @default(VIDEO)</text>
+      <text x="845" y="373" class="code-line">  authorId  Int</text>
+      <text x="845" y="390" class="code-line">}</text>
+    </g>
+  </g>
+
+  <!-- Dimension line details -->
+  <line x1="740" y1="100" x2="740" y2="270" stroke="var(--border-cota)" stroke-width="0.75" />
+  <line x1="735" y1="100" x2="745" y2="100" stroke="var(--border-cota)" stroke-width="0.75" />
+  <line x1="735" y1="270" x2="745" y2="270" stroke="var(--border-cota)" stroke-width="0.75" />
+  <text x="715" y="190" class="text-tech" font-size="9" transform="rotate(-90, 715, 190)">API_H: 170px</text>
+
+  <line x1="820" y1="425" x2="1130" y2="425" stroke="var(--border-cota)" stroke-width="0.75" />
+  <line x1="820" y1="420" x2="820" y2="430" stroke="var(--border-cota)" stroke-width="0.75" />
+  <line x1="1130" y1="420" x2="1130" y2="430" stroke="var(--border-cota)" stroke-width="0.75" />
+  <text x="955" y="440" class="text-tech" font-size="9">SCHEMA_W: 310px</text>
+
+</svg>

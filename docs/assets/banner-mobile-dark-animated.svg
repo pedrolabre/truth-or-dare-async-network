@@ -1,0 +1,325 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="100%" height="100%">
+  <defs>
+    <!-- Google Fonts Import -->
+    <style type="text/css">
+      @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;family=Share+Tech+Mono&amp;display=swap');
+      
+      /* --- CSS THEME VARIABLES (Fixed to Dark Mode) --- */
+      :root {
+        --bg-color-1: #1b1d24;
+        --bg-color-2: #13151a;
+        --bg-color-3: #0a0b0d;
+        
+        --grid-color: #232733;
+        --tech-color: #475569;
+        --border-cota: #334155;
+        --axis-color: #1e293b;
+        
+        --text-title-1: #ffffff;
+        --text-title-2: #cbd5e1;
+        --text-body: #94a3b8;
+        
+        --logo-bg-1: #5A8363;
+        --logo-bg-2: #3b5943;
+        --logo-stroke: #a5d0bd;
+        --mask-happy-color: #13151a;
+        --mask-sad-color: #D70015;
+        --mask-sad-glow: #D70015;
+        
+        --card-truth-bg: #141c18;
+        --card-truth-border: url(#card-border-green);
+        --card-truth-title: #a5d0bd;
+        --card-truth-text: #e2e8f0;
+        
+        --card-dare-bg: #241315;
+        --card-dare-border: url(#card-border-red);
+        --card-dare-title: #ffb4ab;
+        --card-dare-text: #e2e8f0;
+        
+        --shadow-opacity: 0.75;
+      }
+
+      /* Font Styling Classes utilizing Variables */
+      .text-title {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 800;
+        fill: url(#metal-grad);
+      }
+      .text-subtitle {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 700;
+        fill: #5A8363;
+        letter-spacing: 7px;
+      }
+      .text-body {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 400;
+        fill: var(--text-body);
+      }
+      .text-tech {
+        font-family: 'Share Tech Mono', monospace;
+        fill: var(--tech-color);
+        font-size: 11px;
+      }
+      .card-title-green {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 800;
+        fill: var(--card-truth-title);
+        letter-spacing: 3px;
+      }
+      .card-title-red {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 800;
+        fill: var(--card-dare-title);
+        letter-spacing: 3px;
+      }
+      .card-desc {
+        font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+        font-weight: 500;
+        fill: var(--card-truth-text);
+        font-size: 13px;
+      }
+
+      /* --- CSS ANIMATIONS --- */
+      
+      /* 1. Floating Camera View Card */
+      @keyframes float-truth {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+      .card-truth-group {
+        animation: float-truth 6s ease-in-out infinite;
+      }
+
+      /* 2. Floating Device Wireframe Card */
+      @keyframes float-dare {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(8px);
+        }
+      }
+      .card-dare-group {
+        animation: float-dare 5.5s ease-in-out infinite;
+      }
+
+      /* 3. Tech Radar Rotation */
+      @keyframes rotate-radar {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .tech-radar {
+        animation: rotate-radar 25s linear infinite;
+        transform-origin: 600px 240px;
+      }
+
+      /* 4. Blinking REC Badge */
+      @keyframes blink-rec {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.15; }
+      }
+      .badge-rec {
+        animation: blink-rec 1.2s ease-in-out infinite;
+      }
+
+      /* 5. Mask Color Pulses */
+      @keyframes pulse-happy {
+        0%, 100% {
+          fill: var(--mask-happy-color);
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.75;
+        }
+      }
+      @keyframes pulse-sad {
+        0%, 100% {
+          fill: var(--mask-sad-color);
+          filter: drop-shadow(0 0 1px var(--mask-sad-glow));
+        }
+        50% {
+          fill: #ff2a3b;
+          filter: drop-shadow(0 0 3px #ff2a3b);
+        }
+      }
+      .mask-happy {
+        animation: pulse-happy 4s ease-in-out infinite;
+      }
+      .mask-sad {
+        animation: pulse-sad 4s ease-in-out infinite;
+        animation-delay: 2s;
+      }
+    </style>
+
+    <!-- Isometric Grid Pattern -->
+    <pattern id="grid-isometric" width="120" height="69.282" patternUnits="userSpaceOnUse">
+      <path d="M 0 34.641 L 60 0 L 120 34.641 L 60 69.282 Z" fill="none" stroke="var(--grid-color)" stroke-width="0.8"/>
+      <path d="M 0 34.641 L 120 34.641 M 60 0 L 60 69.282" fill="none" stroke="var(--grid-color)" stroke-width="0.5" stroke-dasharray="2,3"/>
+    </pattern>
+
+    <!-- Gradients -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--bg-color-1)" />
+      <stop offset="50%" stop-color="var(--bg-color-2)" />
+      <stop offset="100%" stop-color="var(--bg-color-3)" />
+    </linearGradient>
+
+    <linearGradient id="metal-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="var(--text-title-1)" />
+      <stop offset="100%" stop-color="var(--text-title-2)" />
+    </linearGradient>
+
+    <linearGradient id="card-border-green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#5A8363" />
+      <stop offset="100%" stop-color="#263b2c" />
+    </linearGradient>
+
+    <linearGradient id="card-border-red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D70015" />
+      <stop offset="100%" stop-color="#7a000d" />
+    </linearGradient>
+
+    <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="var(--logo-bg-1)" />
+      <stop offset="100%" stop-color="var(--logo-bg-2)" />
+    </linearGradient>
+
+    <!-- Shadows -->
+    <filter id="shadow-deep" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000000" flood-opacity="var(--shadow-opacity)"/>
+    </filter>
+    
+    <filter id="shadow-logo" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity="var(--shadow-opacity)"/>
+    </filter>
+  </defs>
+
+  <!-- 1. Background Base -->
+  <rect width="1200" height="480" fill="url(#bg-grad)" />
+
+  <!-- 2. Isometric Grid Layer -->
+  <rect width="1200" height="480" fill="url(#grid-isometric)" />
+
+  <!-- 3. Technical Blueprint Details (CAD Borders, Coordinates, Crosshairs) -->
+  <!-- Corner Scope Marks -->
+  <path d="M 30 50 L 30 30 L 50 30" fill="none" stroke="var(--border-cota)" stroke-width="1.5"/>
+  <path d="M 1170 50 L 1170 30 L 1150 30" fill="none" stroke="var(--border-cota)" stroke-width="1.5"/>
+  <path d="M 30 430 L 30 450 L 50 450" fill="none" stroke="var(--border-cota)" stroke-width="1.5"/>
+  <path d="M 1170 430 L 1170 450 L 1150 450" fill="none" stroke="var(--border-cota)" stroke-width="1.5"/>
+
+  <!-- Technical Labels -->
+  <text x="40" y="45" class="text-tech">REF: TOD_MOBILE_UI_SPEC_V1.1_DARK_ANIMATED</text>
+  <text x="1065" y="45" class="text-tech">COORD: 1200 x 480 px</text>
+  <text x="40" y="445" class="text-tech">SYS_OP: REACT_NATIVE_EXPO</text>
+  <text x="1090" y="445" class="text-tech">MODE: ASYNC_MOBILE_DEV_DARK</text>
+
+  <!-- Side Ruler Scales -->
+  <path d="M 30 180 L 40 180 M 30 200 L 35 200 M 30 220 L 35 220 M 30 240 L 40 240 M 30 260 L 35 260 M 30 280 L 35 280 M 30 300 L 40 300" fill="none" stroke="var(--border-cota)" stroke-width="1"/>
+  <path d="M 1170 180 L 1160 180 M 1170 200 L 1165 200 M 1170 220 L 1165 220 M 1170 240 L 1160 240 M 1170 260 L 1165 260 M 1170 280 L 1165 280 M 1170 300 L 1160 300" fill="none" stroke="var(--border-cota)" stroke-width="1"/>
+
+  <!-- Center Reticle / Crosshair (Animated rotation) -->
+  <g class="tech-radar">
+    <circle cx="600" cy="240" r="8" fill="none" stroke="var(--border-cota)" stroke-width="0.75" />
+    <line x1="585" y1="240" x2="615" y2="240" stroke="var(--border-cota)" stroke-width="0.75"/>
+    <line x1="600" y1="225" x2="600" y2="255" stroke="var(--border-cota)" stroke-width="0.75"/>
+  </g>
+
+  <!-- Outer Technical Axis Lines -->
+  <line x1="30" y1="30" x2="1170" y2="30" stroke="var(--axis-color)" stroke-width="1" />
+  <line x1="30" y1="450" x2="1170" y2="450" stroke="var(--axis-color)" stroke-width="1" />
+
+  <!-- 4. Left Side: Brand Logo & Title -->
+  
+  <!-- Rotated Green Box (Brand Symbol) -->
+  <g transform="rotate(3, 160, 220)" filter="url(#shadow-logo)">
+    <rect x="80" y="140" width="160" height="160" rx="24" fill="url(#logo-grad)" stroke="var(--logo-stroke)" stroke-width="2" />
+    <rect x="90" y="150" width="140" height="140" rx="16" fill="none" stroke="#ffffff" stroke-opacity="0.1" stroke-width="1" />
+    
+    <!-- Tragedy/Comedy Masks -->
+    <g transform="translate(108, 168) scale(4.4)">
+      <path
+        class="mask-happy"
+        d="M7 22q-2.5 0-4.25-1.75T1 16V9h12v7q0 2.5-1.75 4.25T7 22m-2-7.5q.425 0 .713-.288T6 13.5t-.288-.712T5 12.5t-.712.288T4 13.5t.288.713T5 14.5m2 3.4q.975 0 1.738-.513T9.5 16h-5q0 .875.763 1.388T7 17.9m2-3.4q.425 0 .713-.287T10 13.5t-.288-.712T9 12.5t-.712.288T8 13.5t.288.713T9 14.5"
+      />
+      <path
+        class="mask-sad"
+        d="M17 15q-.65 0-1.287-.137T14.5 14.45V7.5H11V2h12v7q0 2.5-1.75 4.25T17 15m-2-7.5q.425 0 .713-.288T16 6.5t-.288-.712T15 5.5t-.712.288T14 6.5t.288.713T15 7.5m-.5 3.4h5q0-.875-.763-1.388T17 9q-.85 0-1.675.45T14.5 10.9M19 7.5q.425 0 .713-.288T20 6.5t-.288-.712T19 5.5t-.712.288T18 6.5t.288.713T19 7.5"
+      />
+    </g>
+  </g>
+
+  <!-- Typography Block -->
+  <g transform="translate(280, 0)">
+    <text x="0" y="215" class="text-title" font-size="52" letter-spacing="1">TRUTH OR DARE</text>
+    <text x="2" y="255" class="text-subtitle" font-size="16">MOBILE APPLICATION</text>
+    <text x="2" y="295" class="text-body" font-size="15">Cliente nativo multiplataforma, interações em tempo real e captura de provas</text>
+    <text x="2" y="325" class="text-tech" font-size="10">SPECS // REACT_NATIVE_EXPO // EXPO_ROUTER // ZUSTAND // NATIVEWIND</text>
+  </g>
+
+  <!-- 5. Right Side: Floating Interactive Cards (Blueprint Style) -->
+  
+  <!-- CARD 01: Camera Viewfinder (Green Theme, Rotated -4deg + Animated float) -->
+  <g transform="rotate(-4, 910, 185)">
+    <g class="card-truth-group" filter="url(#shadow-deep)">
+      <rect x="760" y="100" width="300" height="170" rx="20" fill="var(--card-truth-bg)" fill-opacity="0.9" stroke="var(--card-truth-border)" stroke-width="2.5" />
+      <line x1="760" y1="140" x2="1060" y2="140" stroke="#5A8363" stroke-opacity="0.3" stroke-width="1" />
+      <text x="790" y="125" class="card-title-green" font-size="11">UI: CameraViewfinder</text>
+      
+      <!-- Flashing REC Indicator -->
+      <circle cx="1005" cy="120" class="badge-rec" r="4" fill="#D70015" />
+      <text x="1015" y="123" class="text-tech" fill="#D70015" font-size="9">REC</text>
+
+      <!-- Viewfinder Reticles (Brackets) -->
+      <path d="M 780 160 L 780 150 L 790 150" fill="none" stroke="var(--tech-color)" stroke-width="1" />
+      <path d="M 1040 160 L 1040 150 L 1030 150" fill="none" stroke="var(--tech-color)" stroke-width="1" />
+      <path d="M 780 210 L 780 220 L 790 220" fill="none" stroke="var(--tech-color)" stroke-width="1" />
+      <path d="M 1040 210 L 1040 220 L 1030 220" fill="none" stroke="var(--tech-color)" stroke-width="1" />
+      
+      <!-- Horizon alignment line -->
+      <line x1="860" y1="185" x2="960" y2="185" stroke="var(--tech-color)" stroke-dasharray="2,2" stroke-width="0.75" />
+      <line x1="910" y1="175" x2="910" y2="195" stroke="var(--tech-color)" stroke-width="0.75" />
+      
+      <!-- Camera technical stats -->
+      <text x="785" y="250" class="text-tech" font-size="9">FPS: 60fps // RES: 1080p</text>
+      <text x="965" y="250" class="text-tech" font-size="9">TIMING: 00:14</text>
+    </g>
+  </g>
+
+  <!-- CARD 02: Expo Device Layout (Red Theme, Rotated 4deg + Animated float) -->
+  <g transform="rotate(4, 970, 325)">
+    <g class="card-dare-group" filter="url(#shadow-deep)">
+      <rect x="820" y="240" width="300" height="170" rx="20" fill="var(--card-dare-bg)" fill-opacity="0.9" stroke="var(--card-dare-border)" stroke-width="2.5" />
+      <line x1="820" y1="280" x2="1120" y2="280" stroke="var(--card-dare-border)" stroke-opacity="0.3" stroke-width="1" />
+      <circle cx="835" cy="258" r="4" fill="var(--card-dare-border)" />
+      <text x="850" y="265" class="card-title-red" font-size="11">EXPO WORKFLOW: SDK 54</text>
+      
+      <!-- Expo wireframe stylized triangle logo -->
+      <path d="M 945 300 L 975 350 L 915 350 Z" fill="none" stroke="var(--card-dare-border)" stroke-width="1.5" />
+      <path d="M 945 315 L 963 345 L 927 345 Z" fill="none" stroke="var(--tech-color)" stroke-width="1" />
+      
+      <text x="845" y="380" class="text-tech" font-size="9">ROUTING: ExpoRouter (File-based)</text>
+      <text x="845" y="395" class="text-tech" font-size="9">ENGINE: Hermes JS // Style: NativeWind</text>
+    </g>
+  </g>
+  
+  <!-- Dimension lines -->
+  <line x1="740" y1="100" x2="740" y2="270" stroke="var(--border-cota)" stroke-width="0.75" />
+  <line x1="735" y1="100" x2="745" y2="100" stroke="var(--border-cota)" stroke-width="0.75" />
+  <line x1="735" y1="270" x2="745" y2="270" stroke="var(--border-cota)" stroke-width="0.75" />
+  <text x="715" y="190" class="text-tech" font-size="9" transform="rotate(-90, 715, 190)">DEV_H: 170px</text>
+
+  <line x1="820" y1="425" x2="1120" y2="425" stroke="var(--border-cota)" stroke-width="0.75" />
+  <line x1="820" y1="420" x2="820" y2="430" stroke="var(--border-cota)" stroke-width="0.75" />
+  <line x1="1120" y1="420" x2="1120" y2="430" stroke="var(--border-cota)" stroke-width="0.75" />
+  <text x="955" y="440" class="text-tech" font-size="9">LAYOUT_W: 300px</text>
+
+</svg>

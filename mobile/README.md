@@ -1,4 +1,11 @@
-# Truth or Dare Async Network - Mobile
+<div align="center">
+
+# 📱 Truth or Dare Async Network - Mobile
+
+![Truth or Dare Mobile](../docs/assets/banner-mobile-animated.svg)
+
+---
+</div>
 
 Aplicativo mobile para a plataforma Truth or Dare, desenvolvido com React Native e Expo. Uma rede social assíncrona onde usuários criam e participam de desafios de forma flexível, sem necessidade de todos estarem online simultaneamente.
 
@@ -341,94 +348,36 @@ mobile/
 ├── app/                           # Diretório principal de rotas (Expo Router baseado em arquivos)
 │   ├── _layout.tsx                # Layout raiz do app (gerencia fontes, temas e estado de login)
 │   ├── action-screen.tsx          # Tela de câmera integrada para capturar fotos/vídeos de desafios
-│   ├── clubs.tsx                  # Tela que lista os clubes do usuário
-│   ├── create-challenge.tsx       # Tela para criação de novos desafios de Verdade ou Desafio
-│   ├── create-group.tsx           # Tela para criação de novos clubes/grupos
-│   ├── feed-comments.tsx          # Tela de comentários e respostas de um post
-│   ├── feed.tsx                   # Tela do Feed principal (postagens e atividades)
-│   ├── forgot-password.tsx        # Tela de solicitação de recuperação de senha
 │   ├── index.tsx                  # Tela de entrada principal (redireciona para login ou feed)
 │   ├── login.tsx                  # Tela de Login do usuário
-│   ├── modal.tsx                  # Modal geral do sistema de rotas
-│   ├── notifications.tsx          # Tela de notificações recebidas pelo usuário
-│   ├── password-success.tsx       # Tela de confirmação de alteração de senha
-│   ├── profile.tsx                # Tela do perfil do próprio usuário logado
-│   ├── proof-detail.tsx           # Tela de detalhes de uma prova (desafio respondido)
-│   ├── reset-password.tsx         # Tela de definição de nova senha
-│   ├── search.tsx                 # Tela de buscas do aplicativo (usuários, clubes, etc.)
-│   ├── settings.tsx               # Tela de configurações de conta e privacidade do aplicativo
 │   ├── signup-screen.tsx          # Tela de cadastro de novos usuários
-│   ├── verify-code.tsx            # Tela para digitar o código de verificação enviado por e-mail
-│   ├── (tabs)/                    # Subpastas para navegação inferior em abas
-│   │   ├── _layout.tsx            # Layout e estilização das abas inferiores
-│   │   ├── explore.tsx            # Aba de descoberta de clubes e perfis em alta
-│   │   └── index.tsx              # Aba inicial (redireciona para o feed)
-│   ├── clubs/                     # Sub-rotas dinâmicas de clubes
-│   │   └── [id].tsx               # Tela de detalhes de um clube específico (busca por ID)
-│   └── profile/                   # Sub-rotas dinâmicas de perfis externos
-│       └── [id].tsx               # Tela de perfil público de outro usuário (busca por ID)
+│   ├── feed.tsx                   # Tela do Feed principal (postagens e atividades)
+│   ├── create-challenge.tsx       # Tela para criação de novos desafios de Verdade ou Desafio
+│   ├── proof-detail.tsx           # Tela de detalhes de uma prova (desafio respondido)
+│   ├── (tabs)/                    # Subpastas para navegação inferior em abas (explore, _layout, index)
+│   ├── clubs/                     # Sub-rotas dinâmicas de clubes (detalhes do clube por ID)
+│   └── profile/                   # Sub-rotas dinâmicas de perfis externos (perfil por ID)
 ├── assets/                        # Arquivos estáticos (imagens, ícones e fontes)
-│   ├── icons/                     # Ícones e logotipos utilizados no aplicativo
-│   └── images/                    # Imagens de fundo, splash screen e imagens padrão
-├── components/                    # Componentes visuais reutilizáveis organizados por tela/funcionalidade
-│   ├── LoginLogo.tsx              # Componente que exibe a logomarca na tela de login
-│   ├── external-link.tsx          # Abre links externos no navegador padrão do celular
-│   ├── haptic-tab.tsx             # Botão de aba com resposta física de vibração ao toque
-│   ├── hello-wave.tsx             # Componente de animação simples (mão acenando)
-│   ├── parallax-scroll-view.tsx   # Efeito visual de imagem de fundo rolando em velocidade diferente
-│   ├── themed-text.tsx            # Texto que adapta sua cor ao tema claro ou escuro do sistema
-│   ├── themed-view.tsx            # Container (View) que adapta sua cor ao tema ativo
-│   ├── account/                   # Componentes específicos de gerenciamento da conta
-│   ├── action/                    # Componentes da câmera, botões e cartões de captura
-│   ├── auth-recovery/             # Componentes visuais do fluxo de recuperação de senha
-│   ├── clubs/                     # Cards, painéis, listas de membros e modais de clubes
-│   ├── create-challenge/          # Compositor, seletores de alvo e tipo de novos desafios
-│   ├── create-group/              # Formulários, seletores de ícones e membros de novos grupos
+├── components/                    # Componentes visuais reutilizáveis organizados por feature
+│   ├── ui/                        # Componentes básicos do design system (botão, input, card, etc.)
 │   ├── feed/                      # Lista de posts, filtros e cabeçalho do feed principal
-│   ├── feed-comments/             # Itens de comentário, modais de denúncia e compositor de respostas
-│   ├── media/                     # Campos e botões para escolha/edição de fotos e áudio
-│   ├── notifications/             # Cartões, badges e estados (vazio/erro) de notificações
-│   ├── profile/                   # Grade de estatísticas, conquistas e cartões do perfil do usuário
-│   ├── proof-detail/              # Visualizadores de mídia, ações e cabeçalho de respostas a desafios
-│   ├── search/                    # Barras de busca, filtros, históricos e listas de recomendados
-│   ├── settings/                  # Modais de alteração de senha, exclusão de conta e suporte
-│   └── ui/                        # Componentes básicos do design system (botões, inputs, modal, etc.)
-├── constants/                     # Configurações visuais estáticas (Design Tokens)
-│   ├── theme.ts                   # Tokens de cores, fontes, tamanhos e espaçamentos do app
-│   └── *Theme.ts                  # Estilos e temas específicos de cada funcionalidade/tela
-├── context/                       # Contextos globais do React (estados compartilhados)
-│   ├── ThemeContext.tsx           # Gerencia e persiste a escolha do tema (claro/escuro)
-│   └── RecoveryFlowContext.tsx    # Mantém dados durante o fluxo de recuperação de senha
+│   ├── clubs/                     # Cards, painéis, listas de membros e modais de clubes
+│   ├── create-challenge/          # Compositor e seletores de tipo de novos desafios
+│   ├── auth-recovery/             # Componentes visuais do fluxo de recuperação de senha
+│   ├── action/                    # Componentes de captura da câmera e botões de ação
+│   ├── proof-detail/              # Visualizadores de mídia e reações a respostas
+│   ├── search/                    # Barras de busca, filtros e histórico de pesquisa
+│   ├── settings/                  # Modais de configurações de conta e suporte
+│   └── notifications/             # Cartões e badges de notificações do usuário
+├── constants/                     # Configurações visuais estáticas (Design Tokens de cores/temas)
+├── context/                       # Contextos globais do React (ThemeContext, RecoveryFlowContext)
 ├── data/                          # Dados estáticos simulados (Mocks) para desenvolvimento local
-│   └── feedMock.ts                # Mock de postagens para simular o app sem internet
 ├── docs/                          # Documentação arquitetural e de negócios do projeto
-├── hooks/                         # Hooks React customizados para gerenciar lógica das telas
-│   ├── use-color-scheme.ts        # Detecta se o celular do usuário está no tema claro/escuro
-│   ├── use-theme-color.ts         # Retorna a cor exata com base no tema ativo (light/dark)
-│   ├── useActionScreen.ts         # Lógica da câmera e gravação para evidências
-│   ├── useClubDetailsScreen.ts    # Lógica de renderização de abas e detalhes do clube
-│   ├── useFeedState.ts            # Gerenciamento de paginação e recarregamento do feed
-│   ├── useNotificationsScreen.ts  # Gerenciamento de recebimento e leitura de notificações
-│   ├── useRecoveryFlow.ts         # Controle das telas de alteração de senha
-│   └── use*.ts                    # Hooks específicos para controle de cada tela (ex: useClubMembers)
-├── scripts/                       # Scripts utilitários de automação
-│   ├── reset-project.js           # Reseta as pastas de rota para o template inicial do Expo
-│   └── update_mobile_env_ip.py    # Atualiza o IP no .env.local para testes no emulador físico
-├── services/                      # Integração com APIs externas e armazenamento do dispositivo
-│   ├── api.ts                     # Cliente HTTP base de comunicação com o backend do projeto
-│   ├── cache.ts                   # Lógica geral de gravação e expiração de dados locais
-│   ├── cachedApi.ts               # Chamadas à API envelopadas em cache para acesso offline
-│   ├── clubsApi.ts                # Chamadas à API específicas do domínio de clubes
-│   ├── mediaPicker.ts             # Integração nativa com a câmera e galeria do celular
-│   ├── notificationsApi.ts        # Chamadas à API específicas do domínio de notificações
-│   ├── settingsStorage.ts         # Persistência local de preferências do usuário (AsyncStorage)
-│   └── uploads.ts                 # Envio direto de imagens e mídia para o Supabase Storage
+├── hooks/                         # Hooks React customizados para gerenciar lógica (useActionScreen, useFeedState, etc.)
+├── scripts/                       # Scripts utilitários de automação (update_mobile_env_ip.py)
+├── services/                      # Integração com APIs externas e armazenamento local (api, uploads, cache)
 ├── types/                         # Tipagem TypeScript compartilhada por todo o projeto
-│   ├── action.ts                  # Definições de tipo para fotos e câmera
-│   ├── clubs.ts                   # Definições de tipo para clubes, membros e convites
-│   ├── feed.ts                    # Definições de tipo para posts de verdades e desafios
-│   └── ...                        # Tipagens para validação de formulários e APIs
-└── __tests__/                     # Pasta contendo toda a suite de testes unitários e de integração (Jest)
+└── __tests__/                     # Pasta contendo toda a suite de testes unitários e de integração
 ```
 
 ## Telas principais

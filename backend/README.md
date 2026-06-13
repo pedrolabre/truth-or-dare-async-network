@@ -1,4 +1,11 @@
-# Truth or Dare Async Network - Backend
+<div align="center">
+
+# ⚡ Truth or Dare Async Network - Backend
+
+![Truth or Dare Backend](../docs/assets/banner-backend-animated.svg)
+
+---
+</div>
 
 Backend da aplicação Truth or Dare, desenvolvido com Node.js, Express, Prisma e PostgreSQL. Responsável por gerenciar autenticação, usuários, pesquisa, notificações e clubes.
 
